@@ -4,7 +4,7 @@
 
 ### Step 1: Clone the Repository
 
-`git clone https://github.com/shawn-carter/ProjectManagemen`
+`git clone https://github.com/shawn-carter/ProjectManagement`
 
 ### Step 2: Navigate into the Project Folder
 
