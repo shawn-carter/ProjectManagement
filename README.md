@@ -43,12 +43,21 @@ Install all dependencies from the requirements.txt file:
 
 `pip install -r requirements.txt`
 
-### Step 7: Create a Superuser
+### Step 7: Create new SQLite3 DB and import the DBUser model
+
+`python manage.py migrate`
+
+### Step 8: Create a Superuser
 Create a superuser to access the admin panel:
 
 `python manage.py createsuperuser`
 
-### Step 8: Run the Development Server
+### Step 9: Collect Static File
+If necessary:
+
+`python manage.py collectstatic`
+
+### Step 10: Run the Development Server
 Start the development server to ensure everything is working:
 
 `python manage.py runserver`
