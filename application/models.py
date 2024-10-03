@@ -16,7 +16,7 @@ class ProjectStatus(SafeDeleteModel):
     _safedelete_policy =SOFT_DELETE
     status_id = models.AutoField(primary_key=True)
     status_name = models.CharField(max_length=50, unique=True)  # Ensure uniqueness
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(null=True)
 
     def __str__(self):
         return self.status_name
@@ -25,7 +25,7 @@ class TaskStatus(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
     status_id = models.AutoField(primary_key=True)
     status_name = models.CharField(max_length=50, unique=True)  # Ensure uniqueness
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(null=True)
 
     def __str__(self):
         return self.status_name
@@ -42,15 +42,15 @@ class Project(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
     project_id = models.AutoField(primary_key=True)
     project_name = models.CharField(max_length=50, unique=True)
-    planned_start_date = models.DateTimeField()
-    original_target_end_date = models.DateTimeField()
-    revised_target_end_date = models.DateTimeField(blank=True, null=True)
-    actual_start_date = models.DateTimeField(blank=True, null=True)
-    actual_end_date = models.DateTimeField(blank=True, null=True)
-    project_owner = models.ForeignKey('Asset', on_delete=models.SET_NULL, null=True, blank=True)
-    project_status = models.ForeignKey(ProjectStatus, on_delete=models.PROTECT, null=True)
-    category = models.ForeignKey(Category, on_delete=models.PROTECT)
-    priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')])
+    planned_start_date = models.DateField(null=True)
+    original_target_end_date = models.DateField(null=True)
+    revised_target_end_date = models.DateField(null=True)
+    actual_start_date = models.DateField(null=True)
+    actual_end_date = models.DateField(null=True)
+    project_owner = models.ForeignKey('Asset', on_delete=models.SET_NULL, null=True)
+    project_status = models.ForeignKey(ProjectStatus, on_delete=models.SET_NULL, null=True)
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, null=True)
+    priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')], null=True)
 
     def __str__(self):
         return self.project_name
@@ -68,14 +68,14 @@ class Task(SafeDeleteModel):
     actual_end_date = models.DateTimeField(blank=True, null=True)
     due_date = models.DateTimeField()
     has_dependency = models.BooleanField(default=False)
-    dependant_task = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
+    dependant_task = models.ForeignKey('self', on_delete=models.PROTECT, null=True, blank=True)
     estimated_time_to_complete = models.DurationField()
     actual_time_to_complete = models.DurationField(blank=True, null=True)
     delay_reason = models.TextField(blank=True, null=True)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
     skills_required = models.ManyToManyField('Skill')
-    assigned_to = models.ForeignKey('Asset', on_delete=models.SET_NULL, null=True, blank=True)
+    assigned_to = models.ForeignKey('Asset', on_delete=models.PROTECT, null=True, blank=True)
 
     def __str__(self):
         return self.task_name

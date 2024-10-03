@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{{ project.project_name }}</h1>
+    <p><strong>Status:</strong> {{ project.project_status }}</p>
+    <p><strong>Description:</strong> {{ project.description }}</p>
+    <a href="{% url 'project_list' %}">Back to Projects</a>
+{% endblock %}

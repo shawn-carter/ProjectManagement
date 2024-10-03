@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Projects</h1>
+    <table id="project-table" class="table table-striped">
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Status</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Project Owner</th>
+                <th>Priority</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+                <tr>
+                    <td><a href="{% url 'project_detail' project.pk %}">{{ project.project_name }}</a></td>
+                    <td>{{ project.project_status }}</td>
+                    <td>{{ project.planned_start_date }}</td>
+                    <td>{{ project.original_target_end_date }}</td>
+                    <td>{{ project.project_owner }}</td>
+                    <td>{{ project.get_priority_display }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

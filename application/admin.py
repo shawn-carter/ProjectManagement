@@ -60,15 +60,18 @@ class AssetAdmin(SafeDeleteAdminExtended):
     list_display = ('name', 'email', 'normal_work_week', 'deleted')  # Display work_days
     list_filter = ('skills', 'teams', 'work_days')  # Add work_days to the list_filter
 
+admin.site.register(Asset, AssetAdmin)
+
+admin.site.register(Skill, SafeDeleteAdminExtended)
+admin.site.register(Team, SafeDeleteAdminExtended)
+
 # Register the models using SafeDeleteAdminExtended and automatically show all fields
 #admin.site.register(Project, SafeDeleteAdminExtended)
 #admin.site.register(Task, SafeDeleteAdminExtended)
-admin.site.register(Asset, AssetAdmin)
 #admin.site.register(Category, SafeDeleteAdminExtended)
 #admin.site.register(TaskStatus, SafeDeleteAdminExtended)
 #admin.site.register(ProjectStatus, SafeDeleteAdminExtended)
-admin.site.register(Skill, SafeDeleteAdminExtended)
-admin.site.register(Team, SafeDeleteAdminExtended)
+
 
 #admin.site.register(DayOfWeek, SafeDeleteAdminExtended)  # Register DayOfWeek model
 
