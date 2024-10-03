@@ -2,7 +2,7 @@ from django.contrib import admin
 from safedelete.admin import SafeDeleteAdmin
 from safedelete.models import SafeDeleteModel, SafeDeleteManager
 from django.db import models as django_models  # Correctly import Django model fields
-from .models import Project, Task, Asset, Category, Status, Skill, Team, DayOfWeek
+from .models import Project, Task, Asset, Category, TaskStatus, ProjectStatus, Skill, Team, DayOfWeek
 
 class SafeDeleteAdminExtended(SafeDeleteAdmin):
     actions = ['undelete_selected']
@@ -61,12 +61,14 @@ class AssetAdmin(SafeDeleteAdminExtended):
     list_filter = ('skills', 'teams', 'work_days')  # Add work_days to the list_filter
 
 # Register the models using SafeDeleteAdminExtended and automatically show all fields
-admin.site.register(Project, SafeDeleteAdminExtended)
-admin.site.register(Task, SafeDeleteAdminExtended)
+#admin.site.register(Project, SafeDeleteAdminExtended)
+#admin.site.register(Task, SafeDeleteAdminExtended)
 admin.site.register(Asset, AssetAdmin)
-admin.site.register(Category, SafeDeleteAdminExtended)
-admin.site.register(Status, SafeDeleteAdminExtended)
+#admin.site.register(Category, SafeDeleteAdminExtended)
+#admin.site.register(TaskStatus, SafeDeleteAdminExtended)
+#admin.site.register(ProjectStatus, SafeDeleteAdminExtended)
 admin.site.register(Skill, SafeDeleteAdminExtended)
 admin.site.register(Team, SafeDeleteAdminExtended)
-admin.site.register(DayOfWeek, SafeDeleteAdminExtended)  # Register DayOfWeek model
+
+#admin.site.register(DayOfWeek, SafeDeleteAdminExtended)  # Register DayOfWeek model
 

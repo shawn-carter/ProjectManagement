@@ -12,10 +12,20 @@ class Category(SafeDeleteModel):
     def __str__(self):
         return self.category_name
 
-class Status(SafeDeleteModel):
+class ProjectStatus(SafeDeleteModel):
+    _safedelete_policy =SOFT_DELETE
+    status_id = models.AutoField(primary_key=True)
+    status_name = models.CharField(max_length=50, unique=True)  # Ensure uniqueness
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.status_name
+
+class TaskStatus(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
     status_id = models.AutoField(primary_key=True)
-    status_name = models.CharField(max_length=50, unique=True)  # E.g., Scoping, Unassigned, Assigned, On Hold, Completed
+    status_name = models.CharField(max_length=50, unique=True)  # Ensure uniqueness
+    description = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.status_name
@@ -38,7 +48,7 @@ class Project(SafeDeleteModel):
     actual_start_date = models.DateTimeField(blank=True, null=True)
     actual_end_date = models.DateTimeField(blank=True, null=True)
     project_owner = models.ForeignKey('Asset', on_delete=models.SET_NULL, null=True, blank=True)
-    status = models.ForeignKey(Status, on_delete=models.PROTECT)
+    project_status = models.ForeignKey(ProjectStatus, on_delete=models.PROTECT, null=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')])
 
@@ -50,7 +60,7 @@ class Task(SafeDeleteModel):
     task_id = models.AutoField(primary_key=True)
     task_name = models.CharField(max_length=50, unique=True)
     project = models.ForeignKey(Project, on_delete=models.PROTECT)
-    status = models.ForeignKey(Status, on_delete=models.PROTECT)
+    task_status = models.ForeignKey(TaskStatus, on_delete=models.PROTECT, null=True)
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')])
     planned_start_date = models.DateTimeField()
     planned_end_date = models.DateTimeField()
