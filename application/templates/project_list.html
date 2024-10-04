@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+    {% if projects %}
     <h1>Projects List</h1>
     <table id="project-table" class="table table-striped">
         <thead>
@@ -26,4 +27,8 @@
             {% endfor %}
         </tbody>
     </table>
+    {% else %}
+        <p>No Projects Found</p>
+    {% endif %}
+
 {% endblock %}

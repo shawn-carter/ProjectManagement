@@ -8,7 +8,7 @@
     <!-- Read-only fields for non-editable values -->
     <p><strong>Planned Start Date:</strong> {{ project.planned_start_date }}</p>
     <p><strong>Original Target End Date:</strong> {{ project.original_target_end_date }}</p>
-    <p><strong>Revised Target End Date:</strong> 
+    {% comment %} <p><strong>Revised Target End Date:</strong> 
         {% if project.revised_target_end_date %}
             {{ project.revised_target_end_date }}
         {% else %}
@@ -28,7 +28,7 @@
         {% else %}
             Not set
         {% endif %}
-    </p>
+    </p> {% endcomment %}
 
     <!-- Project Update Form -->
     <form method="post" action="{% url 'project_edit' project.pk %}">

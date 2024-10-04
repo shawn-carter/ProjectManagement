@@ -1,6 +1,8 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Project, Asset, Category, ProjectStatus, Task, TaskStatus, Skill
+from django.forms.widgets import SelectDateWidget
+from .models import Project, Asset, Category, ProjectStatus, Task, TaskStatus, Skill, Stakeholder, Risk, Assumption, Issue, Dependency
+from .widgets import DurationPickerWidget  # Import the custom widget
 
 # Form for New Project Creation
 class ProjectForm(forms.ModelForm):
@@ -81,7 +83,6 @@ class TaskForm(forms.ModelForm):
         fields = [
             'task_name',
             'task_details',
-            'task_status',
             'priority',
             'planned_start_date',
             'planned_end_date',
@@ -94,19 +95,62 @@ class TaskForm(forms.ModelForm):
         widgets = {
             'task_name': forms.TextInput(attrs={'class': 'form-control'}),
             'task_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'task_status': forms.Select(attrs={'class': 'form-select'}),
             'priority': forms.Select(attrs={'class': 'form-select'}),
             'planned_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'planned_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'estimated_time_to_complete': forms.TextInput(attrs={'class': 'form-control'}),
-            'skills_required': forms.CheckboxSelectMultiple(),
+            'estimated_time_to_complete': DurationPickerWidget(attrs={'class': 'form-control'}),  # Use the custom widget here
+            'skills_required': forms.CheckboxSelectMultiple(attrs={'style': 'columns: 2;'}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
             'halo_ref': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
-        project = kwargs.pop('project', None)  # Removed project-based filtering
+        self.project = kwargs.pop('project', None)  # Remove 'project' argument from kwargs
         super().__init__(*args, **kwargs)
-        # Ensure task status dropdown displays all statuses
-        self.fields['task_status'].queryset = TaskStatus.objects.all()
+
+class StakeholderForm(forms.ModelForm):
+    class Meta:
+        model = Stakeholder
+        fields = ['name', 'interest_level', 'influence_level', 'email']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'interest_level': forms.Select(attrs={'class': 'form-select'}),
+            'influence_level': forms.Select(attrs={'class': 'form-select'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
+
+class RiskForm(forms.ModelForm):
+    class Meta:
+        model = Risk
+        fields = ['risk_details', 'probability', 'impact']
+        widgets = {
+            'risk_details': forms.Textarea(attrs={'class': 'form-control'}),
+            'probability': forms.Select(attrs={'class': 'form-select'}),
+            'impact': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+# Assumption Form
+class AssumptionForm(forms.ModelForm):
+    class Meta:
+        model = Assumption
+        fields = ['assumption_details']
+        widgets = {
+            'assumption_details': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+
+class IssueForm(forms.ModelForm):
+    class Meta:
+        model = Issue
+        fields = ['issue_details']
+        widgets = {
+            'issue_details': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+
+class DependencyForm(forms.ModelForm):
+    class Meta:
+        model = Dependency
+        fields = ['dependency_details']
+        widgets = {
+            'dependency_details': forms.Textarea(attrs={'class': 'form-control'}),
+        }

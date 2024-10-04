@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Add Assumption to Project: {{ project.project_name }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="{% url 'assumption_list' project.pk %}" class="btn btn-secondary">Back to Assumptions</a>
+    </form>
+{% endblock %}

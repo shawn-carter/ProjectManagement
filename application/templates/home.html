@@ -5,10 +5,11 @@
 {% block content %}
 <div class="container mt-5">
     <div class="jumbotron">
-        <h1 class="display-4">Welcome to My Django Application!</h1>
-        <p class="lead">This is the home page of your app, styled with Bootstrap 5.</p>
+        <h1 class="display-4">Welcome to Resource Manager</h1>
+        <p class="lead">This is a custom made Project and Resource Management application.</p>
         <hr class="my-4">
         <p>Feel free to explore the features of this application.</p>
+        <p>To start you can look at existing <a href="{% url 'project_list' %}">Projects</a> or <a href="{% url 'project_create' %}">Create a New Project</a></p>
     </div>
 </div>
 {% endblock %}
