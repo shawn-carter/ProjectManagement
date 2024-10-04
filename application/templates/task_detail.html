@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Task: {{ task.task_name }}</h1>
+    <p><strong>Status:</strong> {{ task.task_status }}</p>
+    <p><strong>Priority:</strong> {{ task.get_priority_display }}</p>
+    <p><strong>Owner:</strong> {{ task.assigned_to }}</p>
+    <p><strong>Planned Start Date:</strong> {{ task.planned_start_date }}</p>
+    <p><strong>Planned End Date:</strong> {{ task.planned_end_date }}</p>
+    <p><strong>Actual Start Date:</strong> {{ task.actual_start_date }}</p>
+    <p><strong>Actual End Date:</strong> {{ task.actual_end_date }}</p>
+    <p><strong>Estimated Time to Complete:</strong> {{ task.estimated_time_to_complete }}</p>
+    <p><strong>Details:</strong> {{ task.task_details }}</p>
+
+    <a href="{% url 'project_taskview' task.project.pk %}" class="btn btn-secondary mt-3">Back to Tasks</a>
+{% endblock %}

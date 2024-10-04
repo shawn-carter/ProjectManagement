@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <!-- Debug statement to check project context -->
+    <p>Project ID: {{ project.pk }}</p>  <!-- Check if project.pk is displayed correctly -->
+
+    <h1>Add Task to Project: {{ project.project_name }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            <div class="mb-3">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <div class="text-danger">
+                        {% for error in field.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">Create Task</button>
+    </form>
+    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-secondary mt-3">Back to Tasks</a>  <!-- This line is causing the issue -->
+{% endblock %}

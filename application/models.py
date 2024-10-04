@@ -42,6 +42,7 @@ class Project(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
     project_id = models.AutoField(primary_key=True)
     project_name = models.CharField(max_length=50, unique=True)
+    project_description = models.TextField(null=True)
     planned_start_date = models.DateField(null=True)
     original_target_end_date = models.DateField(null=True)
     revised_target_end_date = models.DateField(null=True)
@@ -51,14 +52,15 @@ class Project(SafeDeleteModel):
     project_status = models.ForeignKey(ProjectStatus, on_delete=models.SET_NULL, null=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, null=True)
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')], null=True)
-
+    halo_ref = models.IntegerField(null=True)
     def __str__(self):
         return self.project_name
 
 class Task(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
     task_id = models.AutoField(primary_key=True)
-    task_name = models.CharField(max_length=50, unique=True)
+    task_name = models.CharField(max_length=50)
+    task_details = models.TextField(null=True)
     project = models.ForeignKey(Project, on_delete=models.PROTECT)
     task_status = models.ForeignKey(TaskStatus, on_delete=models.PROTECT, null=True)
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')])
@@ -76,7 +78,7 @@ class Task(SafeDeleteModel):
     last_updated_datetime = models.DateTimeField(auto_now=True)
     skills_required = models.ManyToManyField('Skill')
     assigned_to = models.ForeignKey('Asset', on_delete=models.PROTECT, null=True, blank=True)
-
+    halo_ref = models.IntegerField(null=True)
     def __str__(self):
         return self.task_name
 
@@ -87,7 +89,7 @@ class Asset(SafeDeleteModel):
     email = models.EmailField(blank=True, null=True, unique=True)
     skills = models.ManyToManyField('Skill')
     teams = models.ManyToManyField('Team', blank=True)
-    work_days = models.ManyToManyField('DayOfWeek', blank=True)  # Use ManyToManyField for work_days
+    work_days = models.ManyToManyField('DayOfWeek', blank=True)
     normal_work_week = models.IntegerField()
 
     def __str__(self):

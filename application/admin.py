@@ -66,11 +66,11 @@ admin.site.register(Skill, SafeDeleteAdminExtended)
 admin.site.register(Team, SafeDeleteAdminExtended)
 
 # Register the models using SafeDeleteAdminExtended and automatically show all fields
-#admin.site.register(Project, SafeDeleteAdminExtended)
-#admin.site.register(Task, SafeDeleteAdminExtended)
-#admin.site.register(Category, SafeDeleteAdminExtended)
-#admin.site.register(TaskStatus, SafeDeleteAdminExtended)
-#admin.site.register(ProjectStatus, SafeDeleteAdminExtended)
+admin.site.register(Project, SafeDeleteAdminExtended)
+admin.site.register(Task, SafeDeleteAdminExtended)
+admin.site.register(Category, SafeDeleteAdminExtended)
+admin.site.register(TaskStatus, SafeDeleteAdminExtended)
+admin.site.register(ProjectStatus, SafeDeleteAdminExtended)
 
 
 #admin.site.register(DayOfWeek, SafeDeleteAdminExtended)  # Register DayOfWeek model

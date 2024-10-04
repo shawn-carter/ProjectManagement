@@ -1,7 +1,8 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Project, Asset, ProjectStatus
+from .models import Project, Asset, Category, ProjectStatus, Task, TaskStatus, Skill
 
+# Form for New Project Creation
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
@@ -36,3 +37,76 @@ class ProjectForm(forms.ModelForm):
             })
 
         return cleaned_data
+
+# Form for Editing Project Details    
+class ProjectUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = [
+            'project_name',
+            'project_description',
+            'revised_target_end_date',
+            'actual_start_date',
+            'actual_end_date',
+            'project_owner',
+            'project_status',
+            'category',
+            'priority',
+            'halo_ref'
+        ]
+        widgets = {
+            'project_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'project_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'revised_target_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'actual_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'actual_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'project_owner': forms.Select(attrs={'class': 'form-select'}),
+            'project_status': forms.Select(attrs={'class': 'form-select'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'priority': forms.Select(attrs={'class': 'form-select'}),
+            'halo_ref': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+    
+    # Make the new fields not mandatory
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['revised_target_end_date'].required = False
+        self.fields['actual_start_date'].required = False
+        self.fields['actual_end_date'].required = False
+
+# Form for Creating New Project Task
+class TaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = [
+            'task_name',
+            'task_details',
+            'task_status',
+            'priority',
+            'planned_start_date',
+            'planned_end_date',
+            'due_date',
+            'estimated_time_to_complete',
+            'skills_required',
+            'assigned_to',
+            'halo_ref'
+        ]
+        widgets = {
+            'task_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'task_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'task_status': forms.Select(attrs={'class': 'form-select'}),
+            'priority': forms.Select(attrs={'class': 'form-select'}),
+            'planned_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'planned_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'estimated_time_to_complete': forms.TextInput(attrs={'class': 'form-control'}),
+            'skills_required': forms.CheckboxSelectMultiple(),
+            'assigned_to': forms.Select(attrs={'class': 'form-select'}),
+            'halo_ref': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        project = kwargs.pop('project', None)  # Removed project-based filtering
+        super().__init__(*args, **kwargs)
+        # Ensure task status dropdown displays all statuses
+        self.fields['task_status'].queryset = TaskStatus.objects.all()
