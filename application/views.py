@@ -46,7 +46,7 @@ class ProjectUpdateView(UpdateView):
 class ProjectCreateView(CreateView):
     model = Project
     form_class = ProjectForm
-    template_name = 'project_form.html'
+    template_name = 'project_create.html'
     success_url = reverse_lazy('project_list')
 
     def form_valid(self, form):
@@ -67,7 +67,7 @@ class ProjectCreateView(CreateView):
     
 class ProjectTaskView(DetailView):
     model = Project
-    template_name = 'project_taskview.html'
+    template_name = 'project_task_list.html'
     context_object_name = 'project'
 
     def get_context_data(self, **kwargs):
@@ -80,7 +80,7 @@ class ProjectTaskView(DetailView):
 class TaskCreateView(CreateView):
     model = Task
     form_class = TaskForm
-    template_name = 'task_form.html'
+    template_name = 'project_task_create.html'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -105,69 +105,78 @@ class TaskCreateView(CreateView):
 
 class TaskDetailView(DetailView):
     model = Task
-    template_name = 'task_detail.html'
+    template_name = 'project_task_detail.html'
     context_object_name = 'task'
 
-class ProjectSpecificListView(ListView):
-    """Base view for listing project-related items."""
-    template_name = 'project_specific_list.html'
-    context_object_name = 'items'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
-        return context
-
 # Views for listing Risks, Assumptions, Issues, and Dependencies
-class RiskListView(ProjectSpecificListView):
+class RiskListView(ListView):
     model = Risk
+    template_name = 'project_risk_list.html'
+    context_object_name = 'risks'  # Updated context name to refer to the risks list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['model_name_plural'] = 'risks'
-        context['verbose_name_plural'] = self.model._meta.verbose_name_plural
+        # Get the project based on the pk passed in the URL
+        project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        # Add the project and its associated risks to the context
+        context['project'] = project
+        context['risks'] = Risk.objects.filter(project=project)
         return context
 
-class AssumptionListView(ProjectSpecificListView):
+class AssumptionListView(ListView):
     model = Assumption
+    template_name = 'project_assumptions_list.html'
+    context_object_name = 'assumptions'  # Updated context name to refer to the assumption list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['model_name_plural'] = 'assumptions'
-        context['verbose_name_plural'] = self.model._meta.verbose_name_plural
+        # Get the project based on the pk passed in the URL
+        project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        # Add the project and its associated risks to the context
+        context['project'] = project
+        context['assumptions'] = Assumption.objects.filter(project=project)
         return context
 
-class IssueListView(ProjectSpecificListView):
+class IssueListView(ListView):
     model = Issue
+    template_name = 'project_issues_list.html'
+    context_object_name = 'issues'  # Updated context name to refer to the issues list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['model_name_plural'] = 'issues'
-        context['verbose_name_plural'] = self.model._meta.verbose_name_plural
+        # Get the project based on the pk passed in the URL
+        project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        # Add the project and its associated risks to the context
+        context['project'] = project
+        context['issues'] = Issue.objects.filter(project=project)
         return context
 
-class DependencyListView(ProjectSpecificListView):
+class DependencyListView(ListView):
     model = Dependency
+    template_name = 'project_dependencies_list.html'
+    context_object_name = 'dependencies'  # Updated context name to refer to the dependencies list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['model_name_plural'] = 'dependencies'
-        context['verbose_name_plural'] = self.model._meta.verbose_name_plural
+        # Get the project based on the pk passed in the URL
+        project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        # Add the project and its associated risks to the context
+        context['project'] = project
+        context['dependencies'] = Dependency.objects.filter(project=project)
         return context
 
-class StakeholderListView(ProjectSpecificListView):
+class StakeholderListView(ListView):
     model = Stakeholder
-    template_name = 'project_specific_list.html'  # Ensure the template path is correct
+    template_name = 'project_stakeholders_list.html'
+    context_object_name = 'stakeholders'  # Updated context name to refer to the dependencies list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['model_name_plural'] = 'stakeholders'
-        context['verbose_name_plural'] = self.model._meta.verbose_name_plural
+        # Get the project based on the pk passed in the URL
+        project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        # Add the project and its associated risks to the context
+        context['project'] = project
+        context['stakeholders'] = Stakeholder.objects.filter(project=project)
         return context
 
 # Create views for adding new entries

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Assumptions for {{ project.project_name }}</h1>
+    <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary mb-3">Back to Project</a>
+    <a href="{% url 'add_assumption' project.pk %}" class="btn btn-primary mb-3">Add Assumption</a>
+
+    {% if assumptions %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Assumption Details</th>
+                    <th>Created By</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assumption in assumptions %}
+                <tr>
+                    <td>{{ assumption.pk }}</td>
+                    <td>{{ assumption.assumption_details }}</td>
+                    <td>{{ assumption.created_by }}</td>
+                    <td>{{ assumption.created_datetime }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No assumptions found for this project.</p>
+    {% endif %}
+
+{% endblock %}

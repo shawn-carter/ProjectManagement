@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Dependencies for Project: {{ project.project_name }}</h1>
+    <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary mb-3">Back to Project</a>
+    <a href="{% url 'add_dependency' project.pk %}" class="btn btn-primary mb-3">Add Dependencies</a>
+
+    {% if dependencies %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Dependency Details</th>
+                    <th>Created By</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dependency in dependencies %}
+                <tr>
+                    <td>{{ dependency.pk }}</td>
+                    <td>{{ dependency.dependency_details }}</td>
+                    <td>{{ dependency.created_by }}</td>
+                    <td>{{ dependency.created_datetime }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No dependencies found for this project.</p>
+    {% endif %}
+
+{% endblock %}

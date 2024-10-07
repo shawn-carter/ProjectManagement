@@ -2,7 +2,7 @@ from django.contrib import admin
 from safedelete.admin import SafeDeleteAdmin
 from safedelete.models import SafeDeleteModel, SafeDeleteManager
 from django.db import models as django_models  # Correctly import Django model fields
-from .models import Project, Task, Asset, Category, TaskStatus, ProjectStatus, Skill, Team, DayOfWeek
+from .models import Project, Task, Asset, Category, TaskStatus, ProjectStatus, Skill, Team, DayOfWeek, Risk,Assumption, Issue, Dependency, Stakeholder
 
 class SafeDeleteAdminExtended(SafeDeleteAdmin):
     actions = ['undelete_selected']
@@ -71,6 +71,12 @@ admin.site.register(Task, SafeDeleteAdminExtended)
 admin.site.register(Category, SafeDeleteAdminExtended)
 admin.site.register(TaskStatus, SafeDeleteAdminExtended)
 admin.site.register(ProjectStatus, SafeDeleteAdminExtended)
+
+admin.site.register(Risk, SafeDeleteAdminExtended)
+admin.site.register(Assumption, SafeDeleteAdminExtended)
+admin.site.register(Issue, SafeDeleteAdminExtended)
+admin.site.register(Dependency, SafeDeleteAdminExtended)
+admin.site.register(Stakeholder, SafeDeleteAdminExtended)
 
 
 #admin.site.register(DayOfWeek, SafeDeleteAdminExtended)  # Register DayOfWeek model

@@ -3,7 +3,7 @@
 {% block content %}
     <h1>Tasks for {{ project.project_name }}</h1>
     <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary mb-3">Back to Project</a>
-    <a href="{% url 'task_create' project.pk %}" class="btn btn-primary mb-3">Add New Task</a>  <!-- Button to add a new task -->
+    <a href="{% url 'task_create' project.pk %}" class="btn btn-primary mb-3">Add New Task</a>
 
     {% if tasks %}
         <table class="table table-striped">
@@ -20,7 +20,7 @@
             <tbody>
                 {% for task in tasks %}
                     <tr>
-                        <td><a href="{% url 'task_detail' project.pk task.pk %}">{{ task.task_name }}</a></td>  <!-- Corrected URL with both project.pk and task.pk -->
+                        <td><a href="{% url 'task_detail' project.pk task.pk %}">{{ task.task_name }}</a></td>
                         <td>{{ task.task_status }}</td>
                         <td>{{ task.priority }}</td>
                         <td>{{ task.assigned_to }}</td>
@@ -33,4 +33,5 @@
     {% else %}
         <p>No tasks found for this project.</p>
     {% endif %}
+    
 {% endblock %}

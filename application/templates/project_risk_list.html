@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Risks for {{ project.project_name }}</h1>
+    <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary mb-3">Back to Project</a>
+    <a href="{% url 'add_risk' project.pk %}" class="btn btn-primary mb-3">Add Risk</a>
+
+    {% if risks %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Risk Details</th>
+                    <th>Impact</th>
+                    <th>Probability</th>
+                    <th>Risk Score</th>
+                    <th>Created By</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for risk in risks %}
+                <tr>
+                    <td>{{ risk.pk }}</td>
+                    <td>{{ risk.risk_details }}</td>
+                    <td>{{ risk.get_impact_display }}</td>
+                    <td>{{ risk.get_probability_display }}</td>
+                    <td>{{ risk.risk_score }}</td>
+                    <td>{{ risk.created_by }}</td>
+                    <td>{{ risk.created_datetime }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+    <p>No risks found for this project.</p>
+    {% endif %}
+
+{% endblock %}
