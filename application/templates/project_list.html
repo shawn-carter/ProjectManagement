@@ -1,4 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extraCSS %}
+<link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+{% endblock %}
 
 {% block content %}
     {% if projects %}
@@ -12,6 +17,7 @@
                 <th>End Date</th>
                 <th>Project Owner</th>
                 <th>Priority</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -23,6 +29,9 @@
                     <td>{{ project.original_target_end_date }}</td>
                     <td>{{ project.project_owner }}</td>
                     <td>{{ project.get_priority_display }}</td>
+                    <td>
+                        <a href="{% url 'project_edit' project.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -31,4 +40,18 @@
         <p>No Projects Found</p>
     {% endif %}
 
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/datatables.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        $('#project-table').DataTable({
+            dom: 'lfrtipB',
+            buttons: [
+                'copy', 'csv', 'excel', //'print','pdf', we can add these if required
+            ]
+        });
+    });
+</script>
 {% endblock %}

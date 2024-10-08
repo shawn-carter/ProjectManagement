@@ -8,6 +8,10 @@
     <title>{% block title %}Resource Manager{% endblock %}</title>
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/alertify.min.css' %}">
+    {% block extraCSS %}
+        <!-- Extra CSS will be injected here for example DataTables in some templates-->
+    {% endblock %}
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
 </head>
 <body>
@@ -41,7 +45,7 @@
                         <li class="nav-item">
                             <form method="post" action="{% url 'logout' %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-link nav-link" style="border: none; background: none; padding: 0;">Logout</button>
+                                <button type="submit" class="btn btn-link nav-link">Logout</button>
                             </form>
                         </li>
                     {% endif %}
@@ -60,6 +64,27 @@
     <!-- Bootstrap 5 JavaScript Bundle (includes Popper) -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+    {% block extraJS %}
+        <!-- Extra JavaScript will be injected here for example DataTables in some templates-->
+    {% endblock %}
+    <script src="{% static 'js/alertify.min.js' %}"></script>
     <script src="{% static 'js/custom.js' %}"></script>
+    <script>
+        // Wait until the document content is fully loaded before running the script
+        $(document).ready(function () {
+            {% for message in messages %}
+            if ("{{ message.level_tag }}" === "success") {
+                alertify.success("{{ message }}");
+                console.log("{{ message }}")
+            } else if ("{{ message.level_tag }}" === "error") {
+                alertify.error("{{ message }}");
+                console.log("{{ message }}")
+            } else {
+                alertify.message("{{ message }}");
+                console.log("{{ message }}")
+            }
+            {% endfor %}
+        })
+    </script>
 </body>
 </html>

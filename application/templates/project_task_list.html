@@ -1,12 +1,17 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extraCSS %}
+<link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+{% endblock %}
 
 {% block content %}
     <h1>Tasks for {{ project.project_name }}</h1>
-    <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary mb-3">Back to Project</a>
+    <a href="{% url 'project_detail' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
     <a href="{% url 'task_create' project.pk %}" class="btn btn-primary mb-3">Add New Task</a>
 
     {% if tasks %}
-        <table class="table table-striped">
+        <table class="table table-striped" id="task-list">
             <thead>
                 <tr>
                     <th>Task Name</th>
@@ -15,6 +20,7 @@
                     <th>Owner</th>
                     <th>Start Date</th>
                     <th>End Date</th>
+                    <th>Actions</th> <!-- New column for actions -->
                 </tr>
             </thead>
             <tbody>
@@ -26,6 +32,9 @@
                         <td>{{ task.assigned_to }}</td>
                         <td>{{ task.planned_start_date }}</td>
                         <td>{{ task.planned_end_date }}</td>
+                        <td>
+                            <a href="{% url 'task_edit' project.pk task.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -34,4 +43,18 @@
         <p>No tasks found for this project.</p>
     {% endif %}
     
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/datatables.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        $('#task-list').DataTable({
+            dom: 'lfrtipB',
+            buttons: [
+                'copy', 'csv', 'excel', //'print','pdf', we can add these if required
+            ]
+        });
+    });
+</script>
 {% endblock %}

@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>Add Task to: {{ project.project_name }}</h1>  <!-- Display Project Name -->
-    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Tasks</a>  <!-- Back to Task List -->
+    <h1>Edit Task for: {{ project.project_name }}</h1>  <!-- Display Project Name -->
+    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-secondary mb-3">Back to Tasks</a>  <!-- Back to Task List -->
     <form method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
@@ -69,7 +69,7 @@
             {{ form.halo_ref }}
         </div>
 
-        <button type="submit" class="btn btn-danger">Save Task</button>
+        <button type="submit" class="btn btn-danger">Update Task</button>
     </form>
-    
+
 {% endblock %}

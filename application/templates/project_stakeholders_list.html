@@ -1,12 +1,22 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extraCSS %}
+<link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+{% endblock %}
 
 {% block content %}
-    <h1>{{ project.project_name }} - Stakeholders</h1>
-    <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary mb-3">Back to Project</a>
+    <h1>Stakeholders for {{ project.project_name }}</h1>
+    <a href="{% url 'project_detail' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
     <a href="{% url 'add_stakeholder' project.pk %}" class="btn btn-primary mb-3">Add Stakeholder</a>
     
     {% if stakeholders %}
-        <table class="table table-striped table-hover">
+        {% if stakeholder_emails %}
+            <a href="mailto:{{ stakeholder_emails|join:';' }}?subject={{ project.project_name|urlencode }}" class="btn btn-success mb-3">
+                Email All Stakeholders
+            </a>
+        {% endif %}
+        <table class="table table-striped table-hover" id="stakeholders-list">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -16,6 +26,7 @@
                     <th>Influence Level</th>
                     <th>Created By</th>
                     <th>Created At</th>
+                    <th>Actions</th> <!-- New column for actions -->
                 </tr>
             </thead>
             <tbody>
@@ -23,13 +34,19 @@
                     <tr>
                         <td>{{ stakeholder.pk }}</td>
                         <td>{{ stakeholder.name }}</td>
-                        <td>{{ stakeholder.email }}</td>
+                        <td>
+                            {% if stakeholder.email %}
+                                <a href="mailto:{{ stakeholder.email }}">Email: {{ stakeholder.email }}</a>
+                            {% else %}
+                                No Email Available
+                            {% endif %}
+                        </td>
                         <td>{{ stakeholder.get_interest_level_display }}</td>
                         <td>{{ stakeholder.get_influence_level_display }}</td>
                         <td>{{ stakeholder.created_by }}</td>
                         <td>{{ stakeholder.created_datetime }}</td>
                         <td>
-                            <!-- Placeholder for potential actions like Edit/Delete -->
+                            <a href="{% url 'edit_stakeholder' project.pk stakeholder.pk %}" class="btn btn-sm btn-warning">Edit</a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -39,4 +56,18 @@
         <p>No stakeholders found for this project.</p>
     {% endif %} 
     
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/datatables.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        $('#stakeholders-list').DataTable({
+            dom: 'lfrtipB',
+            buttons: [
+                'copy', 'csv', 'excel', //'print','pdf', we can add these if required
+            ]
+        });
+    });
+</script>
 {% endblock %}

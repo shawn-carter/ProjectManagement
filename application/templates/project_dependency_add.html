@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Add a Dependency for {{ project.project_name }}</h1>
+    <a href="{% url 'dependency_list' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Dependencies</a>
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}  <!-- Render the form fields -->
+        <button type="submit" class="btn btn-danger">Save Dependency</button>
+    </form>
+    
+{% endblock %}

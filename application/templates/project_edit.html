@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %} 
+
+    <h1>{{ project.project_name }}</h1>
+    <a href="{% url 'project_list' %}" class="btn btn-secondary mb-3">Back to Projects</a>
+        <!-- Read-only fields for non-editable values -->
+    <p><strong>Planned Start Date:</strong> {{ project.planned_start_date }}</p>
+    <p><strong>Original Target End Date:</strong> {{ project.original_target_end_date }}</p>
+
+    <!-- Project Update Form -->
+    <form method="post" action="{% url 'project_edit' project.pk %}">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="mb-3">
+            <label for="id_project_name" class="form-label">Project Name</label>
+            {{ form.project_name }}
+        </div>
+        <div class="mb-3">
+            <label for="id_project_description" class="form-label">Description</label>
+            {{ form.project_description }}
+        </div>
+        <div class="mb-3">
+            <label for="id_revised_target_end_date" class="form-label">Revised Target End Date</label>
+            {{ form.revised_target_end_date }}
+        </div>
+        <div class="mb-3">
+            <label for="id_actual_start_date" class="form-label">Actual Start Date</label>
+            {{ form.actual_start_date }}
+        </div>
+        <div class="mb-3">
+            <label for="id_actual_end_date" class="form-label">Actual End Date</label>
+            {{ form.actual_end_date }}
+        </div>
+        <div class="mb-3">
+            <label for="id_project_owner" class="form-label">Project Owner</label>
+            {{ form.project_owner }}
+        </div>
+        <div class="mb-3">
+            <label for="id_project_status" class="form-label">Project Status</label>
+            {{ form.project_status }}
+        </div>
+        <div class="mb-3">
+            <label for="id_category" class="form-label">Category</label>
+            {{ form.category }}
+        </div>
+        <div class="mb-3">
+            <label for="id_priority" class="form-label">Priority</label>
+            {{ form.priority }}
+        </div>
+        <div class="mb-3">
+            <label for="id_halo_ref" class="form-label">Halo Reference</label>
+            {{ form.halo_ref }}
+        </div>
+        <button type="submit" class="btn btn-danger">Save Changes</button>
+    </form>
+
+{% endblock %}

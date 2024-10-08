@@ -1,64 +1,29 @@
 {% extends 'base.html' %}
 
-{% block content %} 
+{% block content %}
+    <h1>{{ project.project_name }} - Project Details</h1>
+    <a href="{% url 'project_list' %}" class="btn btn-outline-secondary mb-3">Back to Projects</a>
 
-    <h1>{{ project.project_name }}</h1>
-    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-primary mb-3">Tasks</a>
+    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-primary mb-3">View Tasks</a>
     <a href="{% url 'risk_list' project.pk %}" class="btn btn-danger mb-3">Risks</a>
     <a href="{% url 'assumption_list' project.pk %}" class="btn btn-success mb-3">Assumptions</a>
     <a href="{% url 'issue_list' project.pk %}" class="btn btn-warning mb-3">Issues</a>
-    <a href="{% url 'dependency_list' project.pk %}" class="btn btn-info mb-3">Dependencies</a>
-    <a href="{% url 'stakeholder_list' project.pk %}" class="btn btn-secondary mb-3">Stakeholders</a>
-        <!-- Read-only fields for non-editable values -->
+    <a href="{% url 'dependency_list' project.pk %}" class="btn btn-dark mb-3">Dependencies</a>
+    <a href="{% url 'stakeholder_list' project.pk %}" class="btn btn-info mb-3">Stakeholders</a>
+
+    <h3>Project Overview</h3>
     <p><strong>Planned Start Date:</strong> {{ project.planned_start_date }}</p>
     <p><strong>Original Target End Date:</strong> {{ project.original_target_end_date }}</p>
+    <p><strong>Project Description:</strong> {{ project.project_description }}</p>
+    <p><strong>Revised Target End Date:</strong> {{ project.revised_target_end_date }}</p>
+    <p><strong>Actual Start Date:</strong> {{ project.actual_start_date }}</p>
+    <p><strong>Actual End Date:</strong> {{ project.actual_end_date }}</p>
+    <p><strong>Project Owner:</strong> {{ project.project_owner }}</p>
+    <p><strong>Project Status:</strong> {{ project.project_status }}</p>
+    <p><strong>Category:</strong> {{ project.category }}</p>
+    <p><strong>Priority:</strong> {{ project.get_priority_display }}</p>
+    <p><strong>Halo Reference:</strong> {{ project.halo_ref }}</p>
 
-    <!-- Project Update Form -->
-    <form method="post" action="{% url 'project_edit' project.pk %}">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
-
-        <div class="mb-3">
-            <label for="id_project_name" class="form-label">Project Name</label>
-            {{ form.project_name }}
-        </div>
-        <div class="mb-3">
-            <label for="id_project_description" class="form-label">Description</label>
-            {{ form.project_description }}
-        </div>
-        <div class="mb-3">
-            <label for="id_revised_target_end_date" class="form-label">Revised Target End Date</label>
-            {{ form.revised_target_end_date }}
-        </div>
-        <div class="mb-3">
-            <label for="id_actual_start_date" class="form-label">Actual Start Date</label>
-            {{ form.actual_start_date }}
-        </div>
-        <div class="mb-3">
-            <label for="id_actual_end_date" class="form-label">Actual End Date</label>
-            {{ form.actual_end_date }}
-        </div>
-        <div class="mb-3">
-            <label for="id_project_owner" class="form-label">Project Owner</label>
-            {{ form.project_owner }}
-        </div>
-        <div class="mb-3">
-            <label for="id_project_status" class="form-label">Project Status</label>
-            {{ form.project_status }}
-        </div>
-        <div class="mb-3">
-            <label for="id_category" class="form-label">Category</label>
-            {{ form.category }}
-        </div>
-        <div class="mb-3">
-            <label for="id_priority" class="form-label">Priority</label>
-            {{ form.priority }}
-        </div>
-        <div class="mb-3">
-            <label for="id_halo_ref" class="form-label">Halo Reference</label>
-            {{ form.halo_ref }}
-        </div>
-        <button type="submit" class="btn btn-danger">Save Changes</button>
-    </form>
-    <a href="{% url 'project_list' %}" class="btn btn-secondary mt-3">Back to Projects</a>
+    <a href="{% url 'project_edit' project.pk %}" class="btn btn-warning mt-3">Edit Project</a>
+    
 {% endblock %}
