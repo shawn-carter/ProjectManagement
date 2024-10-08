@@ -109,48 +109,67 @@ class TaskForm(forms.ModelForm):
         self.project = kwargs.pop('project', None)  # Remove 'project' argument from kwargs
         super().__init__(*args, **kwargs)
 
-class StakeholderForm(forms.ModelForm):
-    class Meta:
-        model = Stakeholder
-        fields = ['name', 'interest_level', 'influence_level', 'email']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'interest_level': forms.Select(attrs={'class': 'form-select'}),
-            'influence_level': forms.Select(attrs={'class': 'form-select'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-        }
-
 class RiskForm(forms.ModelForm):
     class Meta:
         model = Risk
-        fields = ['risk_details', 'probability', 'impact']
+        fields = ['risk_details', 'impact', 'probability']  # Specify the fields to include in the form
+        labels = {
+            'risk_details': 'Risk Details',
+            'impact': 'Impact',
+            'probability': 'Probability',
+        }
         widgets = {
-            'risk_details': forms.Textarea(attrs={'class': 'form-control'}),
-            'probability': forms.Select(attrs={'class': 'form-select'}),
+            'risk_details': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
             'impact': forms.Select(attrs={'class': 'form-select'}),
+            'probability': forms.Select(attrs={'class': 'form-select'}),
         }
 
-# Assumption Form
 class AssumptionForm(forms.ModelForm):
     class Meta:
         model = Assumption
-        fields = ['assumption_details']
+        fields = ['assumption_details']  # Include only the necessary fields
+        labels = {
+            'assumption_details': 'Assumption Details',
+        }
         widgets = {
-            'assumption_details': forms.Textarea(attrs={'class': 'form-control'}),
+            'assumption_details': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
         }
 
 class IssueForm(forms.ModelForm):
     class Meta:
         model = Issue
-        fields = ['issue_details']
+        fields = ['issue_details']  # Only include fields present in the model
+        labels = {
+            'issue_details': 'Issue Details',
+        }
         widgets = {
-            'issue_details': forms.Textarea(attrs={'class': 'form-control'}),
+            'issue_details': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
         }
 
 class DependencyForm(forms.ModelForm):
     class Meta:
         model = Dependency
         fields = ['dependency_details']
+        labels = {
+            'dependency_details': 'Dependency Details',
+        }
         widgets = {
-            'dependency_details': forms.Textarea(attrs={'class': 'form-control'}),
+            'dependency_details': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+
+class StakeholderForm(forms.ModelForm):
+    class Meta:
+        model = Stakeholder
+        fields = ['name', 'interest_level', 'influence_level', 'email']
+        labels = {
+            'name': 'Stakeholder Name',
+            'interest_level': 'Interest Level',
+            'influence_level': 'Influence Level',
+            'email': 'Email Address (Optional)',
+        }
+        widgets = {
+            'interest_level': forms.Select(attrs={'class': 'form-control'}),
+            'influence_level': forms.Select(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
