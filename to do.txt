@@ -1,0 +1,3 @@
+Delete projects (soft delete)
+See timeline of all projects, with links that open the individual project.
+

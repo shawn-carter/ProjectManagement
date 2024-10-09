@@ -76,7 +76,7 @@ class Task(SafeDeleteModel):
     actual_end_date = models.DateField(blank=True, null=True)
     due_date = models.DateField(blank=True, null=True)  # Non-mandatory
     estimated_time_to_complete = models.DurationField(blank=True, null=True)  # Non-mandatory
-    actual_time_to_complete = models.DurationField(blank=True, null=True)
+    actual_time_to_complete = models.DurationField(blank=True, null=True)  # Non-mandatory
     has_dependency = models.BooleanField(default=False)
     dependant_task = models.ForeignKey('self', on_delete=models.PROTECT, null=True, blank=True)
     delay_reason = models.TextField(blank=True, null=True)
@@ -88,6 +88,24 @@ class Task(SafeDeleteModel):
 
     def __str__(self):
         return self.task_name
+
+    def save(self, *args, **kwargs):
+        # Check if assigned_to field has changed
+        if self.pk:  # If the object already exists in the database
+            old_instance = Task.objects.get(pk=self.pk)
+            if old_instance.assigned_to and not self.assigned_to:
+                # Task was previously assigned, but now unassigned
+                self.task_status_id = 1  # Unassigned
+            elif self.assigned_to and old_instance.assigned_to != self.assigned_to:
+                # Task is now assigned or reassigned
+                self.task_status_id = 2  # Assigned
+        else:
+            # For new objects
+            if not self.assigned_to:
+                self.task_status_id = 1  # Unassigned by default
+            else:
+                self.task_status_id = 2  # Assigned
+        super().save(*args, **kwargs)
 
 # The Asset Details - Assets have a Team and Skills
 class Asset(SafeDeleteModel):

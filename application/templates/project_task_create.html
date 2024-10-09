@@ -1,75 +1,27 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 
 {% block content %}
-    <h1>Add Task to: {{ project.project_name }}</h1>  <!-- Display Project Name -->
-    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Tasks</a>  <!-- Back to Task List -->
-    <form method="post">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
+    <h1>Add Task to: {{ project.project_name }}</h1>
+    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-secondary mb-3">Back to Tasks</a>
 
-        <!-- Task Name -->
-        <div class="mb-3">
-            <label for="{{ form.task_name.id_for_label }}" class="form-label">{{ form.task_name.label }}</label>
-            {{ form.task_name }}
-        </div>
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% crispy form %}
+        </form>
+    </div>
 
-        <!-- Task Details -->
-        <div class="mb-3">
-            <label for="{{ form.task_details.id_for_label }}" class="form-label">{{ form.task_details.label }}</label>
-            {{ form.task_details }}
-        </div>
+{% endblock %}
 
-        <!-- Priority -->
-        <div class="mb-3">
-            <label for="{{ form.priority.id_for_label }}" class="form-label">{{ form.priority.label }}</label>
-            {{ form.priority }}
-        </div>
-
-        <!-- Planned Start Date -->
-        <div class="mb-3">
-            <label for="{{ form.planned_start_date.id_for_label }}" class="form-label">{{ form.planned_start_date.label }}</label>
-            {{ form.planned_start_date }}
-        </div>
-
-        <!-- Planned End Date -->
-        <div class="mb-3">
-            <label for="{{ form.planned_end_date.id_for_label }}" class="form-label">{{ form.planned_end_date.label }}</label>
-            {{ form.planned_end_date }}
-        </div>
-
-        <!-- Due Date -->
-        <div class="mb-3">
-            <label for="{{ form.due_date.id_for_label }}" class="form-label">{{ form.due_date.label }}</label>
-            {{ form.due_date }}
-        </div>
-
-        <!-- Estimated Time to Complete -->
-        <div class="mb-3">
-            <label for="{{ form.estimated_time_to_complete.id_for_label }}" class="form-label">{{ form.estimated_time_to_complete.label }}</label>
-            {{ form.estimated_time_to_complete }}
-        </div>
-
-        <!-- Skills Required -->
-        <div class="mb-3">
-            <label for="{{ form.skills_required.id_for_label }}" class="form-label">{{ form.skills_required.label }}</label>
-            <div class="d-flex justify-content-between" style="column-count: 2;">
-                {{ form.skills_required }}
-            </div>
-        </div>
-
-        <!-- Assigned To -->
-        <div class="mb-3">
-            <label for="{{ form.assigned_to.id_for_label }}" class="form-label">{{ form.assigned_to.label }}</label>
-            {{ form.assigned_to }}
-        </div>
-
-        <!-- Halo Reference -->
-        <div class="mb-3">
-            <label for="{{ form.halo_ref.id_for_label }}" class="form-label">{{ form.halo_ref.label }}</label>
-            {{ form.halo_ref }}
-        </div>
-
-        <button type="submit" class="btn btn-danger">Save Task</button>
-    </form>
-    
+{% block extraJS %}
+<script>
+    $(document).ready(function () {
+        // Check for elements with the 'is-invalid' class and focus on the first one found
+        var firstInvalidField = $('.is-invalid').first();
+        if (firstInvalidField.length) {
+            firstInvalidField.focus();
+        }
+    });
+</script>
 {% endblock %}

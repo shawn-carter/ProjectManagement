@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+<h1>Task Calendar for {{ project.project_name }}</h1>
+<a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary mb-3">Back to Project</a>
+
+<!-- Calendar Element -->
+<div id='calendar'></div>
+
+{% endblock %}
+
+{% block extraJS %}
+{% load static %}
+<script src="{% static 'js/fullcalendar.min.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            initialView: 'dayGridMonth',
+            navLinks: true, // Can click day/week names to navigate views
+            editable: false, // Disable editing
+            events: {{ task_events|safe }},  // Render events from context
+
+            eventClick: function(info) {
+                // Navigate to the task detail page on click
+                window.location.href = info.event.url;
+                info.jsEvent.preventDefault();
+            }
+        });
+
+        calendar.render();
+    });
+</script>
+{% endblock %}

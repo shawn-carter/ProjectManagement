@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
-from .views import ProjectListView, ProjectDetailView, ProjectCreateView, ProjectUpdateView, ProjectTaskView, TaskCreateView, TaskDetailView, RiskListView, RiskCreateView, AssumptionListView, AssumptionCreateView, IssueListView, IssueCreateView, DependencyListView, DependencyCreateView, StakeholderListView, StakeholderCreateView, RiskUpdateView, AssumptionUpdateView, IssueUpdateView, DependencyUpdateView, StakeholderUpdateView, TaskUpdateView
+from .views import ProjectListView, ProjectDetailView, ProjectCreateView, ProjectUpdateView, ProjectTaskView, TaskCreateView, TaskDetailView, RiskListView, RiskCreateView, AssumptionListView, AssumptionCreateView, IssueListView, IssueCreateView, DependencyListView, DependencyCreateView, StakeholderListView, StakeholderCreateView, RiskUpdateView, AssumptionUpdateView, IssueUpdateView, DependencyUpdateView, StakeholderUpdateView, TaskUpdateView, project_calendar, project_events, ProjectTaskCalendarView, TaskCompleteView
 
 urlpatterns = [
     # Unauthorised users URLS    
@@ -18,6 +18,7 @@ urlpatterns = [
     path('projects/<int:pk>/task/add/', TaskCreateView.as_view(), name='task_create'),  # URL pattern for creating a new task
     path('projects/<int:project_pk>/task/<int:pk>/', TaskDetailView.as_view(), name='task_detail'),  # New URL pattern for task detail view
     path('projects/<int:project_pk>/task/<int:pk>/edit/', TaskUpdateView.as_view(), name='task_edit'),
+    path('projects/<int:project_pk>/task/<int:pk>/complete/', TaskCompleteView.as_view(), name='task_complete'),
 
     # Project Stuff
     path('projects/<int:pk>/risks/', RiskListView.as_view(), name='risk_list'),
@@ -35,4 +36,9 @@ urlpatterns = [
     path('projects/<int:pk>/stakeholders/', StakeholderListView.as_view(), name='stakeholder_list'),
     path('projects/<int:pk>/stakeholders/add/', StakeholderCreateView.as_view(), name='add_stakeholder'),
     path('projects/<int:pk>/stakeholders/<int:stakeholder_pk>/edit/', StakeholderUpdateView.as_view(), name='edit_stakeholder'),    
+
+    # Calendar Stuff
+    path('projects/calendar/', project_calendar, name='project_calendar'),
+    path('projects/events/', project_events, name='project_events'),
+    path('projects/<int:pk>/tasks/calendar/', ProjectTaskCalendarView.as_view(), name='project_task_calendar'),
 ]

@@ -79,5 +79,5 @@ admin.site.register(Dependency, SafeDeleteAdminExtended)
 admin.site.register(Stakeholder, SafeDeleteAdminExtended)
 
 
-#admin.site.register(DayOfWeek, SafeDeleteAdminExtended)  # Register DayOfWeek model
+admin.site.register(DayOfWeek, SafeDeleteAdminExtended)  # Register DayOfWeek model
 

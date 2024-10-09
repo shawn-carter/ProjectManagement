@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>{{ project.project_name }} - Project Details</h1>
+    <h1>{{ project.project_name }}</h1>
     <a href="{% url 'project_list' %}" class="btn btn-outline-secondary mb-3">Back to Projects</a>
 
     <a href="{% url 'project_taskview' project.pk %}" class="btn btn-primary mb-3">View Tasks</a>
@@ -10,6 +10,7 @@
     <a href="{% url 'issue_list' project.pk %}" class="btn btn-warning mb-3">Issues</a>
     <a href="{% url 'dependency_list' project.pk %}" class="btn btn-dark mb-3">Dependencies</a>
     <a href="{% url 'stakeholder_list' project.pk %}" class="btn btn-info mb-3">Stakeholders</a>
+    <a href="{% url 'project_task_calendar' project.pk %}" class="btn btn-success mb-3">Project Task Calendar</a>
 
     <h3>Project Overview</h3>
     <p><strong>Planned Start Date:</strong> {{ project.planned_start_date }}</p>
@@ -22,7 +23,10 @@
     <p><strong>Project Status:</strong> {{ project.project_status }}</p>
     <p><strong>Category:</strong> {{ project.category }}</p>
     <p><strong>Priority:</strong> {{ project.get_priority_display }}</p>
-    <p><strong>Halo Reference:</strong> {{ project.halo_ref }}</p>
+    <p><strong>Halo Reference:</strong>
+        <a href="https://redcarcouncil.haloservicedesk.com/tickets?id={{ project.halo_ref }}" target="_blank">
+            {{ project.halo_ref }}
+        </a></p>
 
     <a href="{% url 'project_edit' project.pk %}" class="btn btn-warning mt-3">Edit Project</a>
     

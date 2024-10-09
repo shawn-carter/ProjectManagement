@@ -1,37 +1,43 @@
+from datetime import timedelta
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse
+from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render,get_object_or_404, redirect
 from django.views.generic import ListView, DetailView,CreateView, UpdateView
 from django.urls import reverse_lazy,reverse
 
 from .models import Project, ProjectStatus, Task, Stakeholder, Risk, Issue, Assumption, Dependency
-from .forms import ProjectForm, ProjectUpdateForm, TaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm
+from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm
 
 # Home page view
 @login_required  # Optional: Use this decorator if you want to restrict access to authenticated users only
 def home(request):
     return render(request, 'home.html')
 
-class ProjectListView(LoginRequiredMixin,ListView):
-    """
-    View for displaying a list of active projects.
-    Inherits from LoginRequiredMixin and ListView.
-    Attributes:
-        model (Project): The model to use for the view.
-        template_name (str): The name of the template to use for rendering the view.
-        context_object_name (str): The name of the context object to use in the template.
-    Methods:
-        get_queryset(): Returns all active projects (excluding soft-deleted ones) ordered by project name.
-    """
-    model = Project  # Specify the model
-    template_name = 'project_list.html'  # Specify the template to use
-    context_object_name = 'projects'  # Name the context object to use in the template
+class ProjectCreateView(LoginRequiredMixin,CreateView):
+    model = Project
+    form_class = ProjectForm
+    template_name = 'project_create.html'
+    success_url = reverse_lazy('project_list')
 
-    def get_queryset(self):
-        # Return all active projects (excluding soft-deleted ones)
-        return Project.objects.filter(deleted=None).order_by('project_name')
- 
+    def form_valid(self, form):
+        # Debugging statements
+        print(f"Form is valid: {form.is_valid()}")
+        print(f"Form errors: {form.errors}")
+
+        # Set the default status as 'New' when the form is valid
+        default_status = ProjectStatus.objects.filter(status_name__iexact='New').first()
+        form.instance.project_status = default_status
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        # Additional debug statement to check why the form is invalid
+        print(f"Form is invalid: {form.is_valid()}")
+        print(f"Form errors: {form.errors}")
+        return super().form_invalid(form)
+
 class ProjectEditView(LoginRequiredMixin,DetailView):
     """
     View for displaying the details of a project.
@@ -57,12 +63,42 @@ class ProjectEditView(LoginRequiredMixin,DetailView):
         context['form'] = ProjectUpdateForm(instance=self.object)
         return context
 
-class ProjectDetailView(DetailView):
+class ProjectListView(LoginRequiredMixin,ListView):
+    """
+    View for displaying a list of active projects.
+    Inherits from LoginRequiredMixin and ListView.
+    Attributes:
+        model (Project): The model to use for the view.
+        template_name (str): The name of the template to use for rendering the view.
+        context_object_name (str): The name of the context object to use in the template.
+    Methods:
+        get_queryset(): Returns all active projects (excluding soft-deleted ones) ordered by project name.
+    """
+    model = Project  # Specify the model
+    template_name = 'project_list.html'  # Specify the template to use
+    context_object_name = 'projects'  # Name the context object to use in the template
+
+    def get_queryset(self):
+        # Return all active projects (excluding soft-deleted ones)
+        return Project.objects.filter(deleted=None).order_by('project_name')
+ 
+class ProjectDetailView(LoginRequiredMixin, DetailView):
     model = Project
-    template_name = 'project_detail.html'  # New read-only detail view template
+    template_name = 'project_detail.html'  # Read-only detail view template
     context_object_name = 'project'
 
-class ProjectUpdateView(UpdateView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project = self.object  # Get the project instance
+
+        # Check if all tasks for this project are completed
+        all_tasks_completed = project.task_set.filter(~Q(task_status__status_name='Complete')).count() == 0
+
+        # Pass the 'all_tasks_completed' status to the template
+        context['all_tasks_completed'] = all_tasks_completed
+        return context
+
+class ProjectUpdateView(LoginRequiredMixin,UpdateView):
     model = Project
     form_class = ProjectUpdateForm
     template_name = 'project_edit.html'  # Edit form template
@@ -71,29 +107,6 @@ class ProjectUpdateView(UpdateView):
     def form_valid(self, form):
         form.save()
         return redirect(reverse('project_detail', kwargs={'pk': self.object.pk}))
-
-
-class ProjectCreateView(LoginRequiredMixin,CreateView):
-    model = Project
-    form_class = ProjectForm
-    template_name = 'project_create.html'
-    success_url = reverse_lazy('project_list')
-
-    def form_valid(self, form):
-        # Debugging statements
-        print(f"Form is valid: {form.is_valid()}")
-        print(f"Form errors: {form.errors}")
-
-        # Set the default status as 'New' when the form is valid
-        default_status = ProjectStatus.objects.filter(status_name__iexact='New').first()
-        form.instance.project_status = default_status
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        # Additional debug statement to check why the form is invalid
-        print(f"Form is invalid: {form.is_valid()}")
-        print(f"Form errors: {form.errors}")
-        return super().form_invalid(form)
 
 class ProjectTaskView(LoginRequiredMixin,DetailView):
     model = Project
@@ -107,9 +120,9 @@ class ProjectTaskView(LoginRequiredMixin,DetailView):
         context['tasks'] = Task.objects.filter(project=self.object)
         return context
 
-class TaskCreateView(LoginRequiredMixin,CreateView):
+class TaskCreateView(LoginRequiredMixin, CreateView):
     model = Task
-    form_class = TaskForm
+    form_class = CreateTaskForm
     template_name = 'project_task_create.html'
 
     def get_form_kwargs(self):
@@ -121,10 +134,14 @@ class TaskCreateView(LoginRequiredMixin,CreateView):
     def form_valid(self, form):
         # Assign the project instance to the task instance before saving
         form.instance.project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        
+        # Set has_dependency to True if a dependant_task is selected
+        if form.cleaned_data['dependant_task']:
+            form.instance.has_dependency = True
+
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
-        # Add the project object to the context
         context = super().get_context_data(**kwargs)
         context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
         return context
@@ -133,15 +150,44 @@ class TaskCreateView(LoginRequiredMixin,CreateView):
         # Redirect back to the project task view upon successful form submission
         return reverse('project_taskview', kwargs={'pk': self.kwargs['pk']})
 
-class TaskUpdateView(UpdateView):
+class TaskUpdateView(LoginRequiredMixin, UpdateView):
     model = Task
-    form_class = TaskForm
-    template_name = 'project_task_edit.html'  # Create this new template based on project_task_create.html
+    form_class = EditTaskForm
+    template_name = 'project_task_edit.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Get the current task object
+        task = self.get_object()
+
+        # Check if the task is already completed (assuming status ID 3 is 'Completed')
+        if task.task_status.pk == 3:  
+            # Show an error message and redirect to the task detail page
+            messages.error(request, "This task is already completed and cannot be edited.")
+            return redirect('task_detail', project_pk=task.project.pk, pk=task.pk)
+
+        # Allow normal processing if the task is not completed
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Pass the project instance to the form for context if needed
+        task_instance = self.get_object()
+        kwargs['project'] = task_instance.project
+        return kwargs
+
+    def form_valid(self, form):
+        # Set has_dependency to True if a dependant_task is selected, otherwise False
+        if form.cleaned_data['dependant_task']:
+            form.instance.has_dependency = True
+        else:
+            form.instance.has_dependency = False
+
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Pass the project information to the template
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        # Add the project object to the context
+        context['project'] = self.get_object().project
         return context
 
     def get_success_url(self):
@@ -152,6 +198,26 @@ class TaskDetailView(LoginRequiredMixin,DetailView):
     model = Task
     template_name = 'project_task_detail.html'
     context_object_name = 'task'
+
+class TaskCompleteView(LoginRequiredMixin, UpdateView):
+    model = Task
+    form_class = TaskCompleteForm
+    template_name = 'project_task_complete.html'
+
+    def form_valid(self, form):
+        # Set the task status to "Completed" (status ID 3)
+        task = form.save(commit=False)
+        task.task_status_id = 3
+        task.save()
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['project'] = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        return context
+
+    def get_success_url(self):
+        return reverse('task_detail', kwargs={'project_pk': self.kwargs['project_pk'], 'pk': self.kwargs['pk']})
 
 # Views for listing Risks, Assumptions, Issues, and Dependencies
 
@@ -211,7 +277,7 @@ class DependencyListView(LoginRequiredMixin,ListView):
         context['dependencies'] = Dependency.objects.filter(project=project)
         return context
     
-class StakeholderListView(ListView):
+class StakeholderListView(LoginRequiredMixin,ListView):
     model = Stakeholder
     template_name = 'project_stakeholders_list.html'
     context_object_name = 'stakeholders'
@@ -312,7 +378,7 @@ class DependencyCreateView(LoginRequiredMixin,CreateView):
         # Redirect back to the dependency list view after successful creation
         return reverse_lazy('dependency_list', kwargs={'pk': self.kwargs['pk']})
     
-class StakeholderCreateView(CreateView):
+class StakeholderCreateView(LoginRequiredMixin,CreateView):
     model = Stakeholder
     form_class = StakeholderForm
     template_name = 'project_stakeholder_add.html'
@@ -333,7 +399,7 @@ class StakeholderCreateView(CreateView):
         # Redirect to the stakeholder list view upon successful creation
         return reverse_lazy('stakeholder_list', kwargs={'pk': self.kwargs['pk']})
     
-class RiskUpdateView(UpdateView):
+class RiskUpdateView(LoginRequiredMixin,UpdateView):
     model = Risk
     form_class = RiskForm
     template_name = 'project_risk_add.html'
@@ -353,7 +419,7 @@ class RiskUpdateView(UpdateView):
         return reverse_lazy('risk_list', kwargs={'pk': self.kwargs['pk']})
 
 # Assumption Update View
-class AssumptionUpdateView(UpdateView):
+class AssumptionUpdateView(LoginRequiredMixin,UpdateView):
     model = Assumption
     form_class = AssumptionForm
     template_name = 'project_assumption_add.html'  # Reusing the existing template
@@ -372,7 +438,7 @@ class AssumptionUpdateView(UpdateView):
 
 
 # Similar update views for Issue, Dependency, and Stakeholder
-class IssueUpdateView(UpdateView):
+class IssueUpdateView(LoginRequiredMixin,UpdateView):
     model = Issue
     form_class = IssueForm
     template_name = 'project_issue_add.html'
@@ -390,7 +456,7 @@ class IssueUpdateView(UpdateView):
         return reverse_lazy('issue_list', kwargs={'pk': self.kwargs['pk']})
 
 
-class DependencyUpdateView(UpdateView):
+class DependencyUpdateView(LoginRequiredMixin,UpdateView):
     model = Dependency
     form_class = DependencyForm
     template_name = 'project_dependency_add.html'
@@ -408,7 +474,7 @@ class DependencyUpdateView(UpdateView):
         return reverse_lazy('dependency_list', kwargs={'pk': self.kwargs['pk']})
 
 
-class StakeholderUpdateView(UpdateView):
+class StakeholderUpdateView(LoginRequiredMixin,UpdateView):
     model = Stakeholder
     form_class = StakeholderForm
     template_name = 'project_stakeholder_add.html'
@@ -424,3 +490,94 @@ class StakeholderUpdateView(UpdateView):
 
     def get_success_url(self):
         return reverse_lazy('stakeholder_list', kwargs={'pk': self.kwargs['pk']})
+
+@login_required    
+def project_calendar(request):
+    """Renders the calendar page with project events."""
+    return render(request, 'project_calendar.html')
+
+@login_required
+def project_events(request):
+    """Returns a JSON response with project events for FullCalendar."""
+    projects = Project.objects.all().order_by('planned_start_date')
+    events = []
+    for project in projects:
+        start_date = project.actual_start_date if project.actual_start_date else project.planned_start_date
+        end_date = project.actual_end_date if project.actual_end_date else project.revised_target_end_date or project.original_target_end_date
+
+        # Skip projects that don't have a start or end date
+        if start_date and end_date:
+            # Determine the background colour
+            background_color = get_color_for_project(project.pk)
+            
+            # Set the text colour based on the background colour
+            text_color = '#000000' if background_color in ['#FFFF00', '#00FFFF', '#FFFFFF','#00FF00'] else '#FFFFFF'
+            
+            events.append({
+                'title': project.project_name,
+                'start': start_date.strftime('%Y-%m-%d'),
+                'end': (end_date + timedelta(days=1)).strftime('%Y-%m-%d'),  # Add one day to include end date
+                'url': reverse('project_detail', args=[project.pk]),  # Link to project detail page
+                'color': background_color,  # Background colour for the event
+                'textColor': text_color,  # Text colour based on the background
+                'allDay': True,
+            })
+    return JsonResponse(events, safe=False)
+
+@login_required
+def get_color_for_project(project_id):
+    """Generate a color based on the project ID."""
+    # Predefined list of colors to cycle through
+    colors = ['#0000FF', '#00FF00', '#FF0000', '#00FFFF', '#FF00FF', '#FFFF00']
+    return colors[project_id % len(colors)]  # Cycle through the list based on the project ID
+
+class ProjectTaskCalendarView(LoginRequiredMixin,DetailView):
+    model = Project
+    template_name = 'project_task_calendar.html'  # Create this template
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project = self.get_object()
+
+        # Filter tasks for the current project
+        tasks = Task.objects.filter(project=project)
+
+        # Prepare task data for FullCalendar
+        task_events = []
+        colors = {
+            1: '#808080',  # Low (grey)
+            2: '#008000',  # Medium (green)
+            3: '#FFFF00',  # High (yellow)
+            4: '#FFA500',  # Critical (orange)
+            5: '#FF0000',  # Urgent (red)
+        }
+
+        for task in tasks:
+            # Determine start and end dates
+            start_date = task.actual_start_date or task.planned_start_date
+            end_date = task.actual_end_date or task.planned_end_date
+
+            if start_date and end_date:
+                task_events.append({
+                    'title': task.task_name,
+                    'start': str(start_date),
+                    'end': str(end_date + timedelta(days=1)),  # FullCalendar uses exclusive end dates
+                    'backgroundColor': colors.get(task.priority, '#808080'),  # Fallback to grey
+                    'borderColor': colors.get(task.priority, '#808080'),
+                    'textColor': '#000000',
+                    'url': reverse('task_detail', kwargs={'project_pk': project.pk, 'pk': task.pk}),
+                })
+
+            # Add a separate event for the due date if it exists
+            if task.due_date:
+                task_events.append({
+                    'title': f'{task.task_name} (Due)',
+                    'start': str(task.due_date),
+                    'end': str(task.due_date),
+                    'backgroundColor': '#FF6347',  # Tomato color for due date
+                    'borderColor': '#FF6347',
+                    'url': reverse('task_detail', kwargs={'project_pk': project.pk, 'pk': task.pk}),
+                })
+
+        context['task_events'] = task_events
+        return context

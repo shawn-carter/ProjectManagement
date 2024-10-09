@@ -1,3 +1,6 @@
+from crispy_forms.bootstrap import FormActions
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Submit, Row, Column, Div, Field, Fieldset
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.widgets import SelectDateWidget
@@ -76,11 +79,41 @@ class ProjectUpdateForm(forms.ModelForm):
         self.fields['actual_start_date'].required = False
         self.fields['actual_end_date'].required = False
 
-# Form for Creating New Project Task
-class TaskForm(forms.ModelForm):
+class CreateTaskForm(forms.ModelForm):
     class Meta:
         model = Task
         fields = [
+            'task_name', 'task_details', 'priority',
+            'planned_start_date', 'planned_end_date', 'due_date', 
+            'estimated_time_to_complete', 'skills_required', 'assigned_to',
+            'dependant_task', 'halo_ref',
+        ]
+        widgets = {
+            'task_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'task_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'priority': forms.Select(attrs={'class': 'form-select'}),
+            'planned_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'planned_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'estimated_time_to_complete': forms.NumberInput(attrs={'class': 'form-control'}),
+            'skills_required': forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-group'}),
+            'assigned_to': forms.Select(attrs={'class': 'form-select'}),
+            'dependant_task': forms.Select(attrs={'class': 'form-select'}),
+            'halo_ref': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.project = kwargs.pop('project', None)
+        super().__init__(*args, **kwargs)
+
+        if self.project:
+            # Filter dependant_task to only include tasks from the same project
+            self.fields['dependant_task'].queryset = Task.objects.filter(project=self.project)
+        
+        # Crispy forms configuration
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
             'task_name',
             'task_details',
             'priority',
@@ -90,7 +123,34 @@ class TaskForm(forms.ModelForm):
             'estimated_time_to_complete',
             'skills_required',
             'assigned_to',
-            'halo_ref'
+            'dependant_task',
+            'delay_reason',
+            'halo_ref',
+            Submit('submit', 'Save Task', css_class='btn btn-success')
+        )
+
+    def clean(self):
+        """
+        Custom validation to ensure the end date is not before the start date.
+        """
+        cleaned_data = super().clean()
+        planned_start_date = cleaned_data.get("planned_start_date")
+        planned_end_date = cleaned_data.get("planned_end_date")
+
+        # Check if both dates are provided and end date is not before start date
+        if planned_start_date and planned_end_date and planned_end_date < planned_start_date:
+            self.add_error('planned_end_date', 'End date cannot be earlier than the start date.')
+
+        return cleaned_data
+
+class EditTaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = [
+            'task_name', 'task_details', 'priority',
+            'planned_start_date', 'planned_end_date', 'due_date', 'actual_start_date', 'actual_end_date',
+            'estimated_time_to_complete', 'skills_required', 'assigned_to',
+            'dependant_task', 'delay_reason', 'halo_ref',
         ]
         widgets = {
             'task_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -99,15 +159,101 @@ class TaskForm(forms.ModelForm):
             'planned_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'planned_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'estimated_time_to_complete': DurationPickerWidget(attrs={'class': 'form-control'}),  # Use the custom widget here
-            'skills_required': forms.CheckboxSelectMultiple(attrs={'style': 'columns: 2;'}),
+            'actual_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'actual_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'estimated_time_to_complete': forms.NumberInput(attrs={'class': 'form-control'}),
+            'skills_required': forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-group'}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
+            'dependant_task': forms.Select(attrs={'class': 'form-select'}),
+            'delay_reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'halo_ref': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
-        self.project = kwargs.pop('project', None)  # Remove 'project' argument from kwargs
+        self.project = kwargs.pop('project', None)
         super().__init__(*args, **kwargs)
+
+        if self.project:
+            # Filter dependant_task to only include tasks from the same project
+            self.fields['dependant_task'].queryset = Task.objects.filter(
+                project=self.instance.project
+            ).exclude(pk=self.instance.pk)
+        
+        # Crispy forms configuration
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            'task_name',
+            'task_details',
+            'priority',
+            'planned_start_date',
+            'planned_end_date',
+            'due_date',
+            'actual_start_date',
+            'actual_end_date',
+            'estimated_time_to_complete',
+            'skills_required',
+            'assigned_to',
+            'dependant_task',
+            'delay_reason',
+            'halo_ref',
+            Submit('submit', 'Save Changes', css_class='btn btn-warning')
+        )
+
+    def clean(self):
+        """
+        Custom validation to ensure the end date is not before the start date.
+        """
+        cleaned_data = super().clean()
+        planned_start_date = cleaned_data.get("planned_start_date")
+        planned_end_date = cleaned_data.get("planned_end_date")
+
+        # Check if both dates are provided and end date is not before start date
+        if planned_start_date and planned_end_date and planned_end_date < planned_start_date:
+            self.add_error('planned_end_date', 'End date cannot be earlier than the start date.')
+
+        actual_start_date = cleaned_data.get("actual_start_date")
+        actual_end_date = cleaned_data.get("actual_end_date")
+        if actual_start_date and actual_end_date and actual_end_date < actual_start_date:
+            self.add_error('actual_end_date', 'End date cannot be earlier than the start date.')
+
+        return cleaned_data
+
+class TaskCompleteForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['actual_start_date', 'actual_end_date', 'actual_time_to_complete']
+
+        widgets = {
+            'actual_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'actual_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'actual_time_to_complete': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Crispy forms configuration
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            'actual_start_date',
+            'actual_end_date',
+            'actual_time_to_complete',
+            Submit('submit', 'Confirm Completion', css_class='btn btn-success')
+        )
+
+    def clean(self):
+        """
+        Custom validation to ensure the end date is not before the start date.
+        """
+        cleaned_data = super().clean()
+        actual_start_date = cleaned_data.get("actual_start_date")
+        actual_end_date = cleaned_data.get("actual_end_date")
+
+        if actual_start_date and actual_end_date and actual_end_date < actual_start_date:
+            self.add_error('actual_end_date', 'End date cannot be earlier than the start date.')
+
+        return cleaned_data
 
 class RiskForm(forms.ModelForm):
     class Meta:
@@ -168,8 +314,6 @@ class StakeholderForm(forms.ModelForm):
             'email': 'Email Address (Optional)',
         }
         widgets = {
-            'interest_level': forms.Select(attrs={'class': 'form-control'}),
-            'influence_level': forms.Select(attrs={'class': 'form-control'}),
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'interest_level': forms.Select(attrs={'class': 'form-select'}),
+            'influence_level': forms.Select(attrs={'class': 'form-select'}),
         }

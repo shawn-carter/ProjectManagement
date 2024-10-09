@@ -2,15 +2,36 @@
 
 {% block content %}
     <h1>Task: {{ task.task_name }}</h1>
-    <p><strong>Status:</strong> {{ task.task_status }}</p>
+    <a href="{% url 'project_taskview' task.project.pk %}" class="btn btn-secondary mb-3">Back to Tasks</a>
+    <p><strong>Status:</strong> {{ task.task_status.status_name }}</p>
     <p><strong>Priority:</strong> {{ task.get_priority_display }}</p>
     <p><strong>Owner:</strong> {{ task.assigned_to }}</p>
     <p><strong>Planned Start Date:</strong> {{ task.planned_start_date }}</p>
     <p><strong>Planned End Date:</strong> {{ task.planned_end_date }}</p>
     <p><strong>Actual Start Date:</strong> {{ task.actual_start_date }}</p>
     <p><strong>Actual End Date:</strong> {{ task.actual_end_date }}</p>
+    <p><strong>Due Date:</strong> {{ task.due_date }}</p>
     <p><strong>Estimated Time to Complete:</strong> {{ task.estimated_time_to_complete }}</p>
-    <p><strong>Details:</strong> {{ task.task_details }}</p>
+    <p><strong>Actual Time to Complete:</strong> {{ task.actual_time_to_complete }}</p>
+    <p><strong>Has Dependency:</strong> {{ task.has_dependency }}</p>
+    <p><strong>Dependant Task:</strong> 
+        {% if task.dependant_task %}
+            <a href="{% url 'task_detail' task.dependant_task.project.pk task.dependant_task.pk %}">
+                {{ task.dependant_task.task_name }}
+            </a>
+        {% else %}
+            None
+        {% endif %}
+    </p>
+    <p><strong>Delay Reason:</strong> {{ task.delay_reason }}</p>
+    <p><strong>Skills Required:</strong> {{ task.skills_required.all|join:", " }}</p>
+    <p><strong>Halo Reference:</strong>
+        <a href="https://redcarcouncil.haloservicedesk.com/tickets?id={{ task.halo_ref }}" target="_blank">
+            {{ task.halo_ref }}
+        </a></p>
 
-    <a href="{% url 'project_taskview' task.project.pk %}" class="btn btn-secondary mt-3">Back to Tasks</a>
+    {% if task.task_status.pk != 3 %}  <!-- Only show if the task is not completed -->
+        <a href="{% url 'task_edit' task.project.pk task.pk %}" class="btn btn-warning">Edit</a>
+        <a href="{% url 'task_complete' task.project.pk task.pk %}" class="btn btn-success">Complete Task</a>
+    {% endif %}
 {% endblock %}

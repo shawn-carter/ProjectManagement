@@ -9,6 +9,7 @@
     <h1>Tasks for {{ project.project_name }}</h1>
     <a href="{% url 'project_detail' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
     <a href="{% url 'task_create' project.pk %}" class="btn btn-primary mb-3">Add New Task</a>
+    <a href="{% url 'project_task_calendar' project.pk %}" class="btn btn-success mb-3">Project Task Calendar</a>
 
     {% if tasks %}
         <table class="table table-striped" id="task-list">
@@ -28,12 +29,16 @@
                     <tr>
                         <td><a href="{% url 'task_detail' project.pk task.pk %}">{{ task.task_name }}</a></td>
                         <td>{{ task.task_status }}</td>
-                        <td>{{ task.priority }}</td>
+                        <td>{{ task.get_priority_display }}</td>
                         <td>{{ task.assigned_to }}</td>
                         <td>{{ task.planned_start_date }}</td>
                         <td>{{ task.planned_end_date }}</td>
                         <td>
-                            <a href="{% url 'task_edit' project.pk task.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                            <!-- Complete Task Button (only if task is not complete) -->
+                            {% if task.task_status.status_name != "Complete" %}
+                                <a href="{% url 'task_edit' project.pk task.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                                <a href="{% url 'task_complete' project.pk task.pk %}" class="btn btn-sm btn-success">Complete Task</a>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

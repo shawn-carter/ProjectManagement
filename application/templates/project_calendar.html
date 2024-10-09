@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% comment %} {% block extraCSS %}
+<link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+{% endblock %} {% endcomment %}
+
+{% block content %}
+<div id='calendar'></div>
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/fullcalendar.min.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            initialView: 'dayGridMonth',
+            navLinks: true, // can click day/week names to navigate views
+            editable: false, // Make it read-only
+            events: '/projects/events/',  // Fetch events dynamically from the server
+            eventClick: function(info) {
+                // Open the project detail page in a new tab
+                window.location.href = info.event.url;
+            }
+        });
+        calendar.render();
+    });
+</script>
+{% endblock %}
