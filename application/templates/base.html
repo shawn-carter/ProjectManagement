@@ -64,6 +64,27 @@
         {% endblock %}
     </div>
 
+    <!-- Comment Modal -->
+    <div class="modal fade" id="commentModal" tabindex="-1" aria-labelledby="commentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="commentModalLabel">Add Comment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="commentForm" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <textarea name="comment_text" id="comment_text" class="form-control" placeholder="Enter your comment here..." rows="4"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JavaScript Bundle (includes Popper) -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
@@ -73,6 +94,11 @@
     <script src="{% static 'js/alertify.min.js' %}"></script>
     <script src="{% static 'js/custom.js' %}"></script>
     <script>
+        function openCommentModal(contentType, objectId, objectTitle) {
+            $('#commentModalLabel').text(`Add Comment to ${objectTitle}`);
+            $('#commentForm').attr('action', `/add_comment/${contentType}/${objectId}/`);
+            $('#commentModal').modal('show');
+        }
         // Wait until the document content is fully loaded before running the script
         $(document).ready(function () {
             {% for message in messages %}

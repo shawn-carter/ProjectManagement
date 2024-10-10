@@ -1,3 +1,24 @@
 Delete projects (soft delete)
-See timeline of all projects, with links that open the individual project.
+
+Close projects
+    Requires that all Project Tasks have been completed
+
+User levels - (Spend more time adding permissions to views)
+    Admin
+        Can create Assets, add Skills and Status Types
+    Project Manager
+        Can create projects, tasks and all items for projects including risks etc
+        Can complete any tasks
+    Normal User
+        Can see projects, can add comments/PSRs to projects or objects
+        Can complete their own tasks
+    
+Task Templates for common Tasks such as building servers
+    Will hold the title, description and skills required
+    Can use the existing Create Task View
+
+Potentially use SummerNote for Project description
+    This would allow images to be added to the description
+
+
 

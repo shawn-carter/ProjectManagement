@@ -2,9 +2,9 @@
 
 {% block content %}
     <h1>{{ project.project_name }}</h1>
-    <a href="{% url 'project_list' %}" class="btn btn-outline-secondary mb-3">Back to Projects</a>
+    <a href="{% url 'project_list' %}" class="btn btn-outline-secondary mb-3">Back to Projects List</a>
 
-    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-primary mb-3">View Tasks</a>
+    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-primary mb-3">Tasks</a>
     <a href="{% url 'risk_list' project.pk %}" class="btn btn-danger mb-3">Risks</a>
     <a href="{% url 'assumption_list' project.pk %}" class="btn btn-success mb-3">Assumptions</a>
     <a href="{% url 'issue_list' project.pk %}" class="btn btn-warning mb-3">Issues</a>
@@ -28,6 +28,22 @@
             {{ project.halo_ref }}
         </a></p>
 
-    <a href="{% url 'project_edit' project.pk %}" class="btn btn-warning mt-3">Edit Project</a>
+    <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('project', {{ project.pk }}, 'Project Details')">Add Comment</button>
+    <a href="{% url 'project_edit' project.pk %}" class="btn btn-warning mb-3">Edit Project</a>
     
+    
+    <h3>Comments</h3>
+    <ul class="list-group">
+        {% if comments %}
+            {% for comment in comments %}
+                <li class="list-group-item">
+                    <strong>{{ comment.user }}:</strong> {{ comment.comment_text }} <br>
+                    <small>Posted on: {{ comment.created_datetime }}</small>
+                </li>
+            {% endfor %}
+        {% else %}
+            <li class="list-group-item">No comments available.</li>
+        {% endif %}
+    </ul>
+
 {% endblock %}

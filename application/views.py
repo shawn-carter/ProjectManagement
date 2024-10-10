@@ -1,14 +1,15 @@
 from datetime import timedelta
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render,get_object_or_404, redirect
 from django.views.generic import ListView, DetailView,CreateView, UpdateView
 from django.urls import reverse_lazy,reverse
 
-from .models import Project, ProjectStatus, Task, Stakeholder, Risk, Issue, Assumption, Dependency
+from .models import Project, ProjectStatus, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment
 from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm
 
 # Home page view
@@ -16,11 +17,18 @@ from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderFo
 def home(request):
     return render(request, 'home.html')
 
-class ProjectCreateView(LoginRequiredMixin,CreateView):
+class ProjectCreateView(PermissionRequiredMixin,CreateView):
+    permission_required = 'application.add_project'  # Only allow users with 'add_project' permission
     model = Project
     form_class = ProjectForm
     template_name = 'project_create.html'
     success_url = reverse_lazy('project_list')
+
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to create a new project.")
+        # Redirect to a different view or URL
+        return redirect(reverse_lazy('project_list'))  # Redirect to the project list view
 
     def form_valid(self, form):
         # Debugging statements
@@ -96,6 +104,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
 
         # Pass the 'all_tasks_completed' status to the template
         context['all_tasks_completed'] = all_tasks_completed
+        context['comments'] = Comment.objects.filter(content_type__model='project', object_id=self.object.pk)
         return context
 
 class ProjectUpdateView(LoginRequiredMixin,UpdateView):
@@ -120,10 +129,21 @@ class ProjectTaskView(LoginRequiredMixin,DetailView):
         context['tasks'] = Task.objects.filter(project=self.object)
         return context
 
-class TaskCreateView(LoginRequiredMixin, CreateView):
+
+# Task Views
+
+class TaskCreateView(PermissionRequiredMixin, CreateView):
     model = Task
     form_class = CreateTaskForm
     template_name = 'project_task_create.html'
+
+    permission_required = 'application.add_task'  # Only allow users with 'add_task' permission
+
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to create a new task.")
+        # Redirect to a different view or URL
+        return redirect('project_taskview', pk=self.kwargs['pk'])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -150,10 +170,18 @@ class TaskCreateView(LoginRequiredMixin, CreateView):
         # Redirect back to the project task view upon successful form submission
         return reverse('project_taskview', kwargs={'pk': self.kwargs['pk']})
 
-class TaskUpdateView(LoginRequiredMixin, UpdateView):
+class TaskUpdateView(PermissionRequiredMixin, UpdateView):
     model = Task
     form_class = EditTaskForm
     template_name = 'project_task_edit.html'
+
+    permission_required = 'application.edit_task'  # Only allow users with 'add_task' permission
+
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to edit this task.")
+        # Redirect to the project task list view
+        return redirect('project_taskview', pk=self.kwargs['project_pk'])
 
     def dispatch(self, request, *args, **kwargs):
         # Get the current task object
@@ -198,6 +226,14 @@ class TaskDetailView(LoginRequiredMixin,DetailView):
     model = Task
     template_name = 'project_task_detail.html'
     context_object_name = 'task'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Get the ContentType instance for the Task model
+        task_content_type = ContentType.objects.get_for_model(Task)
+        # Filter comments by the content_type and object_id (task id)
+        context['comments'] = Comment.objects.filter(content_type=task_content_type, object_id=self.object.pk)
+        return context
 
 class TaskCompleteView(LoginRequiredMixin, UpdateView):
     model = Task
@@ -316,7 +352,6 @@ class RiskCreateView(LoginRequiredMixin,CreateView):
         # Redirect back to the project risk list view upon successful form submission
         return reverse_lazy('risk_list', kwargs={'pk': self.kwargs['pk']})
 
-
 class AssumptionCreateView(LoginRequiredMixin,CreateView):
     model = Assumption
     form_class = AssumptionForm
@@ -398,7 +433,9 @@ class StakeholderCreateView(LoginRequiredMixin,CreateView):
     def get_success_url(self):
         # Redirect to the stakeholder list view upon successful creation
         return reverse_lazy('stakeholder_list', kwargs={'pk': self.kwargs['pk']})
-    
+
+# Update views for editing existing entries
+
 class RiskUpdateView(LoginRequiredMixin,UpdateView):
     model = Risk
     form_class = RiskForm
@@ -418,7 +455,6 @@ class RiskUpdateView(LoginRequiredMixin,UpdateView):
         # Pass the correct project ID in reverse_lazy
         return reverse_lazy('risk_list', kwargs={'pk': self.kwargs['pk']})
 
-# Assumption Update View
 class AssumptionUpdateView(LoginRequiredMixin,UpdateView):
     model = Assumption
     form_class = AssumptionForm
@@ -436,8 +472,6 @@ class AssumptionUpdateView(LoginRequiredMixin,UpdateView):
     def get_success_url(self):
         return reverse_lazy('assumption_list', kwargs={'pk': self.kwargs['pk']})
 
-
-# Similar update views for Issue, Dependency, and Stakeholder
 class IssueUpdateView(LoginRequiredMixin,UpdateView):
     model = Issue
     form_class = IssueForm
@@ -454,7 +488,6 @@ class IssueUpdateView(LoginRequiredMixin,UpdateView):
 
     def get_success_url(self):
         return reverse_lazy('issue_list', kwargs={'pk': self.kwargs['pk']})
-
 
 class DependencyUpdateView(LoginRequiredMixin,UpdateView):
     model = Dependency
@@ -473,7 +506,6 @@ class DependencyUpdateView(LoginRequiredMixin,UpdateView):
     def get_success_url(self):
         return reverse_lazy('dependency_list', kwargs={'pk': self.kwargs['pk']})
 
-
 class StakeholderUpdateView(LoginRequiredMixin,UpdateView):
     model = Stakeholder
     form_class = StakeholderForm
@@ -491,12 +523,57 @@ class StakeholderUpdateView(LoginRequiredMixin,UpdateView):
     def get_success_url(self):
         return reverse_lazy('stakeholder_list', kwargs={'pk': self.kwargs['pk']})
 
+# Detail Views
+
+class RiskDetailView(LoginRequiredMixin, DetailView):
+    model = Risk
+    template_name = 'project_risk_detail.html'
+    context_object_name = 'risk'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add the comments related to the risk
+        context['comments'] = Comment.objects.filter(content_type__model='risk', object_id=self.object.pk)
+        return context
+
+class AssumptionDetailView(LoginRequiredMixin, DetailView):
+    model = Assumption
+    template_name = 'project_assumption_detail.html'
+    context_object_name = 'assumption'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['project'] = self.object.project  # Include the project in the context
+        context['comments'] = Comment.objects.filter(content_type__model='assumption', object_id=self.object.pk)
+        return context
+
+class IssueDetailView(LoginRequiredMixin, DetailView):
+    model = Issue
+    template_name = 'project_issue_detail.html'
+    context_object_name = 'issue'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add comments related to the issue, using the content type and object ID
+        context['comments'] = Comment.objects.filter(content_type__model='issue', object_id=self.object.pk)
+        return context
+
+class DependencyDetailView(LoginRequiredMixin, DetailView):
+    model = Dependency
+    template_name = 'project_dependency_detail.html'
+    context_object_name = 'dependency'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add comments related to the dependency, using the content type and object ID
+        context['comments'] = Comment.objects.filter(content_type__model='dependency', object_id=self.object.pk)
+        return context
+
 @login_required    
 def project_calendar(request):
     """Renders the calendar page with project events."""
     return render(request, 'project_calendar.html')
 
-@login_required
 def project_events(request):
     """Returns a JSON response with project events for FullCalendar."""
     projects = Project.objects.all().order_by('planned_start_date')
@@ -524,7 +601,6 @@ def project_events(request):
             })
     return JsonResponse(events, safe=False)
 
-@login_required
 def get_color_for_project(project_id):
     """Generate a color based on the project ID."""
     # Predefined list of colors to cycle through
@@ -581,3 +657,25 @@ class ProjectTaskCalendarView(LoginRequiredMixin,DetailView):
 
         context['task_events'] = task_events
         return context
+    
+@login_required
+def add_comment(request, content_type, object_id):
+    """View to handle adding a comment via a POST request."""
+    if request.method == 'POST':
+        content_type_obj = get_object_or_404(ContentType, model=content_type)
+        related_object = content_type_obj.get_object_for_this_type(id=object_id)
+
+        # Create a new comment
+        comment_text = request.POST.get('comment_text')
+        if comment_text:
+            Comment.objects.create(
+                user=request.user,
+                content_object=related_object,
+                comment_text=comment_text
+            )
+            messages.success(request, 'Comment added successfully.')
+        else:
+            messages.error(request, 'Comment text cannot be empty.')
+
+        # Redirect back to the detail view of the commented object
+        return redirect(related_object.get_absolute_url())  # Ensure `get_absolute_url` is defined in models

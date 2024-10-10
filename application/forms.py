@@ -197,7 +197,7 @@ class EditTaskForm(forms.ModelForm):
             'dependant_task',
             'delay_reason',
             'halo_ref',
-            Submit('submit', 'Save Changes', css_class='btn btn-warning')
+            Submit('submit', 'Save Changes', css_class='btn btn-danger')
         )
 
     def clean(self):

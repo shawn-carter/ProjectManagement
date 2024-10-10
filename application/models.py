@@ -1,6 +1,9 @@
-from safedelete.models import SafeDeleteModel, SOFT_DELETE
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.contrib.auth.models import User
+from django.urls import reverse
+from safedelete.models import SafeDeleteModel, SOFT_DELETE
 
 # We can use Category for Department or Category
 class Category(SafeDeleteModel):
@@ -43,7 +46,7 @@ class DayOfWeek(SafeDeleteModel):
 # The Project Details
 class Project(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
-    project_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     project_name = models.CharField(max_length=50, unique=True)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
@@ -60,11 +63,13 @@ class Project(SafeDeleteModel):
     halo_ref = models.IntegerField(null=True)
     def __str__(self):
         return self.project_name
+    def get_absolute_url(self):
+        return reverse('project_detail', kwargs={'pk': self.pk})
 
 # The Task Details
 class Task(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
-    task_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     task_name = models.CharField(max_length=50)
     task_details = models.TextField(null=True)
     project = models.ForeignKey(Project, on_delete=models.PROTECT)
@@ -106,7 +111,10 @@ class Task(SafeDeleteModel):
             else:
                 self.task_status_id = 2  # Assigned
         super().save(*args, **kwargs)
-
+    def get_absolute_url(self):
+        """Return the URL to access the task's detail view."""
+        return reverse('task_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
+    
 # The Asset Details - Assets have a Team and Skills
 class Asset(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
@@ -164,7 +172,7 @@ class Stakeholder(SafeDeleteModel):
 
 class Risk(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
-    risk_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     risk_details = models.TextField()
     impact = models.IntegerField(choices=[(1, 'Insignificant'), (2, 'Minor'), (3, 'Significant'), (4, 'Major'), (5, 'Servere')])
@@ -174,9 +182,8 @@ class Risk(SafeDeleteModel):
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     last_updated_datetime = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        verbose_name = 'Risk'
-        verbose_name_plural = 'Risks'
+    def get_absolute_url(self):
+        return reverse('risk_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
 
     def save(self, *args, **kwargs):
         # Calculate risk score based on probability and impact
@@ -188,7 +195,7 @@ class Risk(SafeDeleteModel):
     
 class Assumption(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
-    assumption_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     assumption_details = models.TextField()
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
@@ -202,35 +209,51 @@ class Assumption(SafeDeleteModel):
     def __str__(self):
         return f"Assumption: {self.assumption_details[:50]}"
 
+    # Add this method to specify the URL for each assumption's detail view
+    def get_absolute_url(self):
+        return reverse('assumption_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
+
 class Issue(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
-    issue_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     issue_details = models.TextField()
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        verbose_name = 'Issue'
-        verbose_name_plural = 'Issues'
-
     def __str__(self):
         return f"Issue: {self.issue_details[:50]}"
 
+    def get_absolute_url(self):
+        return reverse('issue_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
+
 class Dependency(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
-    dependency_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     dependency_details = models.TextField()
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        verbose_name = 'Dependency'
-        verbose_name_plural = 'Dependencies'
+    def get_absolute_url(self):
+        return reverse('dependency_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
 
     def __str__(self):
         return f"Dependency: {self.dependency_details[:50]}"
     
+class Comment(SafeDeleteModel):  # Using SafeDelete for soft delete functionality
+    _safedelete_policy = SOFT_DELETE
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # User who made the comment
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)  # Model type (Task, Project, etc.)
+    object_id = models.PositiveIntegerField()  # ID of the specific object
+    content_object = GenericForeignKey('content_type', 'object_id')  # Link to the related object
+
+    comment_text = models.TextField()  # The comment text
+    created_datetime = models.DateTimeField(auto_now_add=True)
+    last_updated_datetime = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Comment by {self.user} on {self.content_object}"

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Dependency Details: {{ dependency.dependency_details }}</h1>
+    <a href="{% url 'dependency_list' dependency.project.pk %}" class="btn btn-outline-secondary mb-3">Back to Dependencies List</a>
+    <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('dependency', {{ dependency.pk }}, 'Dependency Details')">Add Comment</button>
+    <a href="{% url 'edit_dependency' dependency.project.pk dependency.pk %}" class="btn btn-warning mb-3">Edit Dependency</a>
+
+    <h3>Dependency Overview</h3>
+    <p><strong>Details:</strong> {{ dependency.dependency_details }}</p>
+    <p><strong>Created By:</strong> {{ dependency.created_by }}</p>
+    <p><strong>Created At:</strong> {{ dependency.created_datetime }}</p>
+    <p><strong>Last Updated At:</strong> {{ dependency.last_updated_datetime }}</p>
+
+    <h3>Comments</h3>
+    <ul class="list-group">
+        {% for comment in comments %}
+            <li class="list-group-item">
+                <strong>{{ comment.user }}:</strong> {{ comment.comment_text }} <br>
+                <small>Posted on: {{ comment.created_datetime }}</small>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}

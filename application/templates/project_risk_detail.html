@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Risk: {{ risk.risk_details }}</h1>
+    <a href="{% url 'risk_list' risk.project.pk %}" class="btn btn-outline-secondary mb-3">Back to Risks List</a>
+    <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('risk', {{ risk.pk }}, 'Risk Details')">Add Comment</button>
+    <a href="{% url 'edit_risk' risk.project.pk risk.pk %}" class="btn btn-warning mb-3">Edit Risk</a>
+    
+    <h3>Risk Details</h3>
+    <p><strong>Impact:</strong> {{ risk.get_impact_display }}</p>
+    <p><strong>Probability:</strong> {{ risk.get_probability_display }}</p>
+    <p><strong>Risk Score:</strong> {{ risk.risk_score }}</p>
+    <p><strong>Created By:</strong> {{ risk.created_by }}</p>
+    <p><strong>Created At:</strong> {{ risk.created_datetime }}</p>
+
+    <h3>Comments</h3>
+    <ul class="list-group">
+        {% for comment in comments %}
+            <li class="list-group-item">
+                <strong>{{ comment.user }}:</strong> {{ comment.comment_text }} <br>
+                <small>Posted on: {{ comment.created_datetime }}</small>
+            </li>
+        {% endfor %}
+    </ul>
+
+{% endblock %}

@@ -14,7 +14,6 @@
         <table class="table table-striped" id="assumptions-list">
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Assumption Details</th>
                     <th>Created By</th>
                     <th>Created At</th>
@@ -24,13 +23,13 @@
             <tbody>
                 {% for assumption in assumptions %}
                 <tr>
-                    <td>{{ assumption.pk }}</td>
-                    <td>{{ assumption.assumption_details }}</td>
+                    <td><a href="{% url 'assumption_detail' project.pk assumption.pk %}">{{ assumption.assumption_details }}</a></td>
                     <td>{{ assumption.created_by }}</td>
                     <td>{{ assumption.created_datetime }}</td>
                     <td>
                         <!-- Link to edit the risk -->
-                        <a href="{% url 'edit_assumption' project.pk assumption.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                            <a href="{% url 'assumption_detail' project.pk assumption.pk %}" class="btn btn-sm btn-info">View</a>
+                            <a href="{% url 'edit_assumption' project.pk assumption.pk %}" class="btn btn-sm btn-warning">Edit</a>
                     </td>
                 </tr>
                 {% endfor %}

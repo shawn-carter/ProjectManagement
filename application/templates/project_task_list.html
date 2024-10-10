@@ -35,7 +35,7 @@
                         <td>{{ task.planned_end_date }}</td>
                         <td>
                             <!-- Complete Task Button (only if task is not complete) -->
-                            {% if task.task_status.status_name != "Complete" %}
+                            {% if task.task_status.status_name != "Completed" %}
                                 <a href="{% url 'task_edit' project.pk task.pk %}" class="btn btn-sm btn-warning">Edit</a>
                                 <a href="{% url 'task_complete' project.pk task.pk %}" class="btn btn-sm btn-success">Complete Task</a>
                             {% endif %}
@@ -55,7 +55,7 @@
 <script>
     $(document).ready(function() {
         $('#task-list').DataTable({
-            dom: 'lfrtipB',
+            dom: 'Bfrtip',
             buttons: [
                 'copy', 'csv', 'excel', //'print','pdf', we can add these if required
             ]

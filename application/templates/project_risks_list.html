@@ -14,7 +14,6 @@
     <table class="table table-striped" id="risk-list">
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Risk Details</th>
                 <th>Impact</th>
                 <th>Probability</th>
@@ -27,8 +26,7 @@
         <tbody>
             {% for risk in risks %}
                 <tr>
-                    <td>{{ risk.pk }}</td>
-                    <td>{{ risk.risk_details }}</td>
+                    <td><a href="{% url 'risk_detail' project.pk risk.pk %}">{{ risk.risk_details }}</a></td>
                     <td>{{ risk.get_impact_display }}</td>
                     <td>{{ risk.get_probability_display }}</td>
                     <td>{{ risk.risk_score }}</td>
