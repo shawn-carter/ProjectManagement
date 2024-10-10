@@ -1,8 +1,12 @@
 from django.contrib import admin
-from safedelete.admin import SafeDeleteAdmin
+from safedelete.admin import SafeDeleteAdmin, highlight_deleted
 from safedelete.models import SafeDeleteModel, SafeDeleteManager
-from django.db import models as django_models  # Correctly import Django model fields
-from .models import Project, Task, Asset, Category, TaskStatus, ProjectStatus, Skill, Team, DayOfWeek, Risk,Assumption, Issue, Dependency, Stakeholder, Comment
+from simple_history.admin import SimpleHistoryAdmin
+from .models import (
+    Project, Task, Asset, Category, TaskStatus, ProjectStatus,
+    Skill, Team, DayOfWeek, Risk, Assumption, Issue,
+    Dependency, Stakeholder, Comment
+)
 
 class SafeDeleteAdminExtended(SafeDeleteAdmin):
     actions = ['undelete_selected']
@@ -55,28 +59,129 @@ class SafeDeleteAdminExtended(SafeDeleteAdmin):
             self.message_user(request, f"{obj} has been undeleted successfully.")
         return self.response_post_save_change(request, obj)
 
+# Custom admin classes for each model
 
 class AssetAdmin(SafeDeleteAdminExtended):
-    list_display = ('name', 'email', 'normal_work_week', 'deleted')  # Display work_days
-    list_filter = ('skills', 'teams', 'work_days')  # Add work_days to the list_filter
+    list_display = ('asset_id', 'name', 'email', 'normal_work_week', 'deleted')
+    list_filter = ('skills', 'teams', 'work_days', 'deleted')
+
+class SkillAdmin(SafeDeleteAdminExtended):
+    list_display = ('skill_id', 'skill_name', 'deleted')
+    list_filter = ('deleted',)
+
+class TeamAdmin(SafeDeleteAdminExtended):
+    list_display = ('team_id', 'team_name', 'deleted')
+    list_filter = ('deleted',)
+
+class CategoryAdmin(SafeDeleteAdminExtended):
+    list_display = ('category_id', 'category_name', 'deleted')
+    list_filter = ('deleted',)
+
+class TaskStatusAdmin(SafeDeleteAdminExtended):
+    list_display = ('status_id', 'status_name', 'description', 'deleted')
+    list_filter = ('deleted',)
+
+class ProjectStatusAdmin(SafeDeleteAdminExtended):
+    list_display = ('status_id', 'status_name', 'description', 'deleted')
+    list_filter = ('deleted',)
+
+class DayOfWeekAdmin(SafeDeleteAdminExtended):
+    list_display = ('day_name', 'abbreviation', 'deleted')
+    list_filter = ('deleted',)
+
+class CommentAdmin(SafeDeleteAdminExtended):
+    list_display = ('user', 'get_content_object', 'comment_text', 'created_datetime', 'deleted')
+    list_filter = ('user', 'content_type', 'deleted')
+
+    def get_content_object(self, obj):
+        return obj.content_object
+    get_content_object.short_description = 'Content Object'
+
+# Existing admin classes for other models
+
+class ProjectAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
+    list_display = ('id', 'project_name', 'project_status', 'created_datetime', 'deleted')
+    list_filter = ('project_status', 'deleted')
+    actions = ['undelete_selected']
+
+admin.site.register(Project, ProjectAdmin)
+
+class TaskAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
+    list_display = ('id', 'task_name', 'get_project_name', 'created_datetime', 'deleted')
+    list_filter = ('project__project_status', 'project__category', 'deleted')
+    actions = ['undelete_selected', highlight_deleted]
+
+    def get_project_name(self, obj):
+        return obj.project.project_name
+
+    def get_queryset(self, request):
+        # Use the all_objects manager to include soft-deleted objects
+        qs = self.model.all_objects.all()
+        # Apply default ordering if necessary
+        ordering = self.get_ordering(request)
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
+
+admin.site.register(Task, TaskAdmin)
+
+class RiskAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
+    list_display = ('id', 'risk_details', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_filter = ('project__project_status', 'deleted')
+    actions = ['undelete_selected']
+
+    def get_project_name(self, obj):
+        return obj.project.project_name
+
+admin.site.register(Risk, RiskAdmin)
+
+class AssumptionAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
+    list_display = ('id', 'assumption_details', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_filter = ('project__project_status', 'deleted')
+    actions = ['undelete_selected']
+
+    def get_project_name(self, obj):
+        return obj.project.project_name
+
+admin.site.register(Assumption, AssumptionAdmin)
+
+class IssueAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
+    list_display = ('id', 'issue_details', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_filter = ('project__project_status', 'deleted')
+    actions = ['undelete_selected']
+
+    def get_project_name(self, obj):
+        return obj.project.project_name
+
+admin.site.register(Issue, IssueAdmin)
+
+class DependencyAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
+    list_display = ('id', 'dependency_details', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_filter = ('project__project_status', 'deleted')
+    actions = ['undelete_selected']
+
+    def get_project_name(self, obj):
+        return obj.project.project_name
+
+admin.site.register(Dependency, DependencyAdmin)
+
+class StakeholderAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
+    list_display = ('stakeholder_id', 'name', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_filter = ('project__project_status', 'deleted')
+    actions = ['undelete_selected']
+
+    def get_project_name(self, obj):
+        return obj.project.project_name
+
+admin.site.register(Stakeholder, StakeholderAdmin)
+
+# Register the custom admin classes with the models
 
 admin.site.register(Asset, AssetAdmin)
-
-admin.site.register(Skill, SafeDeleteAdminExtended)
-admin.site.register(Team, SafeDeleteAdminExtended)
-
-# Register the models using SafeDeleteAdminExtended and automatically show all fields
-admin.site.register(Project, SafeDeleteAdminExtended)
-admin.site.register(Task, SafeDeleteAdminExtended)
-admin.site.register(Category, SafeDeleteAdminExtended)
-admin.site.register(TaskStatus, SafeDeleteAdminExtended)
-admin.site.register(ProjectStatus, SafeDeleteAdminExtended)
-
-admin.site.register(Risk, SafeDeleteAdminExtended)
-admin.site.register(Assumption, SafeDeleteAdminExtended)
-admin.site.register(Issue, SafeDeleteAdminExtended)
-admin.site.register(Dependency, SafeDeleteAdminExtended)
-admin.site.register(Stakeholder, SafeDeleteAdminExtended)
-
-admin.site.register(DayOfWeek, SafeDeleteAdminExtended)  # Register DayOfWeek model
-admin.site.register(Comment, SafeDeleteAdminExtended)
+admin.site.register(Skill, SkillAdmin)
+admin.site.register(Team, TeamAdmin)
+admin.site.register(Category, CategoryAdmin)
+admin.site.register(TaskStatus, TaskStatusAdmin)
+admin.site.register(ProjectStatus, ProjectStatusAdmin)
+admin.site.register(DayOfWeek, DayOfWeekAdmin)
+admin.site.register(Comment, CommentAdmin)

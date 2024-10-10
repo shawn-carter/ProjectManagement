@@ -4,12 +4,15 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
 from safedelete.models import SafeDeleteModel, SOFT_DELETE
+from safedelete.managers import SafeDeleteManager
+from simple_history.models import HistoricalRecords
 
 # We can use Category for Department or Category
 class Category(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE  # Configure the soft delete policy
     category_id = models.AutoField(primary_key=True)
     category_name = models.CharField(max_length=50, unique=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.category_name
@@ -20,6 +23,7 @@ class ProjectStatus(SafeDeleteModel):
     status_id = models.AutoField(primary_key=True)
     status_name = models.CharField(max_length=50, unique=True)  # Ensure uniqueness
     description = models.TextField(null=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.status_name
@@ -30,6 +34,7 @@ class TaskStatus(SafeDeleteModel):
     status_id = models.AutoField(primary_key=True)
     status_name = models.CharField(max_length=50, unique=True)  # Ensure uniqueness
     description = models.TextField(null=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.status_name
@@ -39,6 +44,7 @@ class DayOfWeek(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
     day_name = models.CharField(max_length=10, unique=True)  # Monday, Tuesday, etc.
     abbreviation = models.CharField(max_length=3, unique=True)  # Mon, Tue, etc.
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.day_name
@@ -61,6 +67,7 @@ class Project(SafeDeleteModel):
     category = models.ForeignKey(Category, on_delete=models.PROTECT, null=True)
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')], null=True)
     halo_ref = models.IntegerField(null=True)
+    history = HistoricalRecords()
     def __str__(self):
         return self.project_name
     def get_absolute_url(self):
@@ -90,6 +97,7 @@ class Task(SafeDeleteModel):
     skills_required = models.ManyToManyField('Skill')
     assigned_to = models.ForeignKey('Asset', on_delete=models.PROTECT, null=True, blank=True)  # Non-mandatory
     halo_ref = models.IntegerField(null=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.task_name
@@ -125,6 +133,7 @@ class Asset(SafeDeleteModel):
     teams = models.ManyToManyField('Team', blank=True)
     work_days = models.ManyToManyField('DayOfWeek', blank=True)
     normal_work_week = models.IntegerField()
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.name
@@ -134,6 +143,7 @@ class Skill(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
     skill_id = models.AutoField(primary_key=True)
     skill_name = models.CharField(max_length=50, unique=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.skill_name
@@ -143,6 +153,7 @@ class Team(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
     team_id = models.AutoField(primary_key=True)
     team_name = models.CharField(max_length=50, unique=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.team_name
@@ -160,6 +171,7 @@ class Stakeholder(SafeDeleteModel):
     created_datetime = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Stakeholder'
@@ -181,6 +193,7 @@ class Risk(SafeDeleteModel):
     created_datetime = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
 
     def get_absolute_url(self):
         return reverse('risk_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
@@ -201,6 +214,7 @@ class Assumption(SafeDeleteModel):
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Assumption'
@@ -221,6 +235,7 @@ class Issue(SafeDeleteModel):
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return f"Issue: {self.issue_details[:50]}"
@@ -236,6 +251,7 @@ class Dependency(SafeDeleteModel):
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
 
     def get_absolute_url(self):
         return reverse('dependency_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
@@ -250,10 +266,10 @@ class Comment(SafeDeleteModel):  # Using SafeDelete for soft delete functionalit
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)  # Model type (Task, Project, etc.)
     object_id = models.PositiveIntegerField()  # ID of the specific object
     content_object = GenericForeignKey('content_type', 'object_id')  # Link to the related object
-
     comment_text = models.TextField()  # The comment text
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return f"Comment by {self.user} on {self.content_object}"
