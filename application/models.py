@@ -3,8 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
-from safedelete.models import SafeDeleteModel, SOFT_DELETE
-from safedelete.managers import SafeDeleteManager
+from safedelete.models import SafeDeleteModel, SOFT_DELETE, SOFT_DELETE_CASCADE
 from simple_history.models import HistoricalRecords
 
 # We can use Category for Department or Category
@@ -51,7 +50,7 @@ class DayOfWeek(SafeDeleteModel):
 
 # The Project Details
 class Project(SafeDeleteModel):
-    _safedelete_policy = SOFT_DELETE
+    _safedelete_policy = SOFT_DELETE_CASCADE
     id = models.AutoField(primary_key=True)
     project_name = models.CharField(max_length=50, unique=True)
     created_datetime = models.DateTimeField(auto_now_add=True)
@@ -75,11 +74,11 @@ class Project(SafeDeleteModel):
 
 # The Task Details
 class Task(SafeDeleteModel):
-    _safedelete_policy = SOFT_DELETE
+    _safedelete_policy = SOFT_DELETE_CASCADE
     id = models.AutoField(primary_key=True)
     task_name = models.CharField(max_length=50)
     task_details = models.TextField(null=True)
-    project = models.ForeignKey(Project, on_delete=models.PROTECT)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
     task_status = models.ForeignKey(TaskStatus, on_delete=models.PROTECT, null=True, default=1)  # Default to 'Unassigned' (assuming 'Unassigned' has ID 1)
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')])
     planned_start_date = models.DateField(blank=True, null=True)  # Non-mandatory
@@ -90,35 +89,18 @@ class Task(SafeDeleteModel):
     estimated_time_to_complete = models.DurationField(blank=True, null=True)  # Non-mandatory
     actual_time_to_complete = models.DurationField(blank=True, null=True)  # Non-mandatory
     has_dependency = models.BooleanField(default=False)
-    dependant_task = models.ForeignKey('self', on_delete=models.PROTECT, null=True, blank=True)
+    dependant_task = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
     delay_reason = models.TextField(blank=True, null=True)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
     skills_required = models.ManyToManyField('Skill')
-    assigned_to = models.ForeignKey('Asset', on_delete=models.PROTECT, null=True, blank=True)  # Non-mandatory
+    assigned_to = models.ForeignKey('Asset', on_delete=models.SET_NULL, null=True, blank=True)  # Non-mandatory
     halo_ref = models.IntegerField(null=True)
     history = HistoricalRecords()
 
     def __str__(self):
         return self.task_name
 
-    def save(self, *args, **kwargs):
-        # Check if assigned_to field has changed
-        if self.pk:  # If the object already exists in the database
-            old_instance = Task.objects.get(pk=self.pk)
-            if old_instance.assigned_to and not self.assigned_to:
-                # Task was previously assigned, but now unassigned
-                self.task_status_id = 1  # Unassigned
-            elif self.assigned_to and old_instance.assigned_to != self.assigned_to:
-                # Task is now assigned or reassigned
-                self.task_status_id = 2  # Assigned
-        else:
-            # For new objects
-            if not self.assigned_to:
-                self.task_status_id = 1  # Unassigned by default
-            else:
-                self.task_status_id = 2  # Assigned
-        super().save(*args, **kwargs)
     def get_absolute_url(self):
         """Return the URL to access the task's detail view."""
         return reverse('task_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
@@ -258,7 +240,8 @@ class Dependency(SafeDeleteModel):
 
     def __str__(self):
         return f"Dependency: {self.dependency_details[:50]}"
-    
+
+# Comment Class
 class Comment(SafeDeleteModel):  # Using SafeDelete for soft delete functionality
     _safedelete_policy = SOFT_DELETE
 
