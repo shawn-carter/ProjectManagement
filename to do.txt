@@ -24,3 +24,6 @@ Potentially Add:
 Implement whitenoise to server static content - Done
 
 Test Deploy to Azure
+
+Bugs/Things to do:
+    Message when logging in with incorrect password

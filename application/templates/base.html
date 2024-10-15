@@ -88,9 +88,6 @@
     <!-- Bootstrap 5 JavaScript Bundle (includes Popper) -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
-    {% block extraJS %}
-        <!-- Extra JavaScript will be injected here for example DataTables in some templates-->
-    {% endblock %}
     <script src="{% static 'js/alertify.min.js' %}"></script>
     <script src="{% static 'js/custom.js' %}"></script>
     <script>
@@ -115,5 +112,10 @@
             {% endfor %}
         })
     </script>
+
+    {% block extraJS %}
+        <!-- Extra JavaScript will be injected here for example DataTables in some templates-->
+    {% endblock %}
+
 </body>
 </html>

@@ -12,18 +12,75 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
+
+                    <!-- Display non-field errors (e.g., incorrect username/password) -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Username Field -->
                     <div class="mb-3">
                         <label for="id_username" class="form-label">Username</label>
                         <input type="text" name="username" id="id_username" class="form-control" required>
+                        <!-- Display field errors for username -->
+                        {% if form.username.errors %}
+                            <div class="text-danger">
+                                {% for error in form.username.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
+
+                    <!-- Password Field -->
                     <div class="mb-3">
                         <label for="id_password" class="form-label">Password</label>
                         <input type="password" name="password" id="id_password" class="form-control" required>
+                        <!-- Display field errors for password -->
+                        {% if form.password.errors %}
+                            <div class="text-danger">
+                                {% for error in form.password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
+
                     <button type="submit" class="btn btn-primary">Login</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extraJS %}
+<script>
+    $(document).ready(function () {
+        // Display non-field errors (e.g., incorrect username/password)
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                alertify.error("{{ error|escapejs }}");
+            {% endfor %}
+        {% endif %}
+
+        // Display username field errors
+        {% if form.username.errors %}
+            {% for error in form.username.errors %}
+                alertify.error("Username is Compulsory");
+            {% endfor %}
+        {% endif %}
+
+        // Display password field errors
+        {% if form.password.errors %}
+            {% for error in form.password.errors %}
+                alertify.error("Password is Compulsory");
+            {% endfor %}
+        {% endif %}
+    });
+</script>
 {% endblock %}

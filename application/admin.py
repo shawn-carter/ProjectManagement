@@ -8,6 +8,7 @@ from .models import (
     Dependency, Stakeholder, Comment
 )
 
+# Extended SafeDeleteAdmin model to include undelete functionality for all models
 class SafeDeleteAdminExtended(SafeDeleteAdmin):
     actions = ['undelete_selected']
 
