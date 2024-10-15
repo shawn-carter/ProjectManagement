@@ -1,15 +1,16 @@
-Delete projects (soft delete)
-
 Close projects
     Requires that all Project Tasks have been completed
+
 
 User levels - (Spend more time adding permissions to views)
     Admin
         Everything a Project Manager can do plus..
         Can create Assets, Teams, Skills and add/modify Status Types for Task and Project
+        Complete Tasks, Close Projects
     Project Manager
         Can create projects, tasks and all items for projects including risks etc
         Can complete any tasks
+        Close projects they own.
     Normal User
         Can see projects, can add comments/PSRs to projects or objects
         Can complete their own tasks
@@ -22,6 +23,4 @@ Potentially Add:
 
 Implement whitenoise to server static content - Done
 
-
-
-
+Test Deploy to Azure

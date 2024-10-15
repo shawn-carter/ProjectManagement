@@ -46,24 +46,17 @@ class ProjectCreateView(PermissionRequiredMixin,CreateView):
         print(f"Form errors: {form.errors}")
         return super().form_invalid(form)
 
-class ProjectEditView(LoginRequiredMixin,DetailView):
-    """
-    View for displaying the details of a project.
-    Inherits from LoginRequiredMixin and DetailView.
-    Attributes:
-        model (Project): The model class for the view.
-        template_name (str): The name of the template to be used for rendering the view.
-        context_object_name (str): The name of the variable to be used in the template for the project object.
-    Methods:
-        get_context_data(**kwargs): Overrides the get_context_data method of the parent class to add the form to the context.
-        Args:
-            **kwargs: Additional keyword arguments.
-        Returns:
-            dict: The context dictionary with the form added.
-    """
+class ProjectEditView(PermissionRequiredMixin,DetailView):
+    permission_required = 'application.change_project'  # Only allow users with 'change_project' permission
     model = Project
     template_name = 'project_edit.html'
     context_object_name = 'project'
+
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to change this project.")
+        # Redirect to a different view or URL
+        return redirect(reverse_lazy('project_list'))  # Redirect to the project list view
 
     def get_context_data(self, **kwargs):
         # Get the context from the parent class
