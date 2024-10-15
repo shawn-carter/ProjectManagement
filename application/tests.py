@@ -12,7 +12,7 @@ from django.apps import apps
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 
-# Testing the signals (objects that are created after the migration)
+# Testing the signals (objects that are created after the migration - things like days of week, project and task status defaults)
 class SignalTests(TestCase):
     def test_default_data_exists(self):
         # Verify TaskStatus
@@ -31,6 +31,8 @@ class SignalTests(TestCase):
         # Verify Days of the Week
         self.assertTrue(DayOfWeek.objects.filter(day_name='Monday', abbreviation='Mon').exists())
         self.assertTrue(DayOfWeek.objects.filter(day_name='Friday', abbreviation='Fri').exists())
+
+# Model Tests
 
 class ProjectModelTest(TestCase):
     def test_project_creation(self):

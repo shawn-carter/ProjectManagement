@@ -1,21 +1,38 @@
-import factory
-from factory import SubFactory, LazyFunction, Sequence, Iterator
-from django.contrib.contenttypes.models import ContentType
-from django.utils import timezone
-from django.contrib.auth.models import User
 from application.models import (
     Category, ProjectStatus, TaskStatus, DayOfWeek,
     Skill, Team, Asset, Project, Task,
     Stakeholder, Risk, Assumption, Issue, Dependency, Comment
 )
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
+
+import factory
+from factory import SubFactory, LazyFunction, Sequence, Iterator
 
 class CategoryFactory(factory.django.DjangoModelFactory):
+    """
+    Factory class for creating instances of the Category model.
+    Attributes:
+        category_name (str): The name of the category.
+    Meta:
+        model (class): The Category model class.
+    """
     class Meta:
         model = Category
 
     category_name = factory.Sequence(lambda n: f"Category {n}")
 
 class ProjectStatusFactory(factory.django.DjangoModelFactory):
+    """
+    Factory class for creating instances of the ProjectStatus model.
+    Attributes:
+        status_name (str): The name of the project status.
+        description (str): The description of the project status.
+    Example:
+        To create a new project status instance, use the factory as follows:
+        project_status = ProjectStatusFactory()
+    """
     class Meta:
         model = ProjectStatus
 
@@ -23,6 +40,14 @@ class ProjectStatusFactory(factory.django.DjangoModelFactory):
     description = factory.Faker('sentence')
 
 class TaskStatusFactory(factory.django.DjangoModelFactory):
+    """
+    Factory class for creating instances of TaskStatus model.
+    Attributes:
+        status_name (str): The name of the task status.
+        description (str): The description of the task status.
+    Example:
+        task_status = TaskStatusFactory(status_name="Completed", description="Task is completed.")
+    """
     class Meta:
         model = TaskStatus
 
@@ -30,18 +55,66 @@ class TaskStatusFactory(factory.django.DjangoModelFactory):
     description = factory.Faker('sentence')
 
 class SkillFactory(factory.django.DjangoModelFactory):
+    """
+    Factory class for creating instances of the Skill model.
+    Attributes:
+        skill_name (str): The name of the skill.
+    Example:
+        To create a skill instance using this factory:
+        skill = SkillFactory()
+        This will create a skill instance with a generated skill name.
+        To create a skill instance with a specific skill name:
+        skill = SkillFactory(skill_name="Python")
+        This will create a skill instance with the skill name "Python".
+    """
     class Meta:
         model = Skill
 
     skill_name = factory.Sequence(lambda n: f"Skill {n}")
 
 class TeamFactory(factory.django.DjangoModelFactory):
+    """
+    Factory class for creating instances of the Team model.
+    Attributes:
+        team_name (str): The name of the team.
+    Example:
+        To create a new team instance using the factory:
+        team = TeamFactory()
+    """
     class Meta:
         model = Team
 
     team_name = factory.Sequence(lambda n: f"Team {n}")
 
 class AssetFactory(factory.django.DjangoModelFactory):
+    """
+    Factory class for creating instances of the Asset model.
+    Attributes:
+        name (str): The name of the asset.
+        email (str): The email of the asset.
+        normal_work_week (int): The number of hours in the normal work week for the asset.
+    Post-generation method for adding skills to the asset.
+        Args:
+            create (bool): Indicates whether the asset is being created or not.
+            extracted (list): List of skills to be added to the asset.
+            **kwargs: Additional keyword arguments.
+        Returns:
+            None
+    Post-generation method for adding teams to the asset.
+        Args:
+            create (bool): Indicates whether the asset is being created or not.
+            extracted (list): List of teams to be added to the asset.
+            **kwargs: Additional keyword arguments.
+        Returns:
+            None
+    Post-generation method for adding work days to the asset.
+        Args:
+            create (bool): Indicates whether the asset is being created or not.
+            extracted (list): List of work days to be added to the asset.
+            **kwargs: Additional keyword arguments.
+        Returns:
+            None
+    """
     class Meta:
         model = Asset
 
@@ -89,6 +162,24 @@ class AssetFactory(factory.django.DjangoModelFactory):
             self.work_days.add(*days)
 
 class ProjectFactory(factory.django.DjangoModelFactory):
+    """
+    Factory class for creating instances of the Project model.
+    Attributes:
+        project_name (str): The name of the project.
+        project_description (str): The description of the project.
+        planned_start_date (datetime.date): The planned start date of the project.
+        original_target_end_date (datetime.date): The original target end date of the project.
+        project_owner (Asset): The owner of the project.
+        project_status (ProjectStatus): The status of the project.
+        category (Category): The category of the project.
+        priority (int): The priority of the project.
+    Methods:
+        _create(cls, model_class, *args, **kwargs): Creates and saves an instance of the model class.
+    Usage:
+        To create a new project instance, use the create() method of this factory class.
+        Example:
+            project = ProjectFactory.create(project_name='My Project', project_description='This is my project')
+    """
     class Meta:
         model = Project
 
@@ -113,6 +204,24 @@ class ProjectFactory(factory.django.DjangoModelFactory):
         return super()._create(model_class, *args, **kwargs)
 
 class TaskFactory(factory.django.DjangoModelFactory):
+    """
+    Factory class for creating instances of the Task model.
+    Attributes:
+        task_name (str): The name of the task.
+        task_details (str): The details of the task.
+        project (Project): The project to which the task belongs.
+        task_status (TaskStatus): The status of the task.
+        priority (int): The priority of the task.
+        assigned_to (Asset): The asset to which the task is assigned.
+        skills_required (list): The list of skills required for the task.
+    Methods:
+        skills_required(create, extracted, **kwargs): Post-generation method to add skills required for the task.
+    
+    Post-generation method to add skills required for the task.
+        Args:
+            create (bool): Indicates if the instance is being created.
+            extracted (list): List of skills to be added.
+    """
     class Meta:
         model = Task
 

@@ -5,7 +5,8 @@ Close projects
 
 User levels - (Spend more time adding permissions to views)
     Admin
-        Can create Assets, add Skills and Status Types
+        Everything a Project Manager can do plus..
+        Can create Assets, Teams, Skills and add/modify Status Types for Task and Project
     Project Manager
         Can create projects, tasks and all items for projects including risks etc
         Can complete any tasks
@@ -13,10 +14,13 @@ User levels - (Spend more time adding permissions to views)
         Can see projects, can add comments/PSRs to projects or objects
         Can complete their own tasks
     
-Task Templates for common Tasks such as building servers
-    Will hold the title, description and skills required
-    Can use the existing Create Task View
+Potentially Add:
+    Task Templates for common Tasks such as building servers
+        Will hold the title, description and skills required
+        Can use the existing Create Task View
+    Import Users from Active Directory / Excel
 
+Implement whitenoise to server static content - Done
 
 
 
