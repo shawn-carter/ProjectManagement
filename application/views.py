@@ -46,10 +46,11 @@ class ProjectCreateView(PermissionRequiredMixin,CreateView):
         print(f"Form errors: {form.errors}")
         return super().form_invalid(form)
 
-class ProjectEditView(PermissionRequiredMixin,DetailView):
+class ProjectUpdateView(PermissionRequiredMixin,UpdateView):
     permission_required = 'application.change_project'  # Only allow users with 'change_project' permission
     model = Project
-    template_name = 'project_edit.html'
+    form_class = ProjectUpdateForm
+    template_name = 'project_edit.html'  # Edit form template
     context_object_name = 'project'
 
     def handle_no_permission(self):
@@ -58,11 +59,9 @@ class ProjectEditView(PermissionRequiredMixin,DetailView):
         # Redirect to a different view or URL
         return redirect(reverse_lazy('project_list'))  # Redirect to the project list view
 
-    def get_context_data(self, **kwargs):
-        # Get the context from the parent class
-        context = super().get_context_data(**kwargs)
-        context['form'] = ProjectUpdateForm(instance=self.object)
-        return context
+    def form_valid(self, form):
+        form.save()
+        return redirect(reverse('project_detail', kwargs={'pk': self.object.pk}))
 
 class ProjectListView(LoginRequiredMixin,ListView):
     """
@@ -100,32 +99,11 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['comments'] = Comment.objects.filter(content_type__model='project', object_id=self.object.pk)
         return context
 
-class ProjectUpdateView(LoginRequiredMixin,UpdateView):
-    model = Project
-    form_class = ProjectUpdateForm
-    template_name = 'project_edit.html'  # Edit form template
-    context_object_name = 'project'
-
-    def form_valid(self, form):
-        form.save()
-        return redirect(reverse('project_detail', kwargs={'pk': self.object.pk}))
-
-class ProjectTaskView(LoginRequiredMixin,DetailView):
-    model = Project
-    template_name = 'project_task_list.html'
-    context_object_name = 'project'
-
-    def get_context_data(self, **kwargs):
-        # Get the context from the parent class
-        context = super().get_context_data(**kwargs)
-        # Add the list of tasks associated with the project to the context
-        context['tasks'] = Task.objects.filter(project=self.object)
-        return context
-
 
 # Task Views
 
 class TaskCreateView(PermissionRequiredMixin, CreateView):
+    # Uses application.add_task permission (prevent unauthorised users from creating tasks)
     model = Task
     form_class = CreateTaskForm
     template_name = 'project_task_create.html'
@@ -164,11 +142,12 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
         return reverse('project_taskview', kwargs={'pk': self.kwargs['pk']})
 
 class TaskUpdateView(PermissionRequiredMixin, UpdateView):
+    # Uses application.change_task permission
     model = Task
     form_class = EditTaskForm
     template_name = 'project_task_edit.html'
 
-    permission_required = 'application.edit_task'  # Only allow users with 'add_task' permission
+    permission_required = 'application.change_task'  # Only allow users with 'change_task' permission
 
     def handle_no_permission(self):
         # Add a custom error message
@@ -215,6 +194,18 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
         # Redirect back to the project task list upon successful form submission
         return reverse('project_taskview', kwargs={'pk': self.kwargs['project_pk']})
 
+class TaskListView(LoginRequiredMixin,DetailView):
+    model = Project
+    template_name = 'project_task_list.html'
+    context_object_name = 'project'
+
+    def get_context_data(self, **kwargs):
+        # Get the context from the parent class
+        context = super().get_context_data(**kwargs)
+        # Add the list of tasks associated with the project to the context
+        context['tasks'] = Task.objects.filter(project=self.object)
+        return context
+
 class TaskDetailView(LoginRequiredMixin,DetailView):
     model = Task
     template_name = 'project_task_detail.html'
@@ -228,10 +219,18 @@ class TaskDetailView(LoginRequiredMixin,DetailView):
         context['comments'] = Comment.objects.filter(content_type=task_content_type, object_id=self.object.pk)
         return context
 
-class TaskCompleteView(LoginRequiredMixin, UpdateView):
+class TaskCompleteView(PermissionRequiredMixin, UpdateView):
     model = Task
     form_class = TaskCompleteForm
     template_name = 'project_task_complete.html'
+
+    permission_required = 'application.change_task'  # Only allow users with 'change_task' permission
+
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to complete this task.")
+        # Redirect to the project task list view
+        return redirect('project_taskview', pk=self.kwargs['project_pk'])
 
     def form_valid(self, form):
         # Set the task status to "Completed" (status ID 3)
@@ -325,10 +324,18 @@ class StakeholderListView(LoginRequiredMixin,ListView):
         return context
 
 # Create views for adding new entries
-class RiskCreateView(LoginRequiredMixin,CreateView):
+class RiskCreateView(PermissionRequiredMixin,CreateView):
     model = Risk
     form_class = RiskForm
     template_name = 'project_risk_add.html'
+
+    permission_required = 'application.add_risk'  # Only allow users with 'add_risk' permission
+
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to create a risk.")
+        # Redirect to the project risk list view
+        return redirect('risk_list', pk=self.kwargs['pk'])
 
     def form_valid(self, form):
         # Assign the project instance to the risk instance before saving

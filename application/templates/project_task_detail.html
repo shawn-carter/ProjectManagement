@@ -11,6 +11,7 @@
     <p><strong>Status:</strong> {{ task.task_status.status_name }}</p>
     <p><strong>Priority:</strong> {{ task.get_priority_display }}</p>
     <p><strong>Owner:</strong> {{ task.assigned_to }}</p>
+    <p><strong>Details:</strong> {{ task.task_details }}</p>
     <p><strong>Planned Start Date:</strong> {{ task.planned_start_date }}</p>
     <p><strong>Planned End Date:</strong> {{ task.planned_end_date }}</p>
     <p><strong>Actual Start Date:</strong> {{ task.actual_start_date }}</p>

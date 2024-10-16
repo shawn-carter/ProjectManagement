@@ -26,7 +26,7 @@ USE_TZ = True
 SECRET_KEY = 'django-insecure-idbhqj_z(mv4u5r**u%+3q41$_5uv%5ltbx7l4^0y2yq3$uj$r'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost','127.0.0.1','resourceman.azurewebsites.net']
 
