@@ -15,6 +15,7 @@
             <thead>
                 <tr>
                     <th>Dependency Details</th>
+                    <th>Status</th>
                     <th>Created By</th>
                     <th>Created At</th>
                     <th>Actions</th> <!-- New column for actions -->
@@ -24,6 +25,7 @@
                 {% for dependency in dependencies %}
                 <tr>
                     <td><a href="{% url 'dependency_detail' project_id=project.id dependency_id=dependency.id %}">{{ dependency.dependency_details }}</a></td>
+                    <td>{{ dependency.get_status_display }}</td>
                     <td>{{ dependency.created_by }}</td>
                     <td>{{ dependency.created_datetime }}</td>
                     <td><a href="{% url 'edit_dependency' project_id=project.id dependency_id=dependency.id %}" class="btn btn-sm btn-warning">Edit</a></td>

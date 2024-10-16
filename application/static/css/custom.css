@@ -1,3 +1,13 @@
 .display-4 {
     color: blue;
 }
+
+
+#div_id_skills_required {
+    column-count: 3; /* Number of columns */
+    column-gap: 20px; /* Space between columns */
+}
+#div_id_skills_required .form-check {
+    break-inside: avoid; /* Prevents splitting across columns */
+    margin-bottom: 10px;
+}

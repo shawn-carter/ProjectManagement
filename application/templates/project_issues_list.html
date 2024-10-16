@@ -15,6 +15,7 @@
             <thead>
                 <tr>
                     <th>Issue Details</th>
+                    <th>Status</th>
                     <th>Created By</th>
                     <th>Created At</th>
                     <th>Actions</th> <!-- New column for actions -->
@@ -24,6 +25,7 @@
                 {% for issue in issues %}
                 <tr>
                     <td><a href="{% url 'issue_detail' project_id=project.id issue_id=issue.id %}">{{ issue.issue_details }}</a></td>
+                    <td>{{ issue.get_status_display }}</td>
                     <td>{{ issue.created_by }}</td>
                     <td>{{ issue.created_datetime }}</td>
                     <td><a href="{% url 'edit_issue' project_id=project.id issue_id=issue.id %}" class="btn btn-sm btn-warning">Edit</a></td>

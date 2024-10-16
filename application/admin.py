@@ -127,7 +127,7 @@ class TaskAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
 admin.site.register(Task, TaskAdmin)
 
 class RiskAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
-    list_display = ('id', 'risk_details', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_display = ('id', 'risk_details', 'get_project_name', 'created_by', 'status', 'created_datetime', 'deleted')
     list_filter = ('project__project_status', 'deleted')
     actions = ['undelete_selected']
 
@@ -137,7 +137,7 @@ class RiskAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
 admin.site.register(Risk, RiskAdmin)
 
 class AssumptionAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
-    list_display = ('id', 'assumption_details', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_display = ('id', 'assumption_details', 'get_project_name', 'created_by', 'status', 'created_datetime', 'deleted')
     list_filter = ('project__project_status', 'deleted')
     actions = ['undelete_selected']
 
@@ -147,7 +147,7 @@ class AssumptionAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
 admin.site.register(Assumption, AssumptionAdmin)
 
 class IssueAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
-    list_display = ('id', 'issue_details', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_display = ('id', 'issue_details', 'get_project_name', 'created_by', 'status', 'created_datetime', 'deleted')
     list_filter = ('project__project_status', 'deleted')
     actions = ['undelete_selected']
 
@@ -157,7 +157,7 @@ class IssueAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
 admin.site.register(Issue, IssueAdmin)
 
 class DependencyAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
-    list_display = ('id', 'dependency_details', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_display = ('id', 'dependency_details', 'get_project_name', 'created_by', 'status', 'created_datetime', 'deleted')
     list_filter = ('project__project_status', 'deleted')
     actions = ['undelete_selected']
 

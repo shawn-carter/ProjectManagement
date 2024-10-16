@@ -36,7 +36,7 @@
                         <td>{{ stakeholder.name }}</td>
                         <td>
                             {% if stakeholder.email %}
-                                <a href="mailto:{{ stakeholder.email }}">Email: {{ stakeholder.email }}</a>
+                                <a href="mailto:{{ stakeholder.email }}?subject={{ project.project_name|urlencode }}">Email: {{ stakeholder.email }}</a>
                             {% else %}
                                 No Email Available
                             {% endif %}

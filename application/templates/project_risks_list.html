@@ -18,6 +18,7 @@
                 <th>Impact</th>
                 <th>Probability</th>
                 <th>Risk Score</th>
+                <th>Status</th>
                 <th>Created By</th>
                 <th>Created At</th>
                 <th>Actions</th> <!-- New column for actions -->
@@ -30,6 +31,7 @@
                     <td>{{ risk.get_impact_display }}</td>
                     <td>{{ risk.get_probability_display }}</td>
                     <td>{{ risk.risk_score }}</td>
+                    <td>{{ risk.get_status_display }}</td>
                     <td>{{ risk.created_by }}</td>
                     <td>{{ risk.created_datetime }}</td>
                     <td>

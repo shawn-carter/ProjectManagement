@@ -175,6 +175,7 @@ class Risk(SafeDeleteModel):
     created_datetime = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    status = models.IntegerField(choices=[(1, 'Open'), (2, 'In Progress'), (3, 'Closed')])
     history = HistoricalRecords()
 
     def get_absolute_url(self):
@@ -196,6 +197,7 @@ class Assumption(SafeDeleteModel):
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    status = models.IntegerField(choices=[(1, 'Open'), (2, 'In Progress'), (3, 'Closed')])
     history = HistoricalRecords()
 
     class Meta:
@@ -217,6 +219,7 @@ class Issue(SafeDeleteModel):
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    status = models.IntegerField(choices=[(1, 'Open'), (2, 'In Progress'), (3, 'Closed')])
     history = HistoricalRecords()
 
     def __str__(self):
@@ -233,6 +236,7 @@ class Dependency(SafeDeleteModel):
     created_by = models.ForeignKey('auth.User', on_delete=models.PROTECT)
     created_datetime = models.DateTimeField(auto_now_add=True)
     last_updated_datetime = models.DateTimeField(auto_now=True)
+    status = models.IntegerField(choices=[(1, 'Open'), (2, 'In Progress'), (3, 'Closed')])
     history = HistoricalRecords()
 
     def get_absolute_url(self):

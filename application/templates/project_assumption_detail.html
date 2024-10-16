@@ -8,6 +8,7 @@
 
 
     <p><strong>Details:</strong> {{ assumption.assumption_details }}</p>
+    <p><strong>Status:</strong> {{ assumption.get_status_display }}</p>
     <p><strong>Created By:</strong> {{ assumption.created_by }}</p>
     <p><strong>Created At:</strong> {{ assumption.created_datetime }}</p>
     <p><strong>Last Updated At:</strong> {{ assumption.last_updated_datetime }}</p>

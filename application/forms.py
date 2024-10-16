@@ -258,49 +258,57 @@ class TaskCompleteForm(forms.ModelForm):
 class RiskForm(forms.ModelForm):
     class Meta:
         model = Risk
-        fields = ['risk_details', 'impact', 'probability']  # Specify the fields to include in the form
+        fields = ['risk_details', 'impact', 'probability','status']  # Specify the fields to include in the form
         labels = {
             'risk_details': 'Risk Details',
             'impact': 'Impact',
             'probability': 'Probability',
+            'status': 'Status',
         }
         widgets = {
             'risk_details': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
             'impact': forms.Select(attrs={'class': 'form-select'}),
             'probability': forms.Select(attrs={'class': 'form-select'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
         }
 
 class AssumptionForm(forms.ModelForm):
     class Meta:
         model = Assumption
-        fields = ['assumption_details']  # Include only the necessary fields
+        fields = ['assumption_details', 'status']  # Include only the necessary fields
         labels = {
             'assumption_details': 'Assumption Details',
+            'status': 'Status',
         }
         widgets = {
             'assumption_details': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
         }
 
 class IssueForm(forms.ModelForm):
     class Meta:
         model = Issue
-        fields = ['issue_details']  # Only include fields present in the model
+        fields = ['issue_details', 'status']  # Only include fields present in the model
         labels = {
             'issue_details': 'Issue Details',
+            'status': 'Status',
         }
         widgets = {
             'issue_details': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
         }
 
 class DependencyForm(forms.ModelForm):
     class Meta:
         model = Dependency
-        fields = ['dependency_details']
+        fields = ['dependency_details','status']
         labels = {
             'dependency_details': 'Dependency Details',
+            'status': 'Status',
         }
         widgets = {
             'dependency_details': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
         }
 
 class StakeholderForm(forms.ModelForm):
@@ -314,6 +322,8 @@ class StakeholderForm(forms.ModelForm):
             'email': 'Email Address (Optional)',
         }
         widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
             'interest_level': forms.Select(attrs={'class': 'form-select'}),
             'influence_level': forms.Select(attrs={'class': 'form-select'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
