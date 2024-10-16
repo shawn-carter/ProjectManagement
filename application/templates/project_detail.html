@@ -4,13 +4,13 @@
     <h1>{{ project.project_name }}</h1>
     <a href="{% url 'project_list' %}" class="btn btn-outline-secondary mb-3">Back to Projects List</a>
 
-    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-primary mb-3">Tasks</a>
-    <a href="{% url 'risk_list' project.pk %}" class="btn btn-danger mb-3">Risks</a>
-    <a href="{% url 'assumption_list' project.pk %}" class="btn btn-success mb-3">Assumptions</a>
-    <a href="{% url 'issue_list' project.pk %}" class="btn btn-warning mb-3">Issues</a>
-    <a href="{% url 'dependency_list' project.pk %}" class="btn btn-dark mb-3">Dependencies</a>
-    <a href="{% url 'stakeholder_list' project.pk %}" class="btn btn-info mb-3">Stakeholders</a>
-    <a href="{% url 'project_task_calendar' project.pk %}" class="btn btn-success mb-3">Project Task Calendar</a>
+    <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-primary mb-3">Tasks</a>
+    <a href="{% url 'risk_list' project_id=project.id %}" class="btn btn-danger mb-3">Risks</a>
+    <a href="{% url 'assumption_list' project_id=project.id %}" class="btn btn-success mb-3">Assumptions</a>
+    <a href="{% url 'issue_list' project_id=project.id %}" class="btn btn-warning mb-3">Issues</a>
+    <a href="{% url 'dependency_list' project_id=project.id %}" class="btn btn-dark mb-3">Dependencies</a>
+    <a href="{% url 'stakeholder_list' project_id=project.id %}" class="btn btn-info mb-3">Stakeholders</a>
+    <a href="{% url 'project_task_calendar' project_id=project.id %}" class="btn btn-success mb-3">Project Task Calendar</a>
 
     <h3>Project Overview</h3>
     <p><strong>Planned Start Date:</strong> {{ project.planned_start_date }}</p>
@@ -29,7 +29,7 @@
         </a></p>
 
     <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('project', {{ project.pk }}, 'Project Details')">Add Comment</button>
-    <a href="{% url 'project_edit' project.pk %}" class="btn btn-warning mb-3">Edit Project</a>
+    <a href="{% url 'project_edit' project_id=project.id %}" class="btn btn-warning mb-3">Edit Project</a>
     
     
     <h3>Comments</h3>

@@ -2,7 +2,7 @@
 
 {% block content %}
     <h1>Add New Stakeholder for {{ project.project_name }}</h1>
-    <a href="{% url 'stakeholder_list' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Stakeholders</a>
+    <a href="{% url 'stakeholder_list' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Stakeholders</a>
     <form method="POST">
         {% csrf_token %}
         {{ form.as_p }}  <!-- Render the form fields in paragraph format for consistency -->

@@ -2,9 +2,9 @@
 
 {% block content %}
     <h1>Issue Details: {{ issue.issue_details }}</h1>
-    <a href="{% url 'issue_list' issue.project.pk %}" class="btn btn-outline-secondary mb-3">Back to Issues List</a>
+    <a href="{% url 'issue_list' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Issues List</a>
     <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('issue', {{ issue.pk }}, 'Issue Details')">Add Comment</button>
-    <a href="{% url 'edit_issue' issue.project.pk issue.pk %}" class="btn btn-warning mb-3">Edit Issue</a>
+    <a href="{% url 'edit_issue' project_id=project.id issue_id=issue.id %}" class="btn btn-warning mb-3">Edit Issue</a>
 
     <h3>Issue Overview</h3>
     <p><strong>Details:</strong> {{ issue.issue_details }}</p>
@@ -14,11 +14,15 @@
 
     <h3>Comments</h3>
     <ul class="list-group">
-        {% for comment in comments %}
-            <li class="list-group-item">
-                <strong>{{ comment.user }}:</strong> {{ comment.comment_text }} <br>
-                <small>Posted on: {{ comment.created_datetime }}</small>
-            </li>
-        {% endfor %}
+        {% if comments %}
+            {% for comment in comments %}
+                <li class="list-group-item">
+                    <strong>{{ comment.user }}:</strong> {{ comment.comment_text }} <br>
+                    <small>Posted on: {{ comment.created_datetime }}</small>
+                </li>
+            {% endfor %}
+        {% else %}
+            <li class="list-group-item">No comments available.</li>
+        {% endif %}
     </ul>
 {% endblock %}

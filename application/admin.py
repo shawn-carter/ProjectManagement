@@ -167,7 +167,7 @@ class DependencyAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
 admin.site.register(Dependency, DependencyAdmin)
 
 class StakeholderAdmin(SimpleHistoryAdmin, SafeDeleteAdmin):
-    list_display = ('stakeholder_id', 'name', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
+    list_display = ('id', 'name', 'get_project_name', 'created_by', 'created_datetime', 'deleted')
     list_filter = ('project__project_status', 'deleted')
     actions = ['undelete_selected']
 

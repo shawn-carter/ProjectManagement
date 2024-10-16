@@ -7,8 +7,8 @@
 
 {% block content %}
 <h1>Risks for {{ project.project_name }}</h1>
-<a href="{% url 'project_detail' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
-<a href="{% url 'add_risk' project.pk %}" class="btn btn-primary mb-3">Add Risk</a>
+<a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
+<a href="{% url 'add_risk' project_id=project.id %}" class="btn btn-primary mb-3">Add Risk</a>
 
 {% if risks %}
     <table class="table table-striped" id="risk-list">
@@ -26,7 +26,7 @@
         <tbody>
             {% for risk in risks %}
                 <tr>
-                    <td><a href="{% url 'risk_detail' project.pk risk.pk %}">{{ risk.risk_details }}</a></td>
+                    <td><a href="{% url 'risk_detail' project_id=project.id risk_id=risk.id %}">{{ risk.risk_details }}</a></td>
                     <td>{{ risk.get_impact_display }}</td>
                     <td>{{ risk.get_probability_display }}</td>
                     <td>{{ risk.risk_score }}</td>
@@ -34,7 +34,7 @@
                     <td>{{ risk.created_datetime }}</td>
                     <td>
                         <!-- Link to edit the risk -->
-                        <a href="{% url 'edit_risk' project.pk risk.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                        <a href="{% url 'edit_risk' project_id=project.id risk_id=risk.id %}" class="btn btn-sm btn-warning">Edit</a>
                     </td>
                 </tr>
             {% endfor %}

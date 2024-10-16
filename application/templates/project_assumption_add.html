@@ -2,7 +2,7 @@
 
 {% block content %}
     <h1>Add an Assumption for {{ project.project_name }}</h1>
-    <a href="{% url 'assumption_list' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Assumptions</a>
+    <a href="{% url 'assumption_list' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Assumptions</a>
 
     <form method="post">
         {% csrf_token %}

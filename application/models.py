@@ -70,7 +70,7 @@ class Project(SafeDeleteModel):
     def __str__(self):
         return self.project_name
     def get_absolute_url(self):
-        return reverse('project_detail', kwargs={'pk': self.pk})
+        return reverse('project_detail', kwargs={'project_id': self.id})
 
 # The Task Details
 class Task(SafeDeleteModel):
@@ -103,7 +103,7 @@ class Task(SafeDeleteModel):
 
     def get_absolute_url(self):
         """Return the URL to access the task's detail view."""
-        return reverse('task_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
+        return reverse('task_detail', kwargs={'project_id': self.project.pk, 'task_id': self.pk})
     
 # The Asset Details - Assets have a Team and Skills
 class Asset(SafeDeleteModel):
@@ -144,7 +144,7 @@ class Team(SafeDeleteModel):
 
 class Stakeholder(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
-    stakeholder_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     interest_level = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High')])
@@ -178,7 +178,7 @@ class Risk(SafeDeleteModel):
     history = HistoricalRecords()
 
     def get_absolute_url(self):
-        return reverse('risk_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
+        return reverse('risk_detail', kwargs={'project_id': self.project.pk, 'risk_id': self.pk})
 
     def save(self, *args, **kwargs):
         # Calculate risk score based on probability and impact
@@ -207,7 +207,7 @@ class Assumption(SafeDeleteModel):
 
     # Add this method to specify the URL for each assumption's detail view
     def get_absolute_url(self):
-        return reverse('assumption_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
+        return reverse('assumption_detail', kwargs={'project_id': self.project.pk, 'assumption_id': self.pk})
 
 class Issue(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
@@ -223,7 +223,7 @@ class Issue(SafeDeleteModel):
         return f"Issue: {self.issue_details[:50]}"
 
     def get_absolute_url(self):
-        return reverse('issue_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
+        return reverse('issue_detail', kwargs={'project_id': self.project.pk, 'issue_id': self.pk})
 
 class Dependency(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
@@ -236,7 +236,7 @@ class Dependency(SafeDeleteModel):
     history = HistoricalRecords()
 
     def get_absolute_url(self):
-        return reverse('dependency_detail', kwargs={'project_pk': self.project.pk, 'pk': self.pk})
+        return reverse('dependency_detail', kwargs={'project_id': self.project.pk, 'dependency_id': self.pk})
 
     def __str__(self):
         return f"Dependency: {self.dependency_details[:50]}"

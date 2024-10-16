@@ -2,9 +2,9 @@
 
 {% block content %}
     <h1>Dependency Details: {{ dependency.dependency_details }}</h1>
-    <a href="{% url 'dependency_list' dependency.project.pk %}" class="btn btn-outline-secondary mb-3">Back to Dependencies List</a>
+    <a href="{% url 'dependency_list' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Dependencies List</a>
     <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('dependency', {{ dependency.pk }}, 'Dependency Details')">Add Comment</button>
-    <a href="{% url 'edit_dependency' dependency.project.pk dependency.pk %}" class="btn btn-warning mb-3">Edit Dependency</a>
+    <a href="{% url 'edit_dependency' project_id=project.id dependency_id=dependency.id %}" class="btn btn-warning mb-3">Edit Dependency</a>
 
     <h3>Dependency Overview</h3>
     <p><strong>Details:</strong> {{ dependency.dependency_details }}</p>

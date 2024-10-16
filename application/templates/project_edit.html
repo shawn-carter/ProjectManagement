@@ -9,7 +9,7 @@
     <p><strong>Original Target End Date:</strong> {{ project.original_target_end_date }}</p>
 
     <!-- Project Update Form -->
-    <form method="post" action="{% url 'project_edit' project.pk %}">
+    <form method="post" action="{% url 'project_edit' project_id=project.id %}">
         {% csrf_token %}
         {{ form.non_field_errors }}
 

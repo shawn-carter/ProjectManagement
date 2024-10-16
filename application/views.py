@@ -46,12 +46,17 @@ class ProjectCreateView(PermissionRequiredMixin,CreateView):
         print(f"Form errors: {form.errors}")
         return super().form_invalid(form)
 
-class ProjectUpdateView(PermissionRequiredMixin,UpdateView):
-    permission_required = 'application.change_project'  # Only allow users with 'change_project' permission
+class ProjectUpdateView(PermissionRequiredMixin, UpdateView):
     model = Project
     form_class = ProjectUpdateForm
     template_name = 'project_edit.html'  # Edit form template
     context_object_name = 'project'
+    permission_required = 'application.change_project'  # Only allow users with 'change_project' permission
+
+    def get_object(self):
+        # Retrieve the project object using project_id instead of pk
+        project_id = self.kwargs.get('project_id')
+        return get_object_or_404(Project, id=project_id)
 
     def handle_no_permission(self):
         # Add a custom error message
@@ -61,7 +66,7 @@ class ProjectUpdateView(PermissionRequiredMixin,UpdateView):
 
     def form_valid(self, form):
         form.save()
-        return redirect(reverse('project_detail', kwargs={'pk': self.object.pk}))
+        return redirect(reverse('project_detail', kwargs={'project_id': self.object.pk}))
 
 class ProjectListView(LoginRequiredMixin,ListView):
     """
@@ -87,6 +92,11 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
     template_name = 'project_detail.html'  # Read-only detail view template
     context_object_name = 'project'
 
+    def get_object(self):
+        # Retrieve the project object using project_id instead of pk
+        project_id = self.kwargs.get('project_id')
+        return get_object_or_404(Project, id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project = self.object  # Get the project instance
@@ -101,151 +111,138 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
 
 
 # Task Views
-
 class TaskCreateView(PermissionRequiredMixin, CreateView):
-    # Uses application.add_task permission (prevent unauthorised users from creating tasks)
     model = Task
     form_class = CreateTaskForm
     template_name = 'project_task_create.html'
-
-    permission_required = 'application.add_task'  # Only allow users with 'add_task' permission
+    permission_required = 'application.add_task'
 
     def handle_no_permission(self):
-        # Add a custom error message
         messages.error(self.request, "You do not have permission to create a new task.")
-        # Redirect to a different view or URL
-        return redirect('project_taskview', pk=self.kwargs['pk'])
+        return redirect('project_taskview', project_id=self.kwargs['project_id'])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        # Pass the project instance to the form for context if needed
-        kwargs['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
+        kwargs['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return kwargs
 
     def form_valid(self, form):
-        # Assign the project instance to the task instance before saving
-        form.instance.project = get_object_or_404(Project, pk=self.kwargs['pk'])
-        
-        # Set has_dependency to True if a dependant_task is selected
-        if form.cleaned_data['dependant_task']:
-            form.instance.has_dependency = True
-
+        form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        # Redirect back to the project task view upon successful form submission
-        return reverse('project_taskview', kwargs={'pk': self.kwargs['pk']})
+        return reverse('project_taskview', kwargs={'project_id': self.kwargs['project_id']})
 
 class TaskUpdateView(PermissionRequiredMixin, UpdateView):
-    # Uses application.change_task permission
     model = Task
     form_class = EditTaskForm
     template_name = 'project_task_edit.html'
+    permission_required = 'application.change_task'
 
-    permission_required = 'application.change_task'  # Only allow users with 'change_task' permission
+    def get_object(self):
+        # Use project_id and task_id to get the task object
+        project_id = self.kwargs.get('project_id')
+        task_id = self.kwargs.get('task_id')
+        return get_object_or_404(Task, id=task_id, project_id=project_id)
 
     def handle_no_permission(self):
-        # Add a custom error message
         messages.error(self.request, "You do not have permission to edit this task.")
-        # Redirect to the project task list view
-        return redirect('project_taskview', pk=self.kwargs['project_pk'])
-
-    def dispatch(self, request, *args, **kwargs):
-        # Get the current task object
-        task = self.get_object()
-
-        # Check if the task is already completed (assuming status ID 3 is 'Completed')
-        if task.task_status.pk == 3:  
-            # Show an error message and redirect to the task detail page
-            messages.error(request, "This task is already completed and cannot be edited.")
-            return redirect('task_detail', project_pk=task.project.pk, pk=task.pk)
-
-        # Allow normal processing if the task is not completed
-        return super().dispatch(request, *args, **kwargs)
+        return redirect('project_taskview', project_id=self.kwargs['project_id'])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        # Pass the project instance to the form for context if needed
-        task_instance = self.get_object()
-        kwargs['project'] = task_instance.project
+        kwargs['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return kwargs
 
     def form_valid(self, form):
-        # Set has_dependency to True if a dependant_task is selected, otherwise False
-        if form.cleaned_data['dependant_task']:
-            form.instance.has_dependency = True
-        else:
-            form.instance.has_dependency = False
-
+        form.save()
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add the project object to the context
-        context['project'] = self.get_object().project
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        # Redirect back to the project task list upon successful form submission
-        return reverse('project_taskview', kwargs={'pk': self.kwargs['project_pk']})
+        return reverse('task_detail', kwargs={'project_id': self.kwargs['project_id'], 'task_id': self.object.pk})
 
-class TaskListView(LoginRequiredMixin,DetailView):
-    model = Project
+class TaskListView(LoginRequiredMixin, ListView):
+    model = Task
     template_name = 'project_task_list.html'
-    context_object_name = 'project'
+    context_object_name = 'tasks'
+
+    def get_queryset(self):
+        # Get tasks related to the project using project_id
+        project_id = self.kwargs.get('project_id')
+        return Task.objects.filter(project_id=project_id)
 
     def get_context_data(self, **kwargs):
-        # Get the context from the parent class
+        # Add the project instance to the context
         context = super().get_context_data(**kwargs)
-        # Add the list of tasks associated with the project to the context
-        context['tasks'] = Task.objects.filter(project=self.object)
+        context['project'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
         return context
 
-class TaskDetailView(LoginRequiredMixin,DetailView):
+class TaskDetailView(LoginRequiredMixin, DetailView):
     model = Task
     template_name = 'project_task_detail.html'
     context_object_name = 'task'
 
+    def get_object(self):
+        project_id = self.kwargs.get('project_id')
+        task_id = self.kwargs.get('task_id')
+        return get_object_or_404(Task, id=task_id, project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Retrieve the project instance to include in the context
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        
         # Get the ContentType instance for the Task model
         task_content_type = ContentType.objects.get_for_model(Task)
+
         # Filter comments by the content_type and object_id (task id)
-        context['comments'] = Comment.objects.filter(content_type=task_content_type, object_id=self.object.pk)
+        comments = Comment.objects.filter(content_type=task_content_type, object_id=self.object.pk)
+
+        # Add project and comments to the context
+        context['project'] = project
+        context['comments'] = comments
         return context
 
 class TaskCompleteView(PermissionRequiredMixin, UpdateView):
     model = Task
     form_class = TaskCompleteForm
     template_name = 'project_task_complete.html'
+    permission_required = 'application.change_task'
 
-    permission_required = 'application.change_task'  # Only allow users with 'change_task' permission
+    def get_object(self):
+        project_id = self.kwargs.get('project_id')
+        task_id = self.kwargs.get('task_id')
+        return get_object_or_404(Task, id=task_id, project_id=project_id)
 
     def handle_no_permission(self):
-        # Add a custom error message
         messages.error(self.request, "You do not have permission to complete this task.")
-        # Redirect to the project task list view
-        return redirect('project_taskview', pk=self.kwargs['project_pk'])
+        return redirect('project_taskview', project_id=self.kwargs['project_id'])
 
     def form_valid(self, form):
-        # Set the task status to "Completed" (status ID 3)
         task = form.save(commit=False)
-        task.task_status_id = 3
+        task.task_status_id = 3  # Assuming status ID 3 is 'Completed'
         task.save()
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['project_pk'])
+        # Fetch the project and add it to the context
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        context['project'] = project
         return context
 
     def get_success_url(self):
-        return reverse('task_detail', kwargs={'project_pk': self.kwargs['project_pk'], 'pk': self.kwargs['pk']})
+        return reverse('task_detail', kwargs={'project_id': self.kwargs['project_id'], 'task_id': self.kwargs['task_id']})
 
 # Views for listing Risks, Assumptions, Issues, and Dependencies
 
@@ -254,13 +251,15 @@ class RiskListView(LoginRequiredMixin,ListView):
     template_name = 'project_risks_list.html'
     context_object_name = 'risks'  # Updated context name to refer to the risks list
 
+    def get_queryset(self):
+        # Get tasks related to the project using project_id
+        project_id = self.kwargs.get('project_id')
+        return Risk.objects.filter(project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get the project based on the pk passed in the URL
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
         # Add the project and its associated risks to the context
-        context['project'] = project
-        context['risks'] = Risk.objects.filter(project=project)
+        context['project'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
         return context
     
 class AssumptionListView(LoginRequiredMixin,ListView):
@@ -268,13 +267,15 @@ class AssumptionListView(LoginRequiredMixin,ListView):
     template_name = 'project_assumptions_list.html'
     context_object_name = 'assumptions'  # Updated context name to refer to the assumption list
 
+    def get_queryset(self):
+        # Get tasks related to the project using project_id
+        project_id = self.kwargs.get('project_id')
+        return Assumption.objects.filter(project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get the project based on the pk passed in the URL
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
         # Add the project and its associated risks to the context
-        context['project'] = project
-        context['assumptions'] = Assumption.objects.filter(project=project)
+        context['project'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
         return context
 
 class IssueListView(LoginRequiredMixin,ListView):
@@ -282,13 +283,15 @@ class IssueListView(LoginRequiredMixin,ListView):
     template_name = 'project_issues_list.html'
     context_object_name = 'issues'  # Updated context name to refer to the issues list
 
+    def get_queryset(self):
+        # Get tasks related to the project using project_id
+        project_id = self.kwargs.get('project_id')
+        return Issue.objects.filter(project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get the project based on the pk passed in the URL
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
         # Add the project and its associated risks to the context
-        context['project'] = project
-        context['issues'] = Issue.objects.filter(project=project)
+        context['project'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
         return context
 
 class DependencyListView(LoginRequiredMixin,ListView):
@@ -296,28 +299,41 @@ class DependencyListView(LoginRequiredMixin,ListView):
     template_name = 'project_dependencies_list.html'
     context_object_name = 'dependencies'  # Updated context name to refer to the dependencies list
 
+    def get_queryset(self):
+        # Get tasks related to the project using project_id
+        project_id = self.kwargs.get('project_id')
+        return Dependency.objects.filter(project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get the project based on the pk passed in the URL
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
         # Add the project and its associated risks to the context
-        context['project'] = project
-        context['dependencies'] = Dependency.objects.filter(project=project)
+        context['project'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
         return context
     
-class StakeholderListView(LoginRequiredMixin,ListView):
+class StakeholderListView(LoginRequiredMixin, ListView):
     model = Stakeholder
     template_name = 'project_stakeholders_list.html'
     context_object_name = 'stakeholders'
 
+    def get_queryset(self):
+        # Get stakeholders related to the project using project_id
+        project_id = self.kwargs.get('project_id')
+        return Stakeholder.objects.filter(project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
-        stakeholders = Stakeholder.objects.filter(project=project)
+        project_id = self.kwargs.get('project_id')
+        
+        # Fetch the project object using the project_id
+        project = get_object_or_404(Project, id=project_id)
+        
+        # Get all stakeholders related to the project
+        stakeholders = Stakeholder.objects.filter(project_id=project.id)
 
         # Collect emails from stakeholders who have a non-empty email field
         stakeholder_emails = [stakeholder.email for stakeholder in stakeholders if stakeholder.email]
 
+        # Add project, stakeholders, and email list to the context
         context['project'] = project
         context['stakeholders'] = stakeholders
         context['stakeholder_emails'] = stakeholder_emails  # Pass the list of emails
@@ -335,22 +351,22 @@ class RiskCreateView(PermissionRequiredMixin,CreateView):
         # Add a custom error message
         messages.error(self.request, "You do not have permission to create a risk.")
         # Redirect to the project risk list view
-        return redirect('risk_list', pk=self.kwargs['pk'])
+        return redirect('risk_list', kwargs={'pk': self.kwargs['pk']})
 
     def form_valid(self, form):
         # Assign the project instance to the risk instance before saving
-        form.instance.project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         form.instance.created_by = self.request.user  # Set the user who created this entry
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
         # Redirect back to the project risk list view upon successful form submission
-        return reverse_lazy('risk_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse_lazy('risk_list', kwargs={'project_id': self.kwargs['project_id']})
 
 class AssumptionCreateView(LoginRequiredMixin,CreateView):
     model = Assumption
@@ -359,18 +375,18 @@ class AssumptionCreateView(LoginRequiredMixin,CreateView):
 
     def form_valid(self, form):
         # Assign the project instance to the assumption instance before saving
-        form.instance.project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         form.instance.created_by = self.request.user  # Set the user who created this entry
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
         # Redirect back to the project assumption list view upon successful form submission
-        return reverse_lazy('assumption_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse_lazy('assumption_list', kwargs={'project_id': self.kwargs['project_id']})
 
 class IssueCreateView(LoginRequiredMixin,CreateView):
     model = Issue
@@ -378,19 +394,19 @@ class IssueCreateView(LoginRequiredMixin,CreateView):
     template_name = 'project_issue_add.html'
 
     def form_valid(self, form):
-        form.instance.project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         form.instance.created_by = self.request.user
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         # Ensure project is in the context
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
         # Make sure 'pk' is passed correctly in reverse_lazy
-        return reverse_lazy('issue_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse_lazy('issue_list', kwargs={'project_id': self.kwargs['project_id']})
 
 class DependencyCreateView(LoginRequiredMixin,CreateView):
     model = Dependency
@@ -399,19 +415,19 @@ class DependencyCreateView(LoginRequiredMixin,CreateView):
 
     def form_valid(self, form):
         # Associate the dependency with the specific project
-        form.instance.project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         form.instance.created_by = self.request.user
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         # Ensure project is passed to the template context
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
         # Redirect back to the dependency list view after successful creation
-        return reverse_lazy('dependency_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse_lazy('dependency_list', kwargs={'project_id': self.kwargs['project_id']})
     
 class StakeholderCreateView(LoginRequiredMixin,CreateView):
     model = Stakeholder
@@ -420,108 +436,137 @@ class StakeholderCreateView(LoginRequiredMixin,CreateView):
 
     def form_valid(self, form):
         # Associate the stakeholder with the project and the user who created it
-        form.instance.project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         form.instance.created_by = self.request.user
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         # Pass the project to the template context
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
         # Redirect to the stakeholder list view upon successful creation
-        return reverse_lazy('stakeholder_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse_lazy('stakeholder_list', kwargs={'project_id': self.kwargs['project_id']})
 
 # Update views for editing existing entries
 
-class RiskUpdateView(LoginRequiredMixin,UpdateView):
+class RiskUpdateView(LoginRequiredMixin, UpdateView):
     model = Risk
     form_class = RiskForm
     template_name = 'project_risk_add.html'
     context_object_name = 'risk'
 
-    def get_object(self, queryset=None):
-        return get_object_or_404(Risk, pk=self.kwargs['risk_pk'], project__pk=self.kwargs['pk'])
+    def get_object(self):
+        # Use project_id and risk_id to get the risk object
+        project_id = self.kwargs.get('project_id')
+        risk_id = self.kwargs.get('risk_id')
+        return get_object_or_404(Risk, id=risk_id, project_id=project_id)
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['project'] = project  # Ensure project is added to context
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        # Pass the correct project ID in reverse_lazy
-        return reverse_lazy('risk_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse('risk_detail', kwargs={'project_id': self.kwargs['project_id'], 'risk_id': self.object.pk})
 
 class AssumptionUpdateView(LoginRequiredMixin,UpdateView):
     model = Assumption
     form_class = AssumptionForm
     template_name = 'project_assumption_add.html'  # Reusing the existing template
 
-    def get_object(self, queryset=None):
-        return get_object_or_404(Assumption, pk=self.kwargs['assumption_pk'], project__pk=self.kwargs['pk'])
+    def get_object(self):
+        # Use project_id and risk_id to get the risk object
+        project_id = self.kwargs.get('project_id')
+        assumption_id = self.kwargs.get('assumption_id')
+        return get_object_or_404(Assumption, id=assumption_id, project_id=project_id)
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['project'] = project  # Ensure project is added to context
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        return reverse_lazy('assumption_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse_lazy('assumption_list', kwargs={'project_id': self.kwargs['project_id']})
 
 class IssueUpdateView(LoginRequiredMixin,UpdateView):
     model = Issue
     form_class = IssueForm
     template_name = 'project_issue_add.html'
 
-    def get_object(self, queryset=None):
-        return get_object_or_404(Issue, pk=self.kwargs['issue_pk'], project__pk=self.kwargs['pk'])
+    def get_object(self):
+        # Use project_id and risk_id to get the risk object
+        project_id = self.kwargs.get('project_id')
+        issue_id = self.kwargs.get('issue_id')
+        return get_object_or_404(Issue, id=issue_id, project_id=project_id)
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['project'] = project  # Ensure project is added to context
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        return reverse_lazy('issue_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse_lazy('issue_list', kwargs={'project_id': self.kwargs['project_id']})
 
 class DependencyUpdateView(LoginRequiredMixin,UpdateView):
     model = Dependency
     form_class = DependencyForm
     template_name = 'project_dependency_add.html'
 
-    def get_object(self, queryset=None):
-        return get_object_or_404(Dependency, pk=self.kwargs['dependency_pk'], project__pk=self.kwargs['pk'])
+    def get_object(self):
+        # Use project_id and risk_id to get the risk object
+        project_id = self.kwargs.get('project_id')
+        dependency_id = self.kwargs.get('dependency_id')
+        return get_object_or_404(Dependency, id=dependency_id, project_id=project_id)
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['project'] = project  # Ensure project is added to context
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        return reverse_lazy('dependency_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse_lazy('dependency_list', kwargs={'project_id': self.kwargs['project_id']})
 
 class StakeholderUpdateView(LoginRequiredMixin,UpdateView):
     model = Stakeholder
     form_class = StakeholderForm
     template_name = 'project_stakeholder_add.html'
 
-    def get_object(self, queryset=None):
-        return get_object_or_404(Stakeholder, pk=self.kwargs['stakeholder_pk'], project__pk=self.kwargs['pk'])
+    def get_object(self):
+        # Use project_id and risk_id to get the risk object
+        project_id = self.kwargs.get('project_id')
+        stakeholder_id = self.kwargs.get('stakeholder_id')
+        return get_object_or_404(Stakeholder, id=stakeholder_id, project_id=project_id)
+    
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        project = get_object_or_404(Project, pk=self.kwargs['pk'])
-        context['project'] = project  # Ensure project is added to context
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        return reverse_lazy('stakeholder_list', kwargs={'pk': self.kwargs['pk']})
+        return reverse_lazy('stakeholder_list', kwargs={'project_id': self.kwargs['project_id']})
 
 # Detail Views
 
@@ -530,10 +575,25 @@ class RiskDetailView(LoginRequiredMixin, DetailView):
     template_name = 'project_risk_detail.html'
     context_object_name = 'risk'
 
+    def get_object(self):
+        project_id = self.kwargs.get('project_id')
+        risk_id = self.kwargs.get('risk_id')
+        return get_object_or_404(Risk, id=risk_id, project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add the comments related to the risk
-        context['comments'] = Comment.objects.filter(content_type__model='risk', object_id=self.object.pk)
+        # Retrieve the project instance to include in the context
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        
+        # Get the ContentType instance for the Task model
+        task_content_type = ContentType.objects.get_for_model(Risk)
+
+        # Filter comments by the content_type and object_id (task id)
+        comments = Comment.objects.filter(content_type=task_content_type, object_id=self.object.pk)
+
+        # Add project and comments to the context
+        context['project'] = project
+        context['comments'] = comments
         return context
 
 class AssumptionDetailView(LoginRequiredMixin, DetailView):
@@ -541,10 +601,25 @@ class AssumptionDetailView(LoginRequiredMixin, DetailView):
     template_name = 'project_assumption_detail.html'
     context_object_name = 'assumption'
 
+    def get_object(self):
+        project_id = self.kwargs.get('project_id')
+        assumption_id = self.kwargs.get('assumption_id')
+        return get_object_or_404(Assumption, id=assumption_id, project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = self.object.project  # Include the project in the context
-        context['comments'] = Comment.objects.filter(content_type__model='assumption', object_id=self.object.pk)
+        # Retrieve the project instance to include in the context
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        
+        # Get the ContentType instance for the Task model
+        task_content_type = ContentType.objects.get_for_model(Assumption)
+
+        # Filter comments by the content_type and object_id (task id)
+        comments = Comment.objects.filter(content_type=task_content_type, object_id=self.object.pk)
+
+        # Add project and comments to the context
+        context['project'] = project
+        context['comments'] = comments
         return context
 
 class IssueDetailView(LoginRequiredMixin, DetailView):
@@ -552,10 +627,25 @@ class IssueDetailView(LoginRequiredMixin, DetailView):
     template_name = 'project_issue_detail.html'
     context_object_name = 'issue'
 
+    def get_object(self):
+        project_id = self.kwargs.get('project_id')
+        issue_id = self.kwargs.get('issue_id')
+        return get_object_or_404(Issue, id=issue_id, project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add comments related to the issue, using the content type and object ID
-        context['comments'] = Comment.objects.filter(content_type__model='issue', object_id=self.object.pk)
+        # Retrieve the project instance to include in the context
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        
+        # Get the ContentType instance for the Task model
+        task_content_type = ContentType.objects.get_for_model(Issue)
+
+        # Filter comments by the content_type and object_id (task id)
+        comments = Comment.objects.filter(content_type=task_content_type, object_id=self.object.pk)
+
+        # Add project and comments to the context
+        context['project'] = project
+        context['comments'] = comments
         return context
 
 class DependencyDetailView(LoginRequiredMixin, DetailView):
@@ -563,10 +653,25 @@ class DependencyDetailView(LoginRequiredMixin, DetailView):
     template_name = 'project_dependency_detail.html'
     context_object_name = 'dependency'
 
+    def get_object(self):
+        project_id = self.kwargs.get('project_id')
+        dependency_id = self.kwargs.get('dependency_id')
+        return get_object_or_404(Dependency, id=dependency_id, project_id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add comments related to the dependency, using the content type and object ID
-        context['comments'] = Comment.objects.filter(content_type__model='dependency', object_id=self.object.pk)
+        # Retrieve the project instance to include in the context
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        
+        # Get the ContentType instance for the Task model
+        task_content_type = ContentType.objects.get_for_model(Dependency)
+
+        # Filter comments by the content_type and object_id (task id)
+        comments = Comment.objects.filter(content_type=task_content_type, object_id=self.object.pk)
+
+        # Add project and comments to the context
+        context['project'] = project
+        context['comments'] = comments
         return context
 
 @login_required    
@@ -611,6 +716,11 @@ class ProjectTaskCalendarView(LoginRequiredMixin,DetailView):
     model = Project
     template_name = 'project_task_calendar.html'  # Create this template
 
+    def get_object(self):
+        # Retrieve the project object using project_id instead of pk
+        project_id = self.kwargs.get('project_id')
+        return get_object_or_404(Project, id=project_id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project = self.get_object()
@@ -641,7 +751,7 @@ class ProjectTaskCalendarView(LoginRequiredMixin,DetailView):
                     'backgroundColor': colors.get(task.priority, '#808080'),  # Fallback to grey
                     'borderColor': colors.get(task.priority, '#808080'),
                     'textColor': '#000000',
-                    'url': reverse('task_detail', kwargs={'project_pk': project.pk, 'pk': task.pk}),
+                    'url': reverse('task_detail', kwargs={'project_id': project.pk, 'task_id': task.pk}),
                 })
 
             # Add a separate event for the due date if it exists
@@ -652,7 +762,7 @@ class ProjectTaskCalendarView(LoginRequiredMixin,DetailView):
                     'end': str(task.due_date),
                     'backgroundColor': '#FF6347',  # Tomato color for due date
                     'borderColor': '#FF6347',
-                    'url': reverse('task_detail', kwargs={'project_pk': project.pk, 'pk': task.pk}),
+                    'url': reverse('task_detail', kwargs={'project_id': project.pk, 'task_id': task.pk}),
                 })
 
         context['task_events'] = task_events

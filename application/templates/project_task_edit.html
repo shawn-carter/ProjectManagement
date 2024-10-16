@@ -3,7 +3,7 @@
 
 {% block content %}
     <h1>Edit Task: {{ form.instance.task_name }}</h1>
-    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-outline-secondary mb-3">Back to Tasks</a>
+    <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Tasks</a>
 
     <div class="card-body">
         <form method="post" novalidate>

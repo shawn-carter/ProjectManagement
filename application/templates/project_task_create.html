@@ -3,7 +3,7 @@
 
 {% block content %}
     <h1>Add Task to: {{ project.project_name }}</h1>
-    <a href="{% url 'project_taskview' project.pk %}" class="btn btn-secondary mb-3">Back to Tasks</a>
+    <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-secondary mb-3">Back to Tasks</a>
 
     <div class="card-body">
         <form method="post" novalidate>

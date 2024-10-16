@@ -3,7 +3,8 @@
 
 {% block content %}
     <h1>Complete Task: {{ form.instance.task_name }}</h1>
-    <a href="{% url 'task_detail' project_pk=form.instance.project.pk pk=form.instance.pk %}" class="btn btn-outline-secondary mb-3">Back to Task Details</a>
+    <a href="{% url 'task_detail' project_id=project.id task_id=task.id %}" class="btn btn-outline-secondary mb-3">Back to Task Details</a>
+
     <form method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}

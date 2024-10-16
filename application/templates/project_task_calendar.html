@@ -3,7 +3,7 @@
 
 {% block content %}
 <h1>Task Calendar for {{ project.project_name }}</h1>
-<a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary mb-3">Back to Project</a>
+<a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-secondary mb-3">Back to Project</a>
 
 <!-- Calendar Element -->
 <div id='calendar'></div>
