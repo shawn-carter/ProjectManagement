@@ -263,6 +263,7 @@ class RiskFactory(factory.django.DjangoModelFactory):
     risk_details = factory.Faker('paragraph')
     impact = Iterator([1, 2, 3, 4, 5])
     probability = Iterator([1, 2, 3, 4, 5])
+    status = Iterator([1,2,3])
     created_by = SubFactory(UserFactory)
 
 class AssumptionFactory(factory.django.DjangoModelFactory):
@@ -271,6 +272,7 @@ class AssumptionFactory(factory.django.DjangoModelFactory):
 
     project = SubFactory(ProjectFactory)
     assumption_details = factory.Faker('paragraph')
+    status = Iterator([1,2,3])
     created_by = SubFactory(UserFactory)
 
 class IssueFactory(factory.django.DjangoModelFactory):
@@ -279,6 +281,7 @@ class IssueFactory(factory.django.DjangoModelFactory):
 
     project = SubFactory(ProjectFactory)
     issue_details = factory.Faker('paragraph')
+    status = Iterator([1,2,3])
     created_by = SubFactory(UserFactory)
 
 class DependencyFactory(factory.django.DjangoModelFactory):
@@ -287,6 +290,7 @@ class DependencyFactory(factory.django.DjangoModelFactory):
 
     project = SubFactory(ProjectFactory)
     dependency_details = factory.Faker('paragraph')
+    status = Iterator([1,2,3])
     created_by = SubFactory(UserFactory)
 
 class StakeholderFactory(factory.django.DjangoModelFactory):
