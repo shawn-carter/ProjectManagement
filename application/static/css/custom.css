@@ -11,3 +11,19 @@
     break-inside: avoid; /* Prevents splitting across columns */
     margin-bottom: 10px;
 }
+
+#calendar-container {
+    height: 100vh;  /* Fill the entire viewport height */
+}
+
+.fc-daygrid-day {
+    min-height: 100px;  /* You can adjust this to ensure cells look even */
+}
+
+/* Ensure Add Task buttons are positioned properly */
+.add-task-button {
+    position: absolute;
+    top: 5px;  /* Adjust as needed to get it at the top */
+    right: 5px;  /* Adjust for alignment */
+    z-index: 10; /* Make sure it stays above calendar events */
+}

@@ -126,6 +126,14 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
         kwargs['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return kwargs
 
+    def get_initial(self):
+        initial = super().get_initial()
+        # Get the 'start_date' from the query parameters and set it as the initial value
+        start_date = self.request.GET.get('start_date')
+        if start_date:
+            initial['planned_start_date'] = start_date
+        return initial
+
     def form_valid(self, form):
         form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         return super().form_valid(form)
@@ -179,7 +187,16 @@ class TaskListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         # Get tasks related to the project using project_id
         project_id = self.kwargs.get('project_id')
-        return Task.objects.filter(project_id=project_id)
+        tasks = Task.objects.filter(project_id=project_id)
+
+        # Annotate each task to determine if it can be completed (i.e., if dependencies are complete)
+        for task in tasks:
+            if task.dependant_task and task.dependant_task.task_status.status_name != "Completed":
+                task.can_be_completed = False
+            else:
+                task.can_be_completed = True
+        
+        return tasks
 
     def get_context_data(self, **kwargs):
         # Add the project instance to the context
@@ -712,9 +729,9 @@ def get_color_for_project(project_id):
     colors = ['#0000FF', '#00FF00', '#FF0000', '#00FFFF', '#FF00FF', '#FFFF00']
     return colors[project_id % len(colors)]  # Cycle through the list based on the project ID
 
-class ProjectTaskCalendarView(LoginRequiredMixin,DetailView):
+class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
     model = Project
-    template_name = 'project_task_calendar.html'  # Create this template
+    template_name = 'project_task_calendar.html'
 
     def get_object(self):
         # Retrieve the project object using project_id instead of pk
@@ -731,11 +748,20 @@ class ProjectTaskCalendarView(LoginRequiredMixin,DetailView):
         # Prepare task data for FullCalendar
         task_events = []
         colors = {
-            1: '#808080',  # Low (grey)
-            2: '#008000',  # Medium (green)
-            3: '#FFFF00',  # High (yellow)
-            4: '#FFA500',  # Critical (orange)
-            5: '#FF0000',  # Urgent (red)
+            1: '#0000FF',  # Low (Blue)
+            2: '#008000',  # Medium (Green)
+            3: '#FFFF00',  # High (Yellow)
+            4: '#FFA500',  # Critical (Orange)
+            5: '#FF0000',  # Urgent (Red)
+        }
+        
+        # Define corresponding text colors for each background color
+        text_colors = {
+            1: '#FFFFFF',  # White for Low (Blue)
+            2: '#FFFFFF',  # White for Medium (Green)
+            3: '#000000',  # Black for High (Yellow)
+            4: '#000000',  # Black for Critical (Orange)
+            5: '#FFFFFF',  # White for Urgent (Red)
         }
 
         for task in tasks:
@@ -743,25 +769,37 @@ class ProjectTaskCalendarView(LoginRequiredMixin,DetailView):
             start_date = task.actual_start_date or task.planned_start_date
             end_date = task.actual_end_date or task.planned_end_date
 
+            # Set color and title for completed tasks
+            if task.task_status_id == 3:  # Assuming status ID 3 means 'Completed'
+                background_color = '#808080'  # Grey
+                text_color = '#FFFFFF'  # White text for completed tasks
+                task_title = f'{task.task_name} (Complete)'  # Add '(Complete)' to the task name
+            else:
+                # Use the priority color or fallback to grey
+                background_color = colors.get(task.priority, '#808080')
+                text_color = text_colors.get(task.priority, '#000000')  # Default text color to black if not defined
+                task_title = task.task_name
+
             if start_date and end_date:
                 task_events.append({
-                    'title': task.task_name,
+                    'title': task_title,
                     'start': str(start_date),
                     'end': str(end_date + timedelta(days=1)),  # FullCalendar uses exclusive end dates
-                    'backgroundColor': colors.get(task.priority, '#808080'),  # Fallback to grey
-                    'borderColor': colors.get(task.priority, '#808080'),
-                    'textColor': '#000000',
+                    'backgroundColor': background_color,
+                    'borderColor': background_color,
+                    'textColor': text_color,
                     'url': reverse('task_detail', kwargs={'project_id': project.pk, 'task_id': task.pk}),
                 })
 
-            # Add a separate event for the due date if it exists
-            if task.due_date:
+            # Add a separate event for the due date if it exists, but only if the task is not completed
+            if task.due_date and task.task_status_id != 3:
                 task_events.append({
                     'title': f'{task.task_name} (Due)',
                     'start': str(task.due_date),
                     'end': str(task.due_date),
                     'backgroundColor': '#FF6347',  # Tomato color for due date
                     'borderColor': '#FF6347',
+                    'textColor': '#000000',  # Black text for due dates
                     'url': reverse('task_detail', kwargs={'project_id': project.pk, 'task_id': task.pk}),
                 })
 

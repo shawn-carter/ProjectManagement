@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 
-
 {% block content %}
-<h1>Task Calendar for {{ project.project_name }}</h1>
+<h1>Task Calendar for {{ project.project_name }} ({{ project.actual_start_date|default_if_none:project.planned_start_date }} - {{ project.actual_end_date|default_if_none:project.revised_target_end_date|default_if_none:project.original_target_end_date }})</h1>
 <a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-secondary mb-3">Back to Project</a>
 
 <!-- Calendar Element -->
-<div id='calendar'></div>
+<div id="calendar-container">
+    <div id="calendar"></div>
+</div>
 
 {% endblock %}
 
@@ -17,25 +18,95 @@
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
 
+        // Determine project start and end dates based on precedence rules
+        var projectStartDate = new Date("{{ project.actual_start_date|default_if_none:project.planned_start_date }}");
+        var projectEndDate = new Date("{{ project.actual_end_date|default_if_none:project.revised_target_end_date|default_if_none:project.original_target_end_date }}");
+        
+        // Extend project end date to make it inclusive
+        projectEndDate.setDate(projectEndDate.getDate() + 1);
+
         var calendar = new FullCalendar.Calendar(calendarEl, {
+            height: Math.max(window.innerHeight * 0.7, 500),
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay,listDay, list'
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
             initialView: 'dayGridMonth',
+            initialDate: projectStartDate,
             navLinks: true, // Can click day/week names to navigate views
             editable: false, // Disable editing
-            events: {{ task_events|safe }},  // Render events from context
+
+            // Define events (including background event for project date range)
+            events: [
+                // Project Background Event
+                {
+                    start: projectStartDate.toISOString().split('T')[0],
+                    end: projectEndDate.toISOString().split('T')[0], // Adjusted to make it inclusive
+                    display: 'background',
+                    rendering: 'background',
+                    color: '#d8bfd8'  // Lilac color for project duration
+                },
+                // Existing Task Events
+                ...{{ task_events|safe }}
+            ],
 
             eventClick: function(info) {
                 // Navigate to the task detail page on click
-                window.location.href = info.event.url;
-                info.jsEvent.preventDefault();
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    info.jsEvent.preventDefault();
+                }
+            },
+
+            // Add "Add Task" button for each day if within project date range
+            dayCellDidMount: function(arg) {
+                const cellDate = new Date(arg.date);
+
+                // Only add "Add Task" button if the date is within project range
+                if (cellDate >= projectStartDate && cellDate < projectEndDate) {
+                    // Create a button to add a task for that specific day
+                    const addButton = document.createElement('button');
+                    addButton.innerText = 'Add Task';
+                    addButton.className = 'btn btn-sm btn-primary add-task-btn';
+
+                    // Set the onClick event to redirect to the task creation page with the selected date
+                    addButton.onclick = function() {
+                        const baseUrl = "{% url 'task_create' project_id=project.id %}";
+                        const url = `${baseUrl}?start_date=${arg.date.toISOString().split('T')[0]}`;
+                        window.location.href = url;
+                    };
+
+                    // Append the button to the day cell frame
+                    const dayFrameContainer = arg.el.querySelector('.fc-daygrid-day-frame');
+                    if (dayFrameContainer) {
+                        dayFrameContainer.appendChild(addButton);
+                    }
+                }
             }
         });
 
         calendar.render();
     });
 </script>
+
+<style>
+    /* Adjust the styling to ensure that buttons align correctly */
+    .fc-daygrid-day-frame {
+        position: relative;
+    }
+    .add-task-btn {
+        position: absolute;
+        top: 0px;  /* Align the button to the top of the day frame */
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2000; /* Ensure it's above other content */
+        background-color: #007bff; /* Keep the primary button color */
+        color: white;
+    }
+</style>
 {% endblock %}
+
+
+
+

@@ -21,6 +21,24 @@
         if (firstInvalidField.length) {
             firstInvalidField.focus();
         }
+
+        // Function to update the min attributes of planned end date and due date fields
+        function updateDateFields(plannedStartDate) {
+            if (plannedStartDate) {
+                $('#id_planned_end_date').attr('min', plannedStartDate);
+                $('#id_due_date').attr('min', plannedStartDate);
+            }
+        }
+
+        // On document ready, check if the planned start date is already populated
+        var initialPlannedStartDate = $('#id_planned_start_date').val();
+        updateDateFields(initialPlannedStartDate);
+
+        // Update min date attributes when planned start date changes
+        $('#id_planned_start_date').on('change', function () {
+            var plannedStartDate = $(this).val();
+            updateDateFields(plannedStartDate);
+        });
     });
 </script>
 {% endblock %}

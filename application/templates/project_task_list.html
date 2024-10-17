@@ -31,13 +31,15 @@
                         <td>{{ task.task_status }}</td>
                         <td>{{ task.get_priority_display }}</td>
                         <td>{{ task.assigned_to }}</td>
-                        <td>{{ task.planned_start_date }}</td>
-                        <td>{{ task.planned_end_date }}</td>
+                        <td>{{ task.planned_start_date|date:"Y-m-d" }}</td>
+                        <td>{{ task.planned_end_date|date:"Y-m-d" }}</td>
                         <td>
-                            <!-- Complete Task Button (only if task is not complete) -->
+                            <!-- Complete Task Button (only if task is not complete and dependencies are completed) -->
                             {% if task.task_status.status_name != "Completed" %}
                                 <a href="{% url 'task_edit' project_id=project.id task_id=task.id %}" class="btn btn-sm btn-warning">Edit</a>
-                                <a href="{% url 'task_complete' project_id=project.id task_id=task.id %}" class="btn btn-sm btn-success">Complete Task</a>
+                                {% if task.can_be_completed %}
+                                    <a href="{% url 'task_complete' project_id=project.id task_id=task.id %}" class="btn btn-sm btn-success">Complete Task</a>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>
@@ -58,7 +60,8 @@
             dom: 'Bfrtip',
             buttons: [
                 'copy', 'csv', 'excel', //'print','pdf', we can add these if required
-            ]
+            ],
+            "order": [[ 4, "asc" ]] // Order by the Start Date column (index 4) in descending order
         });
     });
 </script>

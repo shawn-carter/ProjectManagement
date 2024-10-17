@@ -1,29 +1,15 @@
 Close projects
     Requires that all Project Tasks have been completed
-
-
-User levels - (Spend more time adding permissions to views)
-    Admin
-        Everything a Project Manager can do plus..
-        Can create Assets, Teams, Skills and add/modify Status Types for Task and Project
-        Complete Tasks, Close Projects
-    Project Manager
-        Can create projects, tasks and all items for projects including risks etc
-        Can complete any tasks
-        Close projects they own.
-    Normal User
-        Can see projects, can add comments/PSRs to projects or objects
-        Can complete their own tasks
-    
+   
 Potentially Add:
     Task Templates for common Tasks such as building servers
         Will hold the title, description and skills required
         Can use the existing Create Task View
     Import Users from Active Directory / Excel
 
-Implement whitenoise to server static content - Done
-
-Test Deploy to Azure
-
 Bugs/Things to do:
-    Message when logging in with incorrect password
+    Stakeholders allows duplicate Names and Email Address...
+        There could be Stakeholders that exist in multiple projects - so we can't use model constraint - will have to be a view/form validation thing.
+
+Questions:
+    Should a PM be able to create a task outside of the Project Date Range?

@@ -33,7 +33,6 @@ class SignalTests(TestCase):
         self.assertTrue(DayOfWeek.objects.filter(day_name='Friday', abbreviation='Fri').exists())
 
 # Model Tests
-
 class ProjectModelTest(TestCase):
     def test_project_creation(self):
         project = ProjectFactory()
@@ -70,7 +69,7 @@ class TaskModelTest(TestCase):
         task = TaskFactory()
         self.assertIsInstance(task, Task)
         self.assertIsNotNone(task.pk)
-        self.assertEqual(task.task_status.status_name, 'Unassigned')  # Assuming status_id=1 is 'Unassigned'
+        self.assertEqual(task.task_status.status_name, 'Unassigned')
         self.assertGreater(task.skills_required.count(), 0)
 
 class RiskModelTest(TestCase):
