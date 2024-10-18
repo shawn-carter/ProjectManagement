@@ -8,7 +8,10 @@
 {% block content %}
     <h1>Assumptions for {{ project.project_name }}</h1>
     <a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
-    <a href="{% url 'add_assumption' project_id=project.id %}" class="btn btn-primary mb-3">Add Assumption</a>
+    {% if project.project_status.status_name != "Closed" %}
+        <a href="{% url 'add_assumption' project_id=project.id %}" class="btn btn-primary mb-3">Add Assumption</a>
+    {% endif %}
+    
 
     {% if assumptions %}
         <table class="table table-striped" id="assumptions-list">
@@ -28,11 +31,15 @@
                     <td>{{ assumption.get_status_display }}</td>
                     <td>{{ assumption.created_by }}</td>
                     <td>{{ assumption.created_datetime }}</td>
+                    {% if project.project_status.status_name != "Closed" %}
                     <td>
-                        <!-- Link to edit the risk -->
-                            <a href="{% url 'assumption_detail' project_id=project.id assumption_id=assumption.id %}" class="btn btn-sm btn-info">View</a>
-                            <a href="{% url 'edit_assumption' project_id=project.id assumption_id=assumption.id %}" class="btn btn-sm btn-warning">Edit</a>
+                        <a href="{% url 'assumption_detail' project_id=project.id assumption_id=assumption.id %}" class="btn btn-sm btn-info">View</a>
+                        <a href="{% url 'edit_assumption' project_id=project.id assumption_id=assumption.id %}" class="btn btn-sm btn-warning">Edit</a>
                     </td>
+                    {% else %}
+                        <td></td>
+                    {% endif %}
+
                 </tr>
                 {% endfor %}
             </tbody>

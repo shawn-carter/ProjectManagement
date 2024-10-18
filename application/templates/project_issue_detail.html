@@ -4,7 +4,10 @@
     <h1>Issue Details: {{ issue.issue_details }}</h1>
     <a href="{% url 'issue_list' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Issues List</a>
     <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('issue', {{ issue.pk }}, 'Issue Details')">Add Comment</button>
-    <a href="{% url 'edit_issue' project_id=project.id issue_id=issue.id %}" class="btn btn-warning mb-3">Edit Issue</a>
+    {% if project.project_status.status_name != "Closed" %}
+        <a href="{% url 'edit_issue' project_id=project.id issue_id=issue.id %}" class="btn btn-warning mb-3">Edit Issue</a>
+    {% endif %}
+    
 
     <h3>Issue Overview</h3>
     <p><strong>Details:</strong> {{ issue.issue_details }}</p>

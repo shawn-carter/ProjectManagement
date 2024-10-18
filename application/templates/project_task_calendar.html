@@ -2,12 +2,10 @@
 
 {% block content %}
 <h1>Task Calendar for {{ project.project_name }} ({{ project.actual_start_date|default_if_none:project.planned_start_date }} - {{ project.actual_end_date|default_if_none:project.revised_target_end_date|default_if_none:project.original_target_end_date }})</h1>
-<a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-secondary mb-3">Back to Project</a>
+<a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
 
 <!-- Calendar Element -->
-<div id="calendar-container">
-    <div id="calendar"></div>
-</div>
+<div id="calendar"></div>
 
 {% endblock %}
 
@@ -59,30 +57,33 @@
                 }
             },
 
-            // Add "Add Task" button for each day if within project date range
+            // Add "Add Task" button for each day if within project date range and project is not closed
             dayCellDidMount: function(arg) {
-                const cellDate = new Date(arg.date);
+                // Only add "Add Task" button if the project is not closed
+                {% if project.project_status.status_name != "Closed" %}
+                    const cellDate = new Date(arg.date);
 
-                // Only add "Add Task" button if the date is within project range
-                if (cellDate >= projectStartDate && cellDate < projectEndDate) {
-                    // Create a button to add a task for that specific day
-                    const addButton = document.createElement('button');
-                    addButton.innerText = 'Add Task';
-                    addButton.className = 'btn btn-sm btn-primary add-task-btn';
+                    // Only add "Add Task" button if the date is within project range
+                    if (cellDate >= projectStartDate && cellDate < projectEndDate) {
+                        // Create a button to add a task for that specific day
+                        const addButton = document.createElement('button');
+                        addButton.innerText = 'Add Task';
+                        addButton.className = 'btn btn-sm btn-primary add-task-btn';
 
-                    // Set the onClick event to redirect to the task creation page with the selected date
-                    addButton.onclick = function() {
-                        const baseUrl = "{% url 'task_create' project_id=project.id %}";
-                        const url = `${baseUrl}?start_date=${arg.date.toISOString().split('T')[0]}`;
-                        window.location.href = url;
-                    };
+                        // Set the onClick event to redirect to the task creation page with the selected date
+                        addButton.onclick = function() {
+                            const baseUrl = "{% url 'task_create' project_id=project.id %}";
+                            const url = `${baseUrl}?start_date=${arg.date.toISOString().split('T')[0]}`;
+                            window.location.href = url;
+                        };
 
-                    // Append the button to the day cell frame
-                    const dayFrameContainer = arg.el.querySelector('.fc-daygrid-day-frame');
-                    if (dayFrameContainer) {
-                        dayFrameContainer.appendChild(addButton);
+                        // Append the button to the day cell frame
+                        const dayFrameContainer = arg.el.querySelector('.fc-daygrid-day-frame');
+                        if (dayFrameContainer) {
+                            dayFrameContainer.appendChild(addButton);
+                        }
                     }
-                }
+                {% endif %}
             }
         });
 

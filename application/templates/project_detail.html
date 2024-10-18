@@ -27,11 +27,17 @@
         <a href="https://redcarcouncil.haloservicedesk.com/tickets?id={{ project.halo_ref }}" target="_blank">
             {{ project.halo_ref }}
         </a></p>
-
     <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('project', {{ project.pk }}, 'Project Details')">Add Comment</button>
-    <a href="{% url 'project_edit' project_id=project.id %}" class="btn btn-warning mb-3">Edit Project</a>
-    
-    
+    <!-- Display buttons only if the project is not closed -->
+    {% if project.project_status.status_name != "Closed" %}
+        
+        <a href="{% url 'project_edit' project_id=project.id %}" class="btn btn-warning mb-3">Edit Project</a>
+        
+        {% if all_tasks_completed %}
+            <a href="{% url 'project_close' project_id=project.id %}" class="btn btn-danger mb-3">Close Project</a>
+        {% endif %}
+    {% endif %}
+
     <h3>Comments</h3>
     <ul class="list-group">
         {% if comments %}

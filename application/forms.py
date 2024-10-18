@@ -327,3 +327,37 @@ class StakeholderForm(forms.ModelForm):
             'influence_level': forms.Select(attrs={'class': 'form-select'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
+
+class ProjectCloseForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = ['actual_start_date', 'actual_end_date']
+
+        widgets = {
+            'actual_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'actual_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Crispy forms configuration
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            'actual_start_date',
+            'actual_end_date',
+            Submit('submit', 'Close Project', css_class='btn btn-success')
+        )
+
+    def clean(self):
+        """
+        Custom validation to ensure the end date is not before the start date.
+        """
+        cleaned_data = super().clean()
+        actual_start_date = cleaned_data.get("actual_start_date")
+        actual_end_date = cleaned_data.get("actual_end_date")
+
+        if actual_start_date and actual_end_date and actual_end_date < actual_start_date:
+            self.add_error('actual_end_date', 'End date cannot be earlier than the start date.')
+
+        return cleaned_data

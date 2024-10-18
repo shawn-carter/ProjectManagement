@@ -10,13 +10,14 @@ from django.views.generic import ListView, DetailView,CreateView, UpdateView
 from django.urls import reverse_lazy,reverse
 
 from .models import Project, ProjectStatus, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment
-from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm
+from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm
 
 # Home page view
 @login_required  # Optional: Use this decorator if you want to restrict access to authenticated users only
 def home(request):
     return render(request, 'home.html')
 
+# Project Views
 class ProjectCreateView(PermissionRequiredMixin,CreateView):
     permission_required = 'application.add_project'  # Only allow users with 'add_project' permission
     model = Project
@@ -64,6 +65,16 @@ class ProjectUpdateView(PermissionRequiredMixin, UpdateView):
         # Redirect to a different view or URL
         return redirect(reverse_lazy('project_list'))  # Redirect to the project list view
 
+    def dispatch(self, request, *args, **kwargs):
+        # Check if the project is closed
+        project = self.get_object()
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and cannot be edited.")
+            return redirect(reverse_lazy('project_list'))
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         form.save()
         return redirect(reverse('project_detail', kwargs={'project_id': self.object.pk}))
@@ -102,13 +113,32 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         project = self.object  # Get the project instance
 
         # Check if all tasks for this project are completed
-        all_tasks_completed = project.task_set.filter(~Q(task_status__status_name='Complete')).count() == 0
+        all_tasks_completed = project.task_set.filter(~Q(task_status__status_name='Completed')).count() == 0
 
         # Pass the 'all_tasks_completed' status to the template
         context['all_tasks_completed'] = all_tasks_completed
         context['comments'] = Comment.objects.filter(content_type__model='project', object_id=self.object.pk)
         return context
 
+class ProjectCloseView(LoginRequiredMixin, UpdateView):
+    model = Project
+    form_class = ProjectCloseForm
+    template_name = 'project_close.html'
+
+    def get_object(self, queryset=None):
+        # Retrieve the project object using project_id instead of pk
+        project_id = self.kwargs.get('project_id')
+        return get_object_or_404(Project, id=project_id)
+
+    def form_valid(self, form):
+        # Update project status to closed
+        project = form.save(commit=False)
+        project.project_status = ProjectStatus.objects.get(status_name="Closed")  # Assuming there's a 'Closed' status
+        project.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('project_detail', kwargs={'project_id': self.object.pk})
 
 # Task Views
 class TaskCreateView(PermissionRequiredMixin, CreateView):
@@ -120,6 +150,18 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to create a new task.")
         return redirect('project_taskview', project_id=self.kwargs['project_id'])
+
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and new tasks cannot be added.")
+            return redirect('project_taskview', project_id=project.id)
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -152,15 +194,33 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
     template_name = 'project_task_edit.html'
     permission_required = 'application.change_task'
 
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to edit this task.")
+        return redirect('task_detail', project_id=self.kwargs['project_id'], task_id=self.kwargs['task_id'])
+
     def get_object(self):
         # Use project_id and task_id to get the task object
         project_id = self.kwargs.get('project_id')
         task_id = self.kwargs.get('task_id')
         return get_object_or_404(Task, id=task_id, project_id=project_id)
 
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to edit this task.")
-        return redirect('project_taskview', project_id=self.kwargs['project_id'])
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project and task objects
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        task = self.get_object()
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and its tasks cannot be edited.")
+            return redirect('task_detail', project_id=project.id, task_id=task.id)
+
+        # Check if the task is completed
+        if task.task_status.status_name == "Completed":
+            messages.error(request, "This task is completed and cannot be edited.")
+            return redirect('task_detail', project_id=project.id, task_id=task.id)
+
+        # Proceed with the regular dispatch if the project is not closed and the task is not completed
+        return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -235,6 +295,24 @@ class TaskCompleteView(PermissionRequiredMixin, UpdateView):
     form_class = TaskCompleteForm
     template_name = 'project_task_complete.html'
     permission_required = 'application.change_task'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project and task objects
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        task = get_object_or_404(Task, id=self.kwargs['task_id'], project_id=project.id)
+
+        # Check if the task is already completed
+        if task.task_status_id == 3:  # Assuming status ID 3 is 'Completed'
+            messages.error(request, "This task has already been completed.")
+            return redirect('task_detail', project_id=project.id, task_id=task.id)
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and tasks cannot be completed.")
+            return redirect('task_detail', project_id=project.id, task_id=task.id)
+
+        # Proceed with the regular dispatch if the project is not closed and the task is not completed
+        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self):
         project_id = self.kwargs.get('project_id')
@@ -263,7 +341,7 @@ class TaskCompleteView(PermissionRequiredMixin, UpdateView):
 
 # Views for listing Risks, Assumptions, Issues, and Dependencies
 
-class RiskListView(LoginRequiredMixin,ListView):
+class RiskListView(LoginRequiredMixin, ListView):
     model = Risk
     template_name = 'project_risks_list.html'
     context_object_name = 'risks'  # Updated context name to refer to the risks list
@@ -279,7 +357,7 @@ class RiskListView(LoginRequiredMixin,ListView):
         context['project'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
         return context
     
-class AssumptionListView(LoginRequiredMixin,ListView):
+class AssumptionListView(LoginRequiredMixin, ListView):
     model = Assumption
     template_name = 'project_assumptions_list.html'
     context_object_name = 'assumptions'  # Updated context name to refer to the assumption list
@@ -295,7 +373,7 @@ class AssumptionListView(LoginRequiredMixin,ListView):
         context['project'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
         return context
 
-class IssueListView(LoginRequiredMixin,ListView):
+class IssueListView(LoginRequiredMixin, ListView):
     model = Issue
     template_name = 'project_issues_list.html'
     context_object_name = 'issues'  # Updated context name to refer to the issues list
@@ -311,7 +389,7 @@ class IssueListView(LoginRequiredMixin,ListView):
         context['project'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
         return context
 
-class DependencyListView(LoginRequiredMixin,ListView):
+class DependencyListView(LoginRequiredMixin, ListView):
     model = Dependency
     template_name = 'project_dependencies_list.html'
     context_object_name = 'dependencies'  # Updated context name to refer to the dependencies list
@@ -357,18 +435,29 @@ class StakeholderListView(LoginRequiredMixin, ListView):
         return context
 
 # Create views for adding new entries
-class RiskCreateView(PermissionRequiredMixin,CreateView):
+class RiskCreateView(PermissionRequiredMixin, CreateView):
     model = Risk
     form_class = RiskForm
     template_name = 'project_risk_add.html'
-
     permission_required = 'application.add_risk'  # Only allow users with 'add_risk' permission
 
     def handle_no_permission(self):
         # Add a custom error message
         messages.error(self.request, "You do not have permission to create a risk.")
         # Redirect to the project risk list view
-        return redirect('risk_list', kwargs={'pk': self.kwargs['pk']})
+        return redirect('risk_list', project_id=self.kwargs['project_id'])
+
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and new risks cannot be added.")
+            return redirect('risk_list', project_id=project.id)
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         # Assign the project instance to the risk instance before saving
@@ -385,10 +474,22 @@ class RiskCreateView(PermissionRequiredMixin,CreateView):
         # Redirect back to the project risk list view upon successful form submission
         return reverse_lazy('risk_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class AssumptionCreateView(LoginRequiredMixin,CreateView):
+class AssumptionCreateView(LoginRequiredMixin, CreateView):
     model = Assumption
     form_class = AssumptionForm
     template_name = 'project_assumption_add.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and new assumptions cannot be added.")
+            return redirect('assumption_list', project_id=project.id)
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         # Assign the project instance to the assumption instance before saving
@@ -405,66 +506,94 @@ class AssumptionCreateView(LoginRequiredMixin,CreateView):
         # Redirect back to the project assumption list view upon successful form submission
         return reverse_lazy('assumption_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class IssueCreateView(LoginRequiredMixin,CreateView):
+class IssueCreateView(LoginRequiredMixin, CreateView):
     model = Issue
     form_class = IssueForm
     template_name = 'project_issue_add.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and new issues cannot be added.")
+            return redirect('issue_list', project_id=project.id)
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         form.instance.created_by = self.request.user
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
-        # Ensure project is in the context
         context = super().get_context_data(**kwargs)
         context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        # Make sure 'pk' is passed correctly in reverse_lazy
         return reverse_lazy('issue_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class DependencyCreateView(LoginRequiredMixin,CreateView):
+class DependencyCreateView(LoginRequiredMixin, CreateView):
     model = Dependency
     form_class = DependencyForm
     template_name = 'project_dependency_add.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and new dependencies cannot be added.")
+            return redirect('dependency_list', project_id=project.id)
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
-        # Associate the dependency with the specific project
         form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         form.instance.created_by = self.request.user
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
-        # Ensure project is passed to the template context
         context = super().get_context_data(**kwargs)
         context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        # Redirect back to the dependency list view after successful creation
         return reverse_lazy('dependency_list', kwargs={'project_id': self.kwargs['project_id']})
     
-class StakeholderCreateView(LoginRequiredMixin,CreateView):
+class StakeholderCreateView(LoginRequiredMixin, CreateView):
     model = Stakeholder
     form_class = StakeholderForm
     template_name = 'project_stakeholder_add.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and new stakeholders cannot be added.")
+            return redirect('stakeholder_list', project_id=project.id)
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
-        # Associate the stakeholder with the project and the user who created it
         form.instance.project = get_object_or_404(Project, id=self.kwargs['project_id'])
         form.instance.created_by = self.request.user
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
-        # Pass the project to the template context
         context = super().get_context_data(**kwargs)
         context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
     def get_success_url(self):
-        # Redirect to the stakeholder list view upon successful creation
         return reverse_lazy('stakeholder_list', kwargs={'project_id': self.kwargs['project_id']})
 
 # Update views for editing existing entries
@@ -475,6 +604,18 @@ class RiskUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'project_risk_add.html'
     context_object_name = 'risk'
 
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and risks cannot be edited.")
+            return redirect('risk_detail', project_id=project.id, risk_id=self.kwargs['risk_id'])
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_object(self):
         # Use project_id and risk_id to get the risk object
         project_id = self.kwargs.get('project_id')
@@ -493,10 +634,22 @@ class RiskUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse('risk_detail', kwargs={'project_id': self.kwargs['project_id'], 'risk_id': self.object.pk})
 
-class AssumptionUpdateView(LoginRequiredMixin,UpdateView):
+class AssumptionUpdateView(LoginRequiredMixin, UpdateView):
     model = Assumption
     form_class = AssumptionForm
     template_name = 'project_assumption_add.html'  # Reusing the existing template
+
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and assumptions cannot be edited.")
+            return redirect('assumption_detail', project_id=project.id, assumption_id=self.kwargs['assumption_id'])
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self):
         # Use project_id and risk_id to get the risk object
@@ -516,10 +669,22 @@ class AssumptionUpdateView(LoginRequiredMixin,UpdateView):
     def get_success_url(self):
         return reverse_lazy('assumption_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class IssueUpdateView(LoginRequiredMixin,UpdateView):
+class IssueUpdateView(LoginRequiredMixin, UpdateView):
     model = Issue
     form_class = IssueForm
     template_name = 'project_issue_add.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and issues cannot be edited.")
+            return redirect('issue_detail', project_id=project.id, issue_id=self.kwargs['issue_id'])
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self):
         # Use project_id and risk_id to get the risk object
@@ -539,10 +704,22 @@ class IssueUpdateView(LoginRequiredMixin,UpdateView):
     def get_success_url(self):
         return reverse_lazy('issue_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class DependencyUpdateView(LoginRequiredMixin,UpdateView):
+class DependencyUpdateView(LoginRequiredMixin, UpdateView):
     model = Dependency
     form_class = DependencyForm
     template_name = 'project_dependency_add.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and dependencies cannot be edited.")
+            return redirect('dependency_detail', project_id=project.id, dependency_id=self.kwargs['dependency_id'])
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self):
         # Use project_id and risk_id to get the risk object
@@ -562,17 +739,29 @@ class DependencyUpdateView(LoginRequiredMixin,UpdateView):
     def get_success_url(self):
         return reverse_lazy('dependency_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class StakeholderUpdateView(LoginRequiredMixin,UpdateView):
+class StakeholderUpdateView(LoginRequiredMixin, UpdateView):
     model = Stakeholder
     form_class = StakeholderForm
     template_name = 'project_stakeholder_add.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Check if the project is closed
+        if project.project_status.status_name == "Closed":
+            messages.error(request, "This project is closed and stakeholders cannot be edited.")
+            return redirect('stakeholder_list', project_id=project.id)
+
+        # Proceed with the regular dispatch if the project is not closed
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_object(self):
         # Use project_id and risk_id to get the risk object
         project_id = self.kwargs.get('project_id')
         stakeholder_id = self.kwargs.get('stakeholder_id')
         return get_object_or_404(Stakeholder, id=stakeholder_id, project_id=project_id)
-    
+
     def form_valid(self, form):
         form.save()
         return super().form_valid(form)
