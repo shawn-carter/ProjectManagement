@@ -5,7 +5,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from .models import (
     Project, Task, Asset, Category, TaskStatus, ProjectStatus,
     Skill, Team, DayOfWeek, Risk, Assumption, Issue,
-    Dependency, Stakeholder, Comment
+    Dependency, Stakeholder, Comment, Attachment
 )
 
 # Extended SafeDeleteAdmin model to include undelete functionality for all models
@@ -186,3 +186,4 @@ admin.site.register(TaskStatus, TaskStatusAdmin)
 admin.site.register(ProjectStatus, ProjectStatusAdmin)
 admin.site.register(DayOfWeek, DayOfWeekAdmin)
 admin.site.register(Comment, CommentAdmin)
+admin.site.register(Attachment)

@@ -4,14 +4,19 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.shortcuts import render,get_object_or_404, redirect
-from django.views.generic import ListView, DetailView,CreateView, UpdateView
+from django.views.generic import ListView, DetailView,CreateView, UpdateView, View
 from django.urls import reverse_lazy,reverse
 
-from .models import Project, ProjectStatus, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment
-from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm
+from .models import Project, ProjectStatus, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment
+from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm, AttachmentForm
 
+import os
+from django.utils.timezone import now
+from django.core.files.storage import FileSystemStorage
+
+from django.conf import settings  # Import settings to access MEDIA_ROOT
 # Home page view
 @login_required  # Optional: Use this decorator if you want to restrict access to authenticated users only
 def home(request):
@@ -1016,3 +1021,67 @@ def add_comment(request, content_type, object_id):
 
         # Redirect back to the detail view of the commented object
         return redirect(related_object.get_absolute_url())  # Ensure `get_absolute_url` is defined in models
+    
+class AttachmentListView(LoginRequiredMixin, ListView):
+    model = Attachment
+    template_name = 'project_attachments_list.html'
+    context_object_name = 'attachments'
+
+    def get_queryset(self):
+        # Get attachments related to the project using project_id
+        project_id = self.kwargs.get('project_id')
+        return Attachment.objects.filter(project_id=project_id)
+
+    def get_context_data(self, **kwargs):
+        # Add the project instance to the context
+        context = super().get_context_data(**kwargs)
+        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
+        context['form'] = AttachmentForm()  # Include the form to handle new uploads
+        return context
+
+class AttachmentCreateView(LoginRequiredMixin, CreateView):
+    model = Attachment
+    form_class = AttachmentForm
+    http_method_names = ['post']  # Only allow POST since Dropzone uploads files automatically
+
+    def post(self, request, *args, **kwargs):
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        file = request.FILES.get('file')
+        description = request.POST.get('description', 'No description provided')
+
+        if file:
+            # Corrected storage path to avoid double 'media/'
+            folder_path = os.path.join(settings.MEDIA_ROOT, str(project.id))
+            fs = FileSystemStorage(location=folder_path, base_url=f'{settings.MEDIA_URL}{project.id}/')
+            filename = fs.save(file.name, file)
+            file_url = fs.url(filename)
+
+            # Create the Attachment instance and save it
+            attachment = Attachment(
+                project=project,
+                uploaded_by=request.user,
+                file=os.path.join(str(project.id), filename),  # Save relative path from MEDIA_ROOT
+                description=description,
+                filename=file.name  # Save the filename properly here
+            )
+            attachment.save()
+
+            return JsonResponse({'message': 'File uploaded successfully!', 'file_url': file_url, 'description': description}, status=200)
+        else:
+            return JsonResponse({'error': 'No file provided'}, status=400)
+
+class AttachmentDownloadView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        attachment = get_object_or_404(Attachment, id=self.kwargs['attachment_id'], project_id=self.kwargs['project_id'])
+        file_path = os.path.join(settings.MEDIA_ROOT, attachment.file.name)
+
+        if os.path.exists(file_path):
+            response = FileResponse(open(file_path, 'rb'), content_type='application/octet-stream')
+
+            # Set the header to `inline` to allow the browser to try to open the file
+            response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
+
+            return response
+        else:
+            messages.error(request, "The requested file does not exist.")
+            return redirect('project_attachments', project_id=self.kwargs['project_id'])

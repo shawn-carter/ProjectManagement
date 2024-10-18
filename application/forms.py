@@ -4,7 +4,7 @@ from crispy_forms.layout import Layout, Submit, Row, Column, Div, Field, Fieldse
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.widgets import SelectDateWidget
-from .models import Project, Asset, Category, ProjectStatus, Task, TaskStatus, Skill, Stakeholder, Risk, Assumption, Issue, Dependency
+from .models import Project, Asset, Category, ProjectStatus, Task, TaskStatus, Skill, Stakeholder, Risk, Assumption, Issue, Dependency, Attachment
 from .widgets import DurationPickerWidget  # Import the custom widget
 
 # Form for New Project Creation
@@ -361,3 +361,14 @@ class ProjectCloseForm(forms.ModelForm):
             self.add_error('actual_end_date', 'End date cannot be earlier than the start date.')
 
         return cleaned_data
+    
+class AttachmentForm(forms.ModelForm):
+    class Meta:
+        model = Attachment
+        fields = ['file', 'description']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.add_input(Submit('submit', 'Upload'))

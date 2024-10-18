@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
@@ -260,3 +261,20 @@ class Comment(SafeDeleteModel):  # Using SafeDelete for soft delete functionalit
 
     def __str__(self):
         return f"Comment by {self.user} on {self.content_object}"
+    
+class Attachment(SafeDeleteModel):
+    _safedelete_policy = SOFT_DELETE
+
+class Attachment(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='attachments')
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    file = models.FileField(upload_to='media/')
+    description = models.CharField(max_length=255, blank=True, null=True)
+    filename = models.CharField(max_length=255)  # This should store the actual file name
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.file.name
+
+    class Meta:
+        ordering = ['-uploaded_at']

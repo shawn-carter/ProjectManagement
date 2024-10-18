@@ -8,7 +8,6 @@
         <a href="{% url 'edit_issue' project_id=project.id issue_id=issue.id %}" class="btn btn-warning mb-3">Edit Issue</a>
     {% endif %}
     
-
     <h3>Issue Overview</h3>
     <p><strong>Details:</strong> {{ issue.issue_details }}</p>
     <p><strong>Status:</strong> {{ issue.get_status_display }}</p>

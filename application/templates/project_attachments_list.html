@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extraCSS %}
+<link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/dropzone.min.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1>Attachments for {{ project.project_name }}</h1>
+<a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
+
+<div id="attachment-upload">
+    <form action="{% url 'add_attachment' project_id=project.id %}" class="dropzone" id="attachment-dropzone">
+        {% csrf_token %}
+    </form>
+</div>
+
+<h3 class="mt-4">Existing Attachments</h3>
+{% if attachments %}
+<table class="table table-striped" id="attachment-list">
+    <thead>
+        <tr>
+            <th>Description</th>
+            <th>Filename</th>
+            <th>Uploaded By</th>
+            <th>Uploaded At</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for attachment in attachments %}
+            <tr>
+                <td>{{ attachment.description }}</td>
+                <td>{{ attachment.filename }}</td>
+                <td>{{ attachment.uploaded_by }}</td>
+                <td>{{ attachment.uploaded_at }}</td>
+                <td>
+                    <!-- Open the file in the browser if supported -->
+                    <a href="{% url 'download_attachment' project_id=attachment.project.id attachment_id=attachment.id %}" 
+                       class="btn btn-sm btn-primary" target="_blank">
+                        Download
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p>No attachments found for this project.</p>
+{% endif %}
+
+<!-- Modal for Adding Description -->
+<div class="modal fade" id="fileDescriptionModal" tabindex="-1" role="dialog" aria-labelledby="fileDescriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fileDescriptionModalLabel">Add Description</h5>               
+            </div>
+            <div class="modal-body">
+                <label for="fileDescriptionInput">Description:</label>
+                <input type="text" id="fileDescriptionInput" class="form-control" placeholder="Enter description for this file">
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="saveDescriptionBtn" class="btn btn-primary">Save Description</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/datatables.min.js' %}"></script>
+<script src="{% static 'js/dropzone.min.js' %}"></script>
+<script>
+    Dropzone.autoDiscover = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        $('#attachment-dropzone').dropzone({
+            url: "{% url 'add_attachment' project_id=project.id %}",
+            maxFilesize: 10, // MB
+            addRemoveLinks: true,
+            autoProcessQueue: false, // Prevent automatic upload
+    
+            init: function() {
+                var myDropzone = this;
+                var fileQueue = []; // Queue to store files
+                var currentFile = null;
+    
+                this.on("addedfile", function(file) {
+                    // Add file to the queue
+                    fileQueue.push(file);
+    
+                    // If there's no file being processed, start processing the next file
+                    if (!currentFile) {
+                        processNextFile();
+                    }
+                });
+    
+                function processNextFile() {
+                    if (fileQueue.length > 0) {
+                        currentFile = fileQueue.shift(); // Get the next file in the queue
+                        // Update the modal title to include the filename
+                        $('#fileDescriptionModalLabel').text('Add Description for: ' + currentFile.name);
+                        // Store the current file in the modal data for later use
+                        $('#fileDescriptionModal').data('file', currentFile);
+                        // Show the modal to add a description
+                        $('#fileDescriptionModal').modal('show');
+                    }
+                }
+    
+                $('#saveDescriptionBtn').on('click', function() {
+                    var description = $('#fileDescriptionInput').val();
+                    var file = $('#fileDescriptionModal').data('file');
+    
+                    if (file) {
+                        // Attach description to file's formData
+                        file.description = description;
+                        myDropzone.processFile(file); // Process the file
+    
+                        // Clear the modal data and input
+                        $('#fileDescriptionModal').data('file', null);
+                        $('#fileDescriptionInput').val('');
+                    }
+    
+                    // Hide the modal and proceed to the next file in the queue
+                    $('#fileDescriptionModal').modal('hide');
+                    currentFile = null;
+    
+                    // Process the next file in the queue after the modal is hidden
+                    setTimeout(function() {
+                        processNextFile();
+                    }, 500); // Small delay to ensure the modal is hidden before the next one is shown
+                });
+    
+                this.on("sending", function(file, xhr, formData) {
+                    formData.append("description", file.description || "No description provided");
+                });
+    
+                this.on("success", function(file, response) {
+                    // After successful upload, remove the file from Dropzone preview
+                    myDropzone.removeFile(file);
+                    if (fileQueue.length === 0 && !currentFile) {
+                        // If all files are processed, reload to show updates
+                        location.reload();
+                    }
+                });
+    
+                this.on("error", function(file, response) {
+                    // If there's an error, remove the file and proceed with the next one
+                    myDropzone.removeFile(file);
+                    currentFile = null;
+                    setTimeout(function() {
+                        processNextFile();
+                    }, 500); // Small delay to prevent overlap in UI events
+                });
+            }
+        });
+    }); 
+
+    $(document).ready(function() {
+        $('#attachment-list').DataTable({
+            dom: 'lfrtipB',
+            buttons: [
+                'copy', 'csv', 'excel'
+            ]
+        });
+    });
+</script>
+{% endblock %}

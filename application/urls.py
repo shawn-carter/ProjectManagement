@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
-from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView
+from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView, AttachmentListView, AttachmentCreateView, AttachmentDownloadView
 
 urlpatterns = [
     ################################ Unauthorised users URLS ################################
@@ -66,5 +66,9 @@ urlpatterns = [
     path('projects/events/', project_events, name='project_events'), # Endpoint to retrieve Project Events
     path('projects/calendar/', project_calendar, name='project_calendar'), # Projects Calendar (from Menu)
     path('projects/<int:project_id>/tasks/calendar/', ProjectTaskCalendarView.as_view(), name='project_task_calendar'), # Project Task Calendar
- 
+    
+    # Attachments Views
+    path('projects/<int:project_id>/attachments/', AttachmentListView.as_view(), name='attachment_list'),  # List Tasks for Project
+    path('projects/<int:project_id>/attachments/add/', AttachmentCreateView.as_view(), name='add_attachment'),
+    path('projects/<int:project_id>/attachments/<int:attachment_id>/download/', AttachmentDownloadView.as_view(), name='download_attachment'),
 ]

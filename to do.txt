@@ -1,7 +1,4 @@
-Close projects
-    Requires that all Project Tasks have been completed
-   
-Potentially Add:
+ Potentially Add:
     Task Templates for common Tasks such as building servers
         Will hold the title, description and skills required
         Can use the existing Create Task View
