@@ -27,3 +27,14 @@
     right: 5px;  /* Adjust for alignment */
     z-index: 10; /* Make sure it stays above calendar events */
 }
+
+#attachment-tooltip {
+    display: none;
+    position: absolute;
+    background: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    pointer-events: none; /* Add this line */
+}

@@ -13,6 +13,11 @@ from .models import Project, ProjectStatus, Task, Stakeholder, Risk, Issue, Assu
 from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm, AttachmentForm
 
 import os
+import extract_msg  # Library for handling .msg files
+import docx2txt  # Library for handling .docx files
+from docx import Document
+from pdfminer.high_level import extract_text
+
 from django.utils.timezone import now
 from django.core.files.storage import FileSystemStorage
 
@@ -923,6 +928,14 @@ def get_color_for_project(project_id):
     colors = ['#0000FF', '#00FF00', '#FF0000', '#00FFFF', '#FF00FF', '#FFFF00']
     return colors[project_id % len(colors)]  # Cycle through the list based on the project ID
 
+def extract_pdf_text(file_path):
+    try:
+        text = extract_text(file_path)
+        return text
+    except Exception as e:
+        print(f"Error extracting text from PDF: {e}")
+        return ""
+
 class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
     model = Project
     template_name = 'project_task_calendar.html'
@@ -1085,3 +1098,84 @@ class AttachmentDownloadView(LoginRequiredMixin, View):
         else:
             messages.error(request, "The requested file does not exist.")
             return redirect('project_attachments', project_id=self.kwargs['project_id'])
+
+class AttachmentPreviewView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        attachment = get_object_or_404(
+            Attachment,
+            id=self.kwargs['attachment_id'],
+            project_id=self.kwargs['project_id']
+        )
+        file_path = os.path.join(settings.MEDIA_ROOT, attachment.file.name)
+
+        if os.path.exists(file_path):
+            extension = os.path.splitext(attachment.file.name.lower())[1]
+
+            handlers = {
+                '.msg': self.handle_msg_file,
+                '.docx': self.handle_docx_file,
+                '.pdf': self.handle_pdf_file,
+                '.txt': self.handle_txt_file,
+            }
+
+            handler = handlers.get(extension)
+            if handler:
+                return handler(file_path)
+            else:
+                return JsonResponse({'error': 'This file type is not supported for preview.'}, status=200)
+        else:
+            return JsonResponse({'error': 'File not found'}, status=404)
+
+    def handle_msg_file(self, file_path):
+        try:
+            msg = extract_msg.Message(file_path)
+            preview_data = {
+                'type': 'email',
+                'from': msg.sender,
+                'to': msg.to,
+                'subject': msg.subject,
+                'has_attachments': len(msg.attachments) > 0,
+                'body': msg.body[:500]  # First 500 characters of the body text
+            }
+            return JsonResponse(preview_data, status=200)
+        except Exception as e:
+            return JsonResponse({'error': f'Could not parse email: {str(e)}'}, status=200)
+
+    def handle_docx_file(self, file_path):
+        try:
+            text = docx2txt.process(file_path)
+            preview_data = {
+                'type': 'docx',
+                'body': text[:500]  # First 500 characters of the document text
+            }
+            return JsonResponse(preview_data, status=200)
+        except Exception as e:
+            return JsonResponse({'error': f'Could not parse document: {str(e)}'}, status=200)
+
+    def handle_pdf_file(self, file_path):
+        try:
+            text = extract_pdf_text(file_path)
+            preview_data = {
+                'type': 'pdf',
+                'body': text[:500]  # First 500 characters of the PDF text
+            }
+            return JsonResponse(preview_data, status=200)
+        except Exception as e:
+            return JsonResponse({'error': f'Could not parse PDF: {str(e)}'}, status=200)
+
+    def handle_txt_file(self, file_path):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                text = f.read()
+            preview_data = {
+                'type': 'txt',
+                'body': text[:500]  # First 500 characters of the text file
+            }
+            return JsonResponse(preview_data, status=200)
+        except Exception as e:
+            return JsonResponse({'error': f'Could not read text file: {str(e)}'}, status=200)
+
+    def generate_pdf_thumbnail(self, attachment):
+        # Existing code to generate PDF thumbnail
+        # Ensure this method is also within the class and properly indented
+        pass  # Replace with your actual implementation

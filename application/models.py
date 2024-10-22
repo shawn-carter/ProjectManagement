@@ -261,11 +261,9 @@ class Comment(SafeDeleteModel):  # Using SafeDelete for soft delete functionalit
 
     def __str__(self):
         return f"Comment by {self.user} on {self.content_object}"
-    
-class Attachment(SafeDeleteModel):
-    _safedelete_policy = SOFT_DELETE
-
+      
 class Attachment(models.Model):
+    _safedelete_policy = SOFT_DELETE
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='attachments')
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     file = models.FileField(upload_to='media/')
