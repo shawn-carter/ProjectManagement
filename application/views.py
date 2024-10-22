@@ -15,7 +15,7 @@ from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderFo
 import os
 import extract_msg  # Library for handling .msg files
 import docx2txt  # Library for handling .docx files
-from docx import Document
+
 from pdfminer.high_level import extract_text
 
 from django.utils.timezone import now
