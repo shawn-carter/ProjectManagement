@@ -61,22 +61,36 @@
             dayCellDidMount: function(arg) {
                 // Only add "Add Task" button if the project is not closed
                 {% if project.project_status.status_name != "Closed" %}
+                    // Convert project start and end dates to Date objects for comparison
+                    const projectStartDateString = "{{ project.actual_start_date|default_if_none:project.planned_start_date }}";
+                    const projectEndDateString = "{{ project.actual_end_date|default_if_none:project.revised_target_end_date|default_if_none:project.original_target_end_date }}";
+            
+                    const projectStartDate = new Date(projectStartDateString);
+                    const projectEndDate = new Date(projectEndDateString);
+                    projectEndDate.setDate(projectEndDate.getDate() + 1); // Extend project end date to be inclusive
+            
                     const cellDate = new Date(arg.date);
-
+            
                     // Only add "Add Task" button if the date is within project range
                     if (cellDate >= projectStartDate && cellDate < projectEndDate) {
                         // Create a button to add a task for that specific day
                         const addButton = document.createElement('button');
                         addButton.innerText = 'Add Task';
                         addButton.className = 'btn btn-sm btn-primary add-task-btn';
-
+            
+                        // Extract the date as YYYY-MM-DD from arg.date without timezone issues
+                        const year = arg.date.getFullYear();
+                        const month = String(arg.date.getMonth() + 1).padStart(2, '0'); // Month is 0-based, pad to ensure 2 digits
+                        const day = String(arg.date.getDate()).padStart(2, '0'); // Day of the month, pad to ensure 2 digits
+                        const dateString = `${year}-${month}-${day}`;
+            
                         // Set the onClick event to redirect to the task creation page with the selected date
                         addButton.onclick = function() {
                             const baseUrl = "{% url 'task_create' project_id=project.id %}";
-                            const url = `${baseUrl}?start_date=${arg.date.toISOString().split('T')[0]}`;
+                            const url = `${baseUrl}?start_date=${dateString}`;
                             window.location.href = url;
                         };
-
+            
                         // Append the button to the day cell frame
                         const dayFrameContainer = arg.el.querySelector('.fc-daygrid-day-frame');
                         if (dayFrameContainer) {
@@ -84,7 +98,7 @@
                         }
                     }
                 {% endif %}
-            }
+            }           
         });
 
         calendar.render();
