@@ -1,5 +1,5 @@
 from application.models import (
-    Category, ProjectStatus, TaskStatus, DayOfWeek,
+    Category, DayOfWeek,
     Skill, Team, Asset, Project, Task,
     Stakeholder, Risk, Assumption, Issue, Dependency, Comment
 )
@@ -22,37 +22,6 @@ class CategoryFactory(factory.django.DjangoModelFactory):
         model = Category
 
     category_name = factory.Sequence(lambda n: f"Category {n}")
-
-class ProjectStatusFactory(factory.django.DjangoModelFactory):
-    """
-    Factory class for creating instances of the ProjectStatus model.
-    Attributes:
-        status_name (str): The name of the project status.
-        description (str): The description of the project status.
-    Example:
-        To create a new project status instance, use the factory as follows:
-        project_status = ProjectStatusFactory()
-    """
-    class Meta:
-        model = ProjectStatus
-
-    status_name = factory.Sequence(lambda n: f"Status {n}")
-    description = factory.Faker('sentence')
-
-class TaskStatusFactory(factory.django.DjangoModelFactory):
-    """
-    Factory class for creating instances of TaskStatus model.
-    Attributes:
-        status_name (str): The name of the task status.
-        description (str): The description of the task status.
-    Example:
-        task_status = TaskStatusFactory(status_name="Completed", description="Task is completed.")
-    """
-    class Meta:
-        model = TaskStatus
-
-    status_name = factory.Sequence(lambda n: f"Task Status {n}")
-    description = factory.Faker('sentence')
 
 class SkillFactory(factory.django.DjangoModelFactory):
     """
@@ -170,7 +139,6 @@ class ProjectFactory(factory.django.DjangoModelFactory):
         planned_start_date (datetime.date): The planned start date of the project.
         original_target_end_date (datetime.date): The original target end date of the project.
         project_owner (Asset): The owner of the project.
-        project_status (ProjectStatus): The status of the project.
         category (Category): The category of the project.
         priority (int): The priority of the project.
     Methods:
@@ -188,7 +156,6 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     planned_start_date = factory.Faker('future_date')
     original_target_end_date = factory.Faker('future_date')
     project_owner = SubFactory(AssetFactory)
-    project_status = factory.LazyFunction(lambda: ProjectStatus.objects.get(status_id=1))
     category = SubFactory(CategoryFactory)
     priority = factory.Iterator([1, 2, 3, 4, 5])
 
@@ -197,10 +164,8 @@ class ProjectFactory(factory.django.DjangoModelFactory):
         # Ensure that related objects are saved
         project_owner = kwargs.get('project_owner') or AssetFactory()
         category = kwargs.get('category') or CategoryFactory()
-        project_status = kwargs.get('project_status') or ProjectStatus.objects.get(status_id=1)
         kwargs['project_owner'] = project_owner
         kwargs['category'] = category
-        kwargs['project_status'] = project_status
         return super()._create(model_class, *args, **kwargs)
 
 class TaskFactory(factory.django.DjangoModelFactory):
@@ -228,7 +193,7 @@ class TaskFactory(factory.django.DjangoModelFactory):
     task_name = factory.Sequence(lambda n: f"Task {n}")
     task_details = factory.Faker('paragraph')
     project = SubFactory(ProjectFactory)
-    task_status = LazyFunction(lambda: TaskStatus.objects.get(status_id=1))  # 'Unassigned' status
+    task_status = 1  # Set the default status explicitly to "Unassigned"
     priority = Iterator([1, 2, 3, 4, 5])
     assigned_to = SubFactory(AssetFactory)
 

@@ -6,15 +6,13 @@ import logging
 # Set up logging to see which functions are executed
 logger = logging.getLogger(__name__)
 
-# Ensure the signals are executed once
-signal_executed = {'status': False, 'skills': False, 'days': False}
-
 @receiver(post_migrate)
-def create_default_skills(sender, **kwargs):
-    if signal_executed['skills']:
-        logger.info("Default Skills creation skipped because it has already been executed.")
+def create_default_data(sender, **kwargs):
+    # Ensure this is only executed for your application
+    if sender.name != "application":
         return
 
+    # Create Default Skills
     skills = [
         (1, "DHCP Configuration"),
         (2, "Firewall Configuration"),
@@ -52,17 +50,9 @@ def create_default_skills(sender, **kwargs):
         except Exception as e:
             logger.error(f"Error creating skill '{skill_name}': {e}")
 
-    signal_executed['skills'] = True
     logger.info("Default Skills created successfully.")
 
-
-@receiver(post_migrate)
-def create_default_days(sender, **kwargs):
-    if signal_executed['days']:
-        logger.info("Default Days creation skipped because it has already been executed.")
-        return
-
-    # Define the default days of the week
+    # Create Default Days
     days_of_week = [
         {'day_name': 'Monday', 'abbreviation': 'Mon'},
         {'day_name': 'Tuesday', 'abbreviation': 'Tue'},
@@ -85,5 +75,4 @@ def create_default_days(sender, **kwargs):
         except Exception as e:
             logger.error(f"Error creating day '{day['day_name']}': {e}")
 
-    signal_executed['days'] = True
     logger.info("Default Days created successfully.")

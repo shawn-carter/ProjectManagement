@@ -1,7 +1,7 @@
-from application.factories import ProjectFactory, TaskFactory, RiskFactory, AssumptionFactory, IssueFactory, DependencyFactory, StakeholderFactory, CategoryFactory, ProjectStatusFactory, TaskStatusFactory, DayOfWeekFactory, AssetFactory, SkillFactory, TeamFactory, CommentFactory, UserFactory
+from application.factories import ProjectFactory, TaskFactory, RiskFactory, AssumptionFactory, IssueFactory, DependencyFactory, StakeholderFactory, CategoryFactory, DayOfWeekFactory, AssetFactory, SkillFactory, TeamFactory, CommentFactory, UserFactory
 
-from application.signals import create_default_data, create_default_skills, create_default_days
-from application.models import TaskStatus, ProjectStatus, Skill, DayOfWeek, Project, Task, Risk, Stakeholder, Assumption, Issue, Dependency, Category, Team, Asset, Comment
+from application.signals import create_default_data
+from application.models import Skill, DayOfWeek, Project, Task, Risk, Stakeholder, Assumption, Issue, Dependency, Category, Team, Asset, Comment
 
 from django.contrib.contenttypes.models import ContentType
 
@@ -15,14 +15,6 @@ from django.core.exceptions import ValidationError
 # Testing the signals (objects that are created after the migration - things like days of week, project and task status defaults)
 class SignalTests(TestCase):
     def test_default_data_exists(self):
-        # Verify TaskStatus
-        self.assertTrue(TaskStatus.objects.filter(status_id=1, status_name='Unassigned').exists())
-        self.assertTrue(TaskStatus.objects.filter(status_id=2, status_name='Assigned').exists())
-        self.assertTrue(TaskStatus.objects.filter(status_id=3, status_name='Completed').exists())
-
-        # Verify ProjectStatus
-        self.assertTrue(ProjectStatus.objects.filter(status_id=1, status_name='New').exists())
-        self.assertTrue(ProjectStatus.objects.filter(status_id=7, status_name='Closed').exists())
 
         # Verify Skills
         self.assertTrue(Skill.objects.filter(skill_id=1, skill_name='DHCP Configuration').exists())
@@ -38,13 +30,13 @@ class ProjectModelTest(TestCase):
         project = ProjectFactory()
         self.assertIsInstance(project, Project)
         self.assertIsNotNone(project.pk)
-        self.assertEqual(project.project_status.status_name, 'New')  # Assuming status_id=1 is 'New'
+        self.assertEqual(project.project_status, 1)  # Assuming status_id=1 is 'New'
 
     def test_project_creation_with_null_name(self):
         # Create and save related objects
         project_owner = AssetFactory()
         category = CategoryFactory()
-        project_status = ProjectStatus.objects.get(status_id=1)  # Assuming initial data is present
+        project_status = 1  # Assuming initial data is present
 
         # Create a project instance with project_name=None
         project = Project(
@@ -69,7 +61,7 @@ class TaskModelTest(TestCase):
         task = TaskFactory()
         self.assertIsInstance(task, Task)
         self.assertIsNotNone(task.pk)
-        self.assertEqual(task.task_status.status_name, 'Unassigned')
+        self.assertEqual(task.task_status, 2)
         self.assertGreater(task.skills_required.count(), 0)
 
 class RiskModelTest(TestCase):
@@ -108,20 +100,6 @@ class CategoryModelTest(TestCase):
         self.assertIsNotNone(category.pk)
         self.assertTrue(Category.objects.filter(pk=category.pk).exists())
         self.assertEqual(category.__str__(), category.category_name)
-
-class ProjectStatusModelTest(TestCase):
-    def test_project_status_creation(self):
-        status = ProjectStatusFactory()
-        self.assertIsInstance(status, ProjectStatus)
-        self.assertIsNotNone(status.pk)
-        self.assertEqual(status.__str__(), status.status_name)
-
-class TaskStatusModelTest(TestCase):
-    def test_task_status_creation(self):
-        status = TaskStatusFactory()
-        self.assertIsInstance(status, TaskStatus)
-        self.assertIsNotNone(status.pk)
-        self.assertEqual(status.__str__(), status.status_name)
 
 class DayOfWeekModelTest(TestCase):
     def test_day_of_week_creation(self):
