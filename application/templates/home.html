@@ -6,10 +6,142 @@
 <div class="container mt-5">
     <div class="jumbotron">
         <h1 class="display-4">Welcome to Resource Manager</h1>
-        <p class="lead">This is a custom made Project and Resource Management application.</p>
+        <div class="row mt-4">
+            <!-- Project Summary Cards -->
+            <div class="col-md-3">
+                <div class="card bg-light mb-3">
+                    <div class="card-header">Total Projects</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ projects_total }}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light mb-3">
+                    <div class="card-header">Closed Projects</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ projects_closed }}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light mb-3">
+                    <div class="card-header">Total Tasks</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ tasks_total }}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light mb-3">
+                    <div class="card-header">Completed Tasks</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ tasks_completed }}</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Doughnut Chart for Projects -->
+        <!-- Doughnut Chart for Projects by Status -->
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <canvas id="projectsStatusChart"></canvas>
+            </div>
+            <div class="col-md-6">
+                <canvas id="tasksChart"></canvas>
+            </div>
+        </div>
+
         <hr class="my-4">
-        <p>Feel free to explore the features of this application.</p>
         <p>To start you can look at existing <a href="{% url 'project_list' %}">Projects</a> or <a href="{% url 'project_create' %}">Create a New Project</a></p>
     </div>
 </div>
+{% endblock %}
+
+{% block extraJS %}
+{% load static %}
+    <script src="{% static 'js/chart.min.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Data for Projects Status Chart
+            var ctxProjectsStatus = document.getElementById('projectsStatusChart').getContext('2d');
+            var projectsStatusChart = new Chart(ctxProjectsStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['New', 'Awaiting Closure', 'In Progress', 'On Hold', 'Scoping', 'Responded', 'Closed'],
+                    datasets: [{
+                        label: '# of Projects by Status',
+                        data: [
+                            {{ project_new }},
+                            {{ projects_awaiting }},
+                            {{ projects_inprogress }},
+                            {{ projects_onhold }},
+                            {{ projects_scoping }},
+                            {{ projects_responded }},
+                            {{ projects_closed }}
+                        ],
+                        backgroundColor: [
+                            'rgba(39, 128, 227, 1)',  // Primary
+                            'rgba(55, 58, 60, 1)',    // Secondary
+                            'rgba(63, 182, 24, 1)',   // Success
+                            'rgba(153, 84, 187, 1)',  // Info
+                            'rgba(255, 117, 24, 1)',  // Warning
+                            'rgba(255, 0, 57, 1)',    // Danger
+                            'rgba(55, 58, 60, 1)'     // Dark
+                        ],
+                        borderColor: [
+                            'rgba(39, 128, 227, 1)',  // Primary
+                            'rgba(55, 58, 60, 1)',    // Secondary
+                            'rgba(63, 182, 24, 1)',   // Success
+                            'rgba(153, 84, 187, 1)',  // Info
+                            'rgba(255, 117, 24, 1)',  // Warning
+                            'rgba(255, 0, 57, 1)',    // Danger
+                            'rgba(55, 58, 60, 1)'     // Dark
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return tooltipItem.label + ': ' + tooltipItem.raw;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+    
+            // Doughnut Chart for Tasks (Outstanding vs. Completed)
+            var ctxTasks = document.getElementById('tasksChart').getContext('2d');
+            var tasksChart = new Chart(ctxTasks, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Outstanding Tasks', 'Completed Tasks'],
+                    datasets: [{
+                        label: '# of Tasks',
+                        data: [{{ tasks_total }} - {{ tasks_completed }}, {{ tasks_completed }}],
+                        backgroundColor: [
+                            'rgba(255, 193, 7, 1)',   // Warning for Outstanding
+                            'rgba(40, 167, 69, 1)'    // Success for Completed
+                        ],
+                        borderColor: [
+                            'rgba(255, 193, 7, 1)',   // Warning for Outstanding
+                            'rgba(40, 167, 69, 1)'    // Success for Completed
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        });
+    </script>
+
 {% endblock %}

@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.http import HttpResponse, JsonResponse, FileResponse
 from django.shortcuts import render,get_object_or_404, redirect
 from django.views.generic import ListView, DetailView,CreateView, UpdateView, View
@@ -25,7 +25,33 @@ from django.conf import settings  # Import settings to access MEDIA_ROOT
 # Home page view
 @login_required  # Optional: Use this decorator if you want to restrict access to authenticated users only
 def home(request):
-    return render(request, 'home.html')
+    # Project counts for open and closed
+    project_new = Project.objects.filter(project_status__status_name="New").count()
+    projects_awaiting = Project.objects.filter(project_status__status_name="Awaiting Closure").count()
+    projects_inprogress = Project.objects.filter(project_status__status_name="In Progress").count()
+    projects_onhold = Project.objects.filter(project_status__status_name="On Hold").count()
+    projects_scoping = Project.objects.filter(project_status__status_name="Scoping").count()
+    projects_responded = Project.objects.filter(project_status__status_name="Responded").count()
+    projects_closed = Project.objects.filter(project_status__status_name="Closed").count()
+    projects_total = Project.objects.count()
+
+    # Total tasks and outstanding tasks
+    tasks_total = Task.objects.count()
+    tasks_completed = Task.objects.filter(task_status__status_name="Completed").count()
+
+    context = {
+        'projects_total': projects_total,
+        'projects_closed': projects_closed,
+        'tasks_total': tasks_total,
+        'tasks_completed': tasks_completed,
+        'project_new': project_new,
+        'projects_awaiting': projects_awaiting,
+        'projects_inprogress': projects_inprogress,
+        'projects_onhold': projects_onhold,
+        'projects_scoping': projects_scoping,
+        'projects_responded': projects_responded,
+    }
+    return render(request, 'home.html', context)
 
 # Project Views
 class ProjectCreateView(PermissionRequiredMixin,CreateView):
