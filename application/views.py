@@ -9,7 +9,9 @@ from django.shortcuts import render,get_object_or_404, redirect
 from django.views.generic import ListView, DetailView,CreateView, UpdateView, View
 from django.urls import reverse_lazy,reverse
 
-from .models import Project, ProjectStatus, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment
+from django.shortcuts import redirect
+
+from .models import Project, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment
 from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm, AttachmentForm
 
 import os
@@ -25,19 +27,19 @@ from django.conf import settings  # Import settings to access MEDIA_ROOT
 # Home page view
 @login_required  # Optional: Use this decorator if you want to restrict access to authenticated users only
 def home(request):
-    # Project counts for open and closed
-    project_new = Project.objects.filter(project_status__status_name="New").count()
-    projects_awaiting = Project.objects.filter(project_status__status_name="Awaiting Closure").count()
-    projects_inprogress = Project.objects.filter(project_status__status_name="In Progress").count()
-    projects_onhold = Project.objects.filter(project_status__status_name="On Hold").count()
-    projects_scoping = Project.objects.filter(project_status__status_name="Scoping").count()
-    projects_responded = Project.objects.filter(project_status__status_name="Responded").count()
-    projects_closed = Project.objects.filter(project_status__status_name="Closed").count()
+    # Project counts for open and closed using integer IDs for statuses
+    project_new = Project.objects.filter(project_status=1).count()  # Status ID 1: 'New'
+    projects_awaiting = Project.objects.filter(project_status=2).count()  # Status ID 2: 'Awaiting Closure'
+    projects_inprogress = Project.objects.filter(project_status=3).count()  # Status ID 3: 'In Progress'
+    projects_onhold = Project.objects.filter(project_status=4).count()  # Status ID 4: 'On Hold'
+    projects_scoping = Project.objects.filter(project_status=5).count()  # Status ID 5: 'Scoping'
+    projects_responded = Project.objects.filter(project_status=6).count()  # Status ID 6: 'Responded'
+    projects_closed = Project.objects.filter(project_status=7).count()  # Status ID 7: 'Closed'
     projects_total = Project.objects.count()
 
-    # Total tasks and outstanding tasks
+    # Total tasks and outstanding tasks using integer IDs for statuses
     tasks_total = Task.objects.count()
-    tasks_completed = Task.objects.filter(task_status__status_name="Completed").count()
+    tasks_completed = Task.objects.filter(task_status=3).count()  # Status ID 3: 'Completed'
 
     context = {
         'projects_total': projects_total,
@@ -67,22 +69,6 @@ class ProjectCreateView(PermissionRequiredMixin,CreateView):
         # Redirect to a different view or URL
         return redirect(reverse_lazy('project_list'))  # Redirect to the project list view
 
-    def form_valid(self, form):
-        # Debugging statements
-        print(f"Form is valid: {form.is_valid()}")
-        print(f"Form errors: {form.errors}")
-
-        # Set the default status as 'New' when the form is valid
-        default_status = ProjectStatus.objects.filter(status_name__iexact='New').first()
-        form.instance.project_status = default_status
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        # Additional debug statement to check why the form is invalid
-        print(f"Form is invalid: {form.is_valid()}")
-        print(f"Form errors: {form.errors}")
-        return super().form_invalid(form)
-
 class ProjectUpdateView(PermissionRequiredMixin, UpdateView):
     model = Project
     form_class = ProjectUpdateForm
@@ -104,7 +90,7 @@ class ProjectUpdateView(PermissionRequiredMixin, UpdateView):
     def dispatch(self, request, *args, **kwargs):
         # Check if the project is closed
         project = self.get_object()
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:  # Status ID 7 represents "Closed"
             messages.error(request, "This project is closed and cannot be edited.")
             return redirect(reverse_lazy('project_list'))
 
@@ -149,7 +135,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         project = self.object  # Get the project instance
 
         # Check if all tasks for this project are completed
-        all_tasks_completed = project.task_set.filter(~Q(task_status__status_name='Completed')).count() == 0
+        # Use the corresponding status ID for 'Completed', which is assumed to be 3
+        all_tasks_completed = project.task_set.filter(~Q(task_status=3)).count() == 0
 
         # Pass the 'all_tasks_completed' status to the template
         context['all_tasks_completed'] = all_tasks_completed
@@ -166,15 +153,36 @@ class ProjectCloseView(LoginRequiredMixin, UpdateView):
         project_id = self.kwargs.get('project_id')
         return get_object_or_404(Project, id=project_id)
 
+    def dispatch(self, request, *args, **kwargs):
+        # Get the project object
+        project = self.get_object()
+
+        # Check if the project is already closed
+        if project.project_status == 7:  # Status ID 7 represents "Closed"
+            messages.error(request, "This project is already closed.")
+            return redirect('project_detail', project_id=project.id)
+
+        # Check if there are any incomplete tasks for this project
+        incomplete_tasks = project.task_set.filter(task_status__in=[1, 2])  # 1 = Unassigned, 2 = Assigned
+
+        if incomplete_tasks.exists():
+            # Redirect back to project detail page with an error message if there are incomplete tasks
+            messages.error(request, "Project cannot be closed until all tasks are completed.")
+            return redirect('project_detail', project_id=project.id)
+
+        # Proceed with the regular dispatch if all tasks are completed
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         # Update project status to closed
         project = form.save(commit=False)
-        project.project_status = ProjectStatus.objects.get(status_name="Closed")  # Assuming there's a 'Closed' status
+        project.project_status = 7  # Assuming status ID 7 is 'Closed'
         project.save()
         return super().form_valid(form)
 
     def get_success_url(self):
         return reverse('project_detail', kwargs={'project_id': self.object.pk})
+
 
 # Task Views
 class TaskCreateView(PermissionRequiredMixin, CreateView):
@@ -189,10 +197,10 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
+        
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
-
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and new tasks cannot be added.")
             return redirect('project_taskview', project_id=project.id)
 
@@ -246,12 +254,12 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
         task = self.get_object()
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:  # Status ID 7 is "Closed"
             messages.error(request, "This project is closed and its tasks cannot be edited.")
             return redirect('task_detail', project_id=project.id, task_id=task.id)
 
         # Check if the task is completed
-        if task.task_status.status_name == "Completed":
+        if task.task_status == 3:  # Status ID 3 is "Completed"
             messages.error(request, "This task is completed and cannot be edited.")
             return redirect('task_detail', project_id=project.id, task_id=task.id)
 
@@ -287,7 +295,8 @@ class TaskListView(LoginRequiredMixin, ListView):
 
         # Annotate each task to determine if it can be completed (i.e., if dependencies are complete)
         for task in tasks:
-            if task.dependant_task and task.dependant_task.task_status.status_name != "Completed":
+            # Check if the task has a dependant task and if it is not completed (status ID for 'Completed' is assumed to be 3)
+            if task.dependant_task and task.dependant_task.task_status != 3:
                 task.can_be_completed = False
             else:
                 task.can_be_completed = True
@@ -331,23 +340,28 @@ class TaskCompleteView(PermissionRequiredMixin, UpdateView):
     form_class = TaskCompleteForm
     template_name = 'project_task_complete.html'
     permission_required = 'application.change_task'
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Get the project and task objects
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
         task = get_object_or_404(Task, id=self.kwargs['task_id'], project_id=project.id)
 
         # Check if the task is already completed
-        if task.task_status_id == 3:  # Assuming status ID 3 is 'Completed'
+        if task.task_status == 3:  # Status ID 3 is 'Completed'
             messages.error(request, "This task has already been completed.")
             return redirect('task_detail', project_id=project.id, task_id=task.id)
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:  # Status ID 7 is 'Closed'
             messages.error(request, "This project is closed and tasks cannot be completed.")
             return redirect('task_detail', project_id=project.id, task_id=task.id)
 
-        # Proceed with the regular dispatch if the project is not closed and the task is not completed
+        # Check if the task has dependencies that are not complete
+        if task.dependant_task and task.dependant_task.task_status != 3:  # Status ID 3 is 'Completed'
+            messages.error(request, "This task has dependencies that are not yet completed.")
+            return redirect('task_detail', project_id=project.id, task_id=task.id)
+
+        # Proceed with the regular dispatch if all conditions are met
         return super().dispatch(request, *args, **kwargs)
 
     def get_object(self):
@@ -361,7 +375,7 @@ class TaskCompleteView(PermissionRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         task = form.save(commit=False)
-        task.task_status_id = 3  # Assuming status ID 3 is 'Completed'
+        task.task_status = 3  # Set status to 'Completed'
         task.save()
         return super().form_valid(form)
 
@@ -374,6 +388,7 @@ class TaskCompleteView(PermissionRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse('task_detail', kwargs={'project_id': self.kwargs['project_id'], 'task_id': self.kwargs['task_id']})
+
 
 # Views for listing Risks, Assumptions, Issues, and Dependencies
 
@@ -488,7 +503,7 @@ class RiskCreateView(PermissionRequiredMixin, CreateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and new risks cannot be added.")
             return redirect('risk_list', project_id=project.id)
 
@@ -520,7 +535,7 @@ class AssumptionCreateView(LoginRequiredMixin, CreateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and new assumptions cannot be added.")
             return redirect('assumption_list', project_id=project.id)
 
@@ -552,7 +567,7 @@ class IssueCreateView(LoginRequiredMixin, CreateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and new issues cannot be added.")
             return redirect('issue_list', project_id=project.id)
 
@@ -582,7 +597,7 @@ class DependencyCreateView(LoginRequiredMixin, CreateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and new dependencies cannot be added.")
             return redirect('dependency_list', project_id=project.id)
 
@@ -612,7 +627,7 @@ class StakeholderCreateView(LoginRequiredMixin, CreateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and new stakeholders cannot be added.")
             return redirect('stakeholder_list', project_id=project.id)
 
@@ -645,7 +660,7 @@ class RiskUpdateView(LoginRequiredMixin, UpdateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and risks cannot be edited.")
             return redirect('risk_detail', project_id=project.id, risk_id=self.kwargs['risk_id'])
 
@@ -680,7 +695,7 @@ class AssumptionUpdateView(LoginRequiredMixin, UpdateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and assumptions cannot be edited.")
             return redirect('assumption_detail', project_id=project.id, assumption_id=self.kwargs['assumption_id'])
 
@@ -715,7 +730,7 @@ class IssueUpdateView(LoginRequiredMixin, UpdateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and issues cannot be edited.")
             return redirect('issue_detail', project_id=project.id, issue_id=self.kwargs['issue_id'])
 
@@ -750,7 +765,7 @@ class DependencyUpdateView(LoginRequiredMixin, UpdateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and dependencies cannot be edited.")
             return redirect('dependency_detail', project_id=project.id, dependency_id=self.kwargs['dependency_id'])
 
@@ -785,7 +800,7 @@ class StakeholderUpdateView(LoginRequiredMixin, UpdateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
         # Check if the project is closed
-        if project.project_status.status_name == "Closed":
+        if project.project_status == 7:
             messages.error(request, "This project is closed and stakeholders cannot be edited.")
             return redirect('stakeholder_list', project_id=project.id)
 
@@ -1003,7 +1018,7 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
             end_date = task.actual_end_date or task.planned_end_date
 
             # Set color and title for completed tasks
-            if task.task_status_id == 3:  # Assuming status ID 3 means 'Completed'
+            if task.task_status == 3:  # Assuming status ID 3 means 'Completed'
                 background_color = '#808080'  # Grey
                 text_color = '#FFFFFF'  # White text for completed tasks
                 task_title = f'{task.task_name} (Complete)'  # Add '(Complete)' to the task name

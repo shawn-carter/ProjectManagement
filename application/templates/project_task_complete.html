@@ -3,26 +3,42 @@
 
 {% block content %}
     <h1>Complete Task: {{ form.instance.task_name }}</h1>
-    <a href="{% url 'task_detail' project_id=project.id task_id=task.id %}" class="btn btn-outline-secondary mb-3">Back to Task Details</a>
+    <a href="{% url 'task_detail' project_id=project.id task_id=task.id %}" class="btn btn-secondary mb-3">Back to Task Details</a>
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
-        <div class="mb-3">
-            <label for="{{ form.actual_start_date.id_for_label }}" class="form-label">{{ form.actual_start_date.label }}</label>
-            {{ form.actual_start_date }}
-        </div>
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% crispy form %}
+        </form>
+    </div>
+{% endblock %}
 
-        <div class="mb-3">
-            <label for="{{ form.actual_end_date.id_for_label }}" class="form-label">{{ form.actual_end_date.label }}</label>
-            {{ form.actual_end_date }}
-        </div>
+{% block extraJS %}
+<script>
+    $(document).ready(function () {
+        // Check for elements with the 'is-invalid' class and focus on the first one found
+        var firstInvalidField = $('.is-invalid').first();
+        if (firstInvalidField.length) {
+            firstInvalidField.focus();
+        }
 
-        <div class="mb-3">
-            <label for="{{ form.actual_time_to_complete.id_for_label }}" class="form-label">{{ form.actual_time_to_complete.label }}</label>
-            {{ form.actual_time_to_complete }}
-        </div>
+        // Function to update the min attributes of planned end date and due date fields
+        function updateDateFields(actualStartDate) {
+            if (actualStartDate) {
+                // Ensure the actual end date cannot be before the actual start date
+                $('#id_actual_end_date').attr('min', actualStartDate);
+            }
+        }
 
-        <button type="submit" class="btn btn-success">Confirm Completion</button>
-    </form>
+        // On document ready, check if the actual start date is already populated
+        var initialActualStartDate = $('#id_actual_start_date').val();
+        updateDateFields(initialActualStartDate);
+
+        // Update min date attributes when actual start date changes
+        $('#id_actual_start_date').on('change', function () {
+            var actualStartDate = $(this).val();
+            updateDateFields(actualStartDate);
+        });
+    });
+</script>
 {% endblock %}

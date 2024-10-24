@@ -17,28 +17,6 @@ class Category(SafeDeleteModel):
     def __str__(self):
         return self.category_name
 
-# These can be defined based on the requirements
-class ProjectStatus(SafeDeleteModel):
-    _safedelete_policy =SOFT_DELETE
-    status_id = models.AutoField(primary_key=True)
-    status_name = models.CharField(max_length=50, unique=True)  # Ensure uniqueness
-    description = models.TextField(null=True)
-    history = HistoricalRecords()
-
-    def __str__(self):
-        return self.status_name
-
-# Same - these can be defined rather than hard coded
-class TaskStatus(SafeDeleteModel):
-    _safedelete_policy = SOFT_DELETE
-    status_id = models.AutoField(primary_key=True)
-    status_name = models.CharField(max_length=50, unique=True)  # Ensure uniqueness
-    description = models.TextField(null=True)
-    history = HistoricalRecords()
-
-    def __str__(self):
-        return self.status_name
-
 # Used this way instead of choice, so that we can filter easier when looking for assets
 class DayOfWeek(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE
@@ -52,6 +30,15 @@ class DayOfWeek(SafeDeleteModel):
 # The Project Details
 class Project(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE_CASCADE
+    STATUS_CHOICES = [
+    (1, 'New'),
+    (2, 'Awaiting Closure'),
+    (3, 'In Progress'),
+    (4, 'On Hold'),
+    (5, 'Scoping'),
+    (6, 'Responded'),
+    (7, 'Closed'),
+    ]
     id = models.AutoField(primary_key=True)
     project_name = models.CharField(max_length=50, unique=True)
     created_datetime = models.DateTimeField(auto_now_add=True)
@@ -63,7 +50,7 @@ class Project(SafeDeleteModel):
     actual_start_date = models.DateField(null=True)
     actual_end_date = models.DateField(null=True)
     project_owner = models.ForeignKey('Asset', on_delete=models.SET_NULL, null=True)
-    project_status = models.ForeignKey(ProjectStatus, on_delete=models.SET_NULL, null=True)
+    project_status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, null=True)
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')], null=True)
     halo_ref = models.IntegerField(null=True)
@@ -76,11 +63,16 @@ class Project(SafeDeleteModel):
 # The Task Details
 class Task(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE_CASCADE
+    STATUS_CHOICES = [
+        (1, 'Unassigned'),
+        (2, 'Assigned'),
+        (3, 'Completed'),
+    ]
     id = models.AutoField(primary_key=True)
     task_name = models.CharField(max_length=50)
     task_details = models.TextField(null=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    task_status = models.ForeignKey(TaskStatus, on_delete=models.PROTECT, null=True, default=1)  # Default to 'Unassigned' (assuming 'Unassigned' has ID 1)
+    task_status = models.IntegerField(choices=STATUS_CHOICES, default=1)  # Default to 'Unassigned'
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')])
     planned_start_date = models.DateField(blank=True, null=True)  # Non-mandatory
     planned_end_date = models.DateField(blank=True, null=True)  # Non-mandatory
@@ -105,7 +97,21 @@ class Task(SafeDeleteModel):
     def get_absolute_url(self):
         """Return the URL to access the task's detail view."""
         return reverse('task_detail', kwargs={'project_id': self.project.pk, 'task_id': self.pk})
-    
+
+    def save(self, *args, **kwargs):
+        # Only update the status to 'Assigned' or 'Unassigned' if the task is not completed
+        if self.task_status != 3:  # Status ID 3 is 'Completed'
+            # Update task status to "Assigned" if assigned_to is set
+            if self.assigned_to and self.task_status == 1:  # Status ID 1 is 'Unassigned'
+                self.task_status = 2  # Status ID 2 is 'Assigned'
+
+            # Set task status back to "Unassigned" if assigned_to is removed
+            elif not self.assigned_to and self.task_status == 2:  # Status ID 2 is 'Assigned'
+                self.task_status = 1  # Status ID 1 is 'Unassigned'
+
+        # Call the original save method
+        super().save(*args, **kwargs)
+
 # The Asset Details - Assets have a Team and Skills
 class Asset(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE

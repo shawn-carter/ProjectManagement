@@ -21,7 +21,7 @@
     <p><strong>Actual Start Date:</strong> {{ project.actual_start_date }}</p>
     <p><strong>Actual End Date:</strong> {{ project.actual_end_date }}</p>
     <p><strong>Project Owner:</strong> {{ project.project_owner }}</p>
-    <p><strong>Project Status:</strong> {{ project.project_status }}</p>
+    <p><strong>Project Status:</strong> {{ project.get_project_status_display }}</p>
     <p><strong>Category:</strong> {{ project.category }}</p>
     <p><strong>Priority:</strong> {{ project.get_priority_display }}</p>
     <p><strong>Halo Reference:</strong>
@@ -30,7 +30,7 @@
         </a></p>
     <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('project', {{ project.pk }}, 'Project Details')">Add Comment</button>
     <!-- Display buttons only if the project is not closed -->
-    {% if project.project_status.status_name != "Closed" %}
+    {% if project.project_status != 7 %}
         
         <a href="{% url 'project_edit' project_id=project.id %}" class="btn btn-warning mb-3">Edit Project</a>
         

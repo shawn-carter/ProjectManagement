@@ -3,7 +3,7 @@ from safedelete.admin import SafeDeleteAdmin, highlight_deleted
 from safedelete.models import SafeDeleteModel, SafeDeleteManager
 from simple_history.admin import SimpleHistoryAdmin
 from .models import (
-    Project, Task, Asset, Category, TaskStatus, ProjectStatus,
+    Project, Task, Asset, Category,
     Skill, Team, DayOfWeek, Risk, Assumption, Issue,
     Dependency, Stakeholder, Comment, Attachment
 )
@@ -76,14 +76,6 @@ class TeamAdmin(SafeDeleteAdminExtended):
 
 class CategoryAdmin(SafeDeleteAdminExtended):
     list_display = ('category_id', 'category_name', 'deleted')
-    list_filter = ('deleted',)
-
-class TaskStatusAdmin(SafeDeleteAdminExtended):
-    list_display = ('status_id', 'status_name', 'description', 'deleted')
-    list_filter = ('deleted',)
-
-class ProjectStatusAdmin(SafeDeleteAdminExtended):
-    list_display = ('status_id', 'status_name', 'description', 'deleted')
     list_filter = ('deleted',)
 
 class DayOfWeekAdmin(SafeDeleteAdminExtended):
@@ -182,8 +174,6 @@ admin.site.register(Asset, AssetAdmin)
 admin.site.register(Skill, SkillAdmin)
 admin.site.register(Team, TeamAdmin)
 admin.site.register(Category, CategoryAdmin)
-admin.site.register(TaskStatus, TaskStatusAdmin)
-admin.site.register(ProjectStatus, ProjectStatusAdmin)
 admin.site.register(DayOfWeek, DayOfWeekAdmin)
 admin.site.register(Comment, CommentAdmin)
 admin.site.register(Attachment)

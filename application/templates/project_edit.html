@@ -1,59 +1,41 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 
-{% block content %} 
+{% block content %}
+    <h1>Update Project</h1>
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% crispy form %}
+        </form>
+    </div>
+{% endblock %}
 
-    <h1>{{ project.project_name }}</h1>
-    <a href="{% url 'project_list' %}" class="btn btn-secondary mb-3">Back to Projects</a>
-        <!-- Read-only fields for non-editable values -->
-    <p><strong>Planned Start Date:</strong> {{ project.planned_start_date }}</p>
-    <p><strong>Original Target End Date:</strong> {{ project.original_target_end_date }}</p>
+{% block extraJS %}
+<script>
+    $(document).ready(function () {
+        // Check for elements with the 'is-invalid' class and focus on the first one found
+        var firstInvalidField = $('.is-invalid').first();
+        if (firstInvalidField.length) {
+            firstInvalidField.focus();
+        }
 
-    <!-- Project Update Form -->
-    <form method="post" action="{% url 'project_edit' project_id=project.id %}">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
+        // Function to update the min attributes of actual end date fields based on actual start date
+        function updateDateFields(actualStartDate) {
+            if (actualStartDate) {
+                $('#id_actual_end_date').attr('min', actualStartDate);
+            }
+        }
 
-        <div class="mb-3">
-            <label for="id_project_name" class="form-label">Project Name</label>
-            {{ form.project_name }}
-        </div>
-        <div class="mb-3">
-            <label for="id_project_description" class="form-label">Description</label>
-            {{ form.project_description }}
-        </div>
-        <div class="mb-3">
-            <label for="id_revised_target_end_date" class="form-label">Revised Target End Date</label>
-            {{ form.revised_target_end_date }}
-        </div>
-        <div class="mb-3">
-            <label for="id_actual_start_date" class="form-label">Actual Start Date</label>
-            {{ form.actual_start_date }}
-        </div>
-        <div class="mb-3">
-            <label for="id_actual_end_date" class="form-label">Actual End Date</label>
-            {{ form.actual_end_date }}
-        </div>
-        <div class="mb-3">
-            <label for="id_project_owner" class="form-label">Project Owner</label>
-            {{ form.project_owner }}
-        </div>
-        <div class="mb-3">
-            <label for="id_project_status" class="form-label">Project Status</label>
-            {{ form.project_status }}
-        </div>
-        <div class="mb-3">
-            <label for="id_category" class="form-label">Category</label>
-            {{ form.category }}
-        </div>
-        <div class="mb-3">
-            <label for="id_priority" class="form-label">Priority</label>
-            {{ form.priority }}
-        </div>
-        <div class="mb-3">
-            <label for="id_halo_ref" class="form-label">Halo Reference</label>
-            {{ form.halo_ref }}
-        </div>
-        <button type="submit" class="btn btn-danger">Save Changes</button>
-    </form>
+        // On document ready, check if the actual start date is already populated
+        var initialActualStartDate = $('#id_actual_start_date').val();
+        updateDateFields(initialActualStartDate);
 
+        // Update min date attributes when actual start date changes
+        $('#id_actual_start_date').on('change', function () {
+            var actualStartDate = $(this).val();
+            updateDateFields(actualStartDate);
+        });
+    });
+</script>
 {% endblock %}

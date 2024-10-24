@@ -10,7 +10,7 @@
     <a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
 
     <!-- Only show "Add New Task" if the project is not closed -->
-    {% if project.project_status.status_name != "Closed" %}
+    {% if project.project_status != 7 %}
         <a href="{% url 'task_create' project_id=project.id %}" class="btn btn-primary mb-3">Add New Task</a>
     {% endif %}
 
@@ -33,14 +33,14 @@
                 {% for task in tasks %}
                     <tr>
                         <td><a href="{% url 'task_detail' project.pk task.pk %}">{{ task.task_name }}</a></td>
-                        <td>{{ task.task_status }}</td>
+                        <td>{{ task.get_task_status_display }}</td>
                         <td>{{ task.get_priority_display }}</td>
                         <td>{{ task.assigned_to }}</td>
                         <td>{{ task.planned_start_date|date:"Y-m-d" }}</td>
                         <td>{{ task.planned_end_date|date:"Y-m-d" }}</td>
                         <td>
                             <!-- Complete Task Button (only if task is not complete and dependencies are completed) -->
-                            {% if task.task_status.status_name != "Completed" %}
+                            {% if task.task_status != 3 %}
                                 <a href="{% url 'task_edit' project_id=project.id task_id=task.id %}" class="btn btn-sm btn-warning">Edit</a>
                                 {% if task.can_be_completed %}
                                     <a href="{% url 'task_complete' project_id=project.id task_id=task.id %}" class="btn btn-sm btn-success">Complete Task</a>

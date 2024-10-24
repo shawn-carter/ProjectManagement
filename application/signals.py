@@ -1,6 +1,6 @@
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
-from application.models import TaskStatus, ProjectStatus, Skill, DayOfWeek  # Import models
+from application.models import Skill, DayOfWeek  # Import models
 import logging
 
 # Set up logging to see which functions are executed
@@ -8,41 +8,6 @@ logger = logging.getLogger(__name__)
 
 # Ensure the signals are executed once
 signal_executed = {'status': False, 'skills': False, 'days': False}
-
-
-@receiver(post_migrate)
-def create_default_data(sender, **kwargs):
-    if signal_executed['status']:
-        logger.info("Default Task and Project Statuses creation skipped because it has already been executed.")
-        return
-
-    # Create default Task Statuses
-    task_statuses = [
-        {'status_id': 1, 'status_name': 'Unassigned', 'description': 'Task not assigned yet'},
-        {'status_id': 2, 'status_name': 'Assigned', 'description': 'Task has been assigned'},
-        {'status_id': 3, 'status_name': 'Completed', 'description': 'Task is completed'}
-    ]
-
-    for status in task_statuses:
-        TaskStatus.objects.get_or_create(status_id=status['status_id'], defaults=status)
-
-    # Create default Project Statuses
-    project_statuses = [
-        {'status_id': 1, 'status_name': 'New', 'description': 'Newly created project'},
-        {'status_id': 2, 'status_name': 'Awaiting Closure', 'description': 'Awaiting final closure'},
-        {'status_id': 3, 'status_name': 'In Progress', 'description': 'Currently being worked on'},
-        {'status_id': 4, 'status_name': 'On Hold', 'description': 'Project is on hold'},
-        {'status_id': 5, 'status_name': 'Scoping', 'description': 'Project is being scoped out'},
-        {'status_id': 6, 'status_name': 'Responded', 'description': 'Response is complete'},
-        {'status_id': 7, 'status_name': 'Closed', 'description': 'Project is closed'}
-    ]
-
-    for status in project_statuses:
-        ProjectStatus.objects.get_or_create(status_id=status['status_id'], defaults=status)
-
-    signal_executed['status'] = True
-    logger.info("Default Task and Project Statuses created successfully.")
-
 
 @receiver(post_migrate)
 def create_default_skills(sender, **kwargs):

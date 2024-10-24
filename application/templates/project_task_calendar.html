@@ -60,7 +60,7 @@
             // Add "Add Task" button for each day if within project date range and project is not closed
             dayCellDidMount: function(arg) {
                 // Only add "Add Task" button if the project is not closed
-                {% if project.project_status.status_name != "Closed" %}
+                {% if project.project_status != 7 %}
                     // Convert project start and end dates to Date objects for comparison
                     const projectStartDateString = "{{ project.actual_start_date|default_if_none:project.planned_start_date }}";
                     const projectEndDateString = "{{ project.actual_end_date|default_if_none:project.revised_target_end_date|default_if_none:project.original_target_end_date }}";

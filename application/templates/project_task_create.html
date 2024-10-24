@@ -25,6 +25,7 @@
         // Function to update the min attributes of planned end date and due date fields
         function updateDateFields(plannedStartDate) {
             if (plannedStartDate) {
+                // Ensure the planned end date and due date cannot be before the start date
                 $('#id_planned_end_date').attr('min', plannedStartDate);
                 $('#id_due_date').attr('min', plannedStartDate);
             }

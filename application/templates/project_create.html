@@ -1,25 +1,42 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 
 {% block content %}
     <h1>Add New Project</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
-        
-        {% for field in form %}
-            <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                {{ field }}
-                {% if field.errors %}
-                    <div class="text-danger">
-                        {% for error in field.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-        {% endfor %}
-        
-        <button type="submit" class="btn btn-primary">Create Project</button>
-    </form>
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% crispy form %}
+        </form>
+    </div>
+{% endblock %}
+
+{% block extraJS %}
+<script>
+    $(document).ready(function () {
+        // Check for elements with the 'is-invalid' class and focus on the first one found
+        var firstInvalidField = $('.is-invalid').first();
+        if (firstInvalidField.length) {
+            firstInvalidField.focus();
+        }
+
+        // Function to update the min attributes of end date fields based on planned start date
+        function updateDateFields(plannedStartDate) {
+            if (plannedStartDate) {
+                $('#id_original_target_end_date').attr('min', plannedStartDate);
+                $('#id_revised_target_end_date').attr('min', plannedStartDate);
+            }
+        }
+
+        // On document ready, check if the planned start date is already populated
+        var initialPlannedStartDate = $('#id_planned_start_date').val();
+        updateDateFields(initialPlannedStartDate);
+
+        // Update min date attributes when planned start date changes
+        $('#id_planned_start_date').on('change', function () {
+            var plannedStartDate = $(this).val();
+            updateDateFields(plannedStartDate);
+        });
+    });
+</script>
 {% endblock %}
