@@ -9,7 +9,7 @@
     <h1>Assumptions for {{ project.project_name }}</h1>
     <a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
     {% if project.project_status != 7 %}
-        <a href="{% url 'add_assumption' project_id=project.id %}" class="btn btn-primary mb-3">Add Assumption</a>
+        <a href="{% url 'add_assumption' project_id=project.id %}" class="btn btn-danger mb-3">Add Assumption</a>
     {% endif %}
     
 
@@ -55,10 +55,19 @@
 <script>
     $(document).ready(function() {
         $('#assumptions-list').DataTable({
-            dom: 'lfrtipB',
+            dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                    '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
+                    '<"col-sm-4 d-flex justify-content-center"i>' +  // Info in the middle
+                    '<"col-sm-4 d-flex justify-content-end"f>' +  // Search on the right
+                 '>' + 
+                 '<"row"<"col-sm-12"tr>>' + 
+                 '<"d-flex justify-content-between align-items-center mt-2"' + 
+                    '<"col-sm-12 col-md-6"l>' + 
+                    '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
             buttons: [
-                'copy', 'csv', 'excel', //'print','pdf', we can add these if required
-            ]
+                'copy', 'csv', 'excel' //'print','pdf', we can add these if required
+            ],
+            pagingType: "full_numbers",
         });
     });
 </script>

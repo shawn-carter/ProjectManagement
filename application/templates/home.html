@@ -8,40 +8,70 @@
         <h1 class="display-4">Welcome to Resource Manager</h1>
         <div class="row mt-4">
             <!-- Project Summary Cards -->
-            <div class="col-md-3">
-                <div class="card bg-light mb-3">
-                    <div class="card-header">Total Projects</div>
+            <div class="col">
+                <div class="card bg-light mb-2">
+                    <div class="card-header">All Projects</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ projects_total }}</h5>
+                        <a href="{% url 'all_projects' %}" class="stretched-link"></a>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card bg-light mb-3">
+            <div class="col">
+                <div class="card bg-light mb-2">
+                    <div class="card-header">Open Projects</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ projects_open }}</h5>
+                        <a href="{% url 'open_project_list' %}" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card bg-light mb-2">
                     <div class="card-header">Closed Projects</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ projects_closed }}</h5>
+                        <a href="{% url 'closed_project_list' %}" class="stretched-link"></a>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col">
                 <div class="card bg-light mb-3">
-                    <div class="card-header">Total Tasks</div>
+                    <div class="card-header">All Tasks</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_total }}</h5>
+                        <a href="{% url 'all_task_list' %}" class="stretched-link"></a>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col">
+                <div class="card bg-light mb-3">
+                    <div class="card-header">Unassigned Tasks</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ tasks_unassigned }}</h5>
+                        <a href="{% url 'unassigned_tasks' %}" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card bg-light mb-3">
+                    <div class="card-header">Open Tasks</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ tasks_open }}</h5>
+                        <a href="{% url 'open_task_list' %}" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
                 <div class="card bg-light mb-3">
                     <div class="card-header">Completed Tasks</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_completed }}</h5>
+                        <a href="{% url 'completed_task_list' %}" class="stretched-link"></a>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Doughnut Chart for Projects -->
         <!-- Doughnut Chart for Projects by Status -->
         <div class="row mt-5">
             <div class="col-md-6">
@@ -51,97 +81,94 @@
                 <canvas id="tasksChart"></canvas>
             </div>
         </div>
-
-        <hr class="my-4">
-        <p>To start you can look at existing <a href="{% url 'project_list' %}">Projects</a> or <a href="{% url 'project_create' %}">Create a New Project</a></p>
+        <div class="row mt-4">
+            <!-- Legend for Projects Status Chart -->
+            <div class="col-md-6 text-center mt-2">
+                <div id="projectsLegend" class="chart-legend">
+                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(39, 128, 227, 1); margin-right: 5px;"></span> Open Projects
+                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(255, 193, 7, 1); margin-left: 15px; margin-right: 5px;"></span> On Hold Projects
+                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(55, 58, 60, 1); margin-left: 15px; margin-right: 5px;"></span> Closed Projects
+                </div>
+            </div>
+        
+            <!-- Legend for Tasks Chart -->
+            <div class="col-md-6 text-center mt-2">
+                <div id="tasksLegend" class="chart-legend">
+                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(63, 182, 24, 1); margin-left: 15px; margin-right: 5px;"></span> Assigned Tasks
+                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(255, 0, 57, 1); margin-right: 5px;"></span> Unassigned Tasks
+                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(39, 128, 227, 1); margin-left: 15px; margin-right: 5px;"></span> Completed Tasks
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extraJS %}
 {% load static %}
-    <script src="{% static 'js/chart.min.js' %}"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Data for Projects Status Chart
-            var ctxProjectsStatus = document.getElementById('projectsStatusChart').getContext('2d');
-            var projectsStatusChart = new Chart(ctxProjectsStatus, {
-                type: 'doughnut',
-                data: {
-                    labels: ['New', 'Awaiting Closure', 'In Progress', 'On Hold', 'Scoping', 'Responded', 'Closed'],
-                    datasets: [{
-                        label: '# of Projects by Status',
-                        data: [
-                            {{ project_new }},
-                            {{ projects_awaiting }},
-                            {{ projects_inprogress }},
-                            {{ projects_onhold }},
-                            {{ projects_scoping }},
-                            {{ projects_responded }},
-                            {{ projects_closed }}
-                        ],
-                        backgroundColor: [
-                            'rgba(39, 128, 227, 1)',  // Primary
-                            'rgba(55, 58, 60, 1)',    // Secondary
-                            'rgba(63, 182, 24, 1)',   // Success
-                            'rgba(153, 84, 187, 1)',  // Info
-                            'rgba(255, 117, 24, 1)',  // Warning
-                            'rgba(255, 0, 57, 1)',    // Danger
-                            'rgba(55, 58, 60, 1)'     // Dark
-                        ],
-                        borderColor: [
-                            'rgba(39, 128, 227, 1)',  // Primary
-                            'rgba(55, 58, 60, 1)',    // Secondary
-                            'rgba(63, 182, 24, 1)',   // Success
-                            'rgba(153, 84, 187, 1)',  // Info
-                            'rgba(255, 117, 24, 1)',  // Warning
-                            'rgba(255, 0, 57, 1)',    // Danger
-                            'rgba(55, 58, 60, 1)'     // Dark
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(tooltipItem) {
-                                    return tooltipItem.label + ': ' + tooltipItem.raw;
-                                }
-                            }
-                        }
+<script src="{% static 'js/chart.min.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Data for Projects Status Chart
+        var ctxProjectsStatus = document.getElementById('projectsStatusChart').getContext('2d');
+        var projectsStatusChart = new Chart(ctxProjectsStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Open Projects', 'On Hold Projects', 'Closed Projects'],
+                datasets: [{
+                    label: '# of Projects by Status',
+                    data: [
+                        {{ projects_open }},
+                        {{ projects_onhold }},
+                        {{ projects_closed }}
+                    ],
+                    backgroundColor: [
+                        'rgba(39, 128, 227, 1)',  // Blue for Open Projects
+                        'rgba(255, 193, 7, 1)',   // Yellow for On Hold Projects
+                        'rgba(55, 58, 60, 1)'     // Grey for Closed Projects
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false // Hide the default legend from Chart.js
                     }
                 }
-            });
-    
-            // Doughnut Chart for Tasks (Outstanding vs. Completed)
-            var ctxTasks = document.getElementById('tasksChart').getContext('2d');
-            var tasksChart = new Chart(ctxTasks, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Outstanding Tasks', 'Completed Tasks'],
-                    datasets: [{
-                        label: '# of Tasks',
-                        data: [{{ tasks_total }} - {{ tasks_completed }}, {{ tasks_completed }}],
-                        backgroundColor: [
-                            'rgba(255, 193, 7, 1)',   // Warning for Outstanding
-                            'rgba(40, 167, 69, 1)'    // Success for Completed
-                        ],
-                        borderColor: [
-                            'rgba(255, 193, 7, 1)',   // Warning for Outstanding
-                            'rgba(40, 167, 69, 1)'    // Success for Completed
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
+            }
         });
-    </script>
 
+        // Doughnut Chart for Tasks (Unassigned, Assigned, Completed)
+        var ctxTasks = document.getElementById('tasksChart').getContext('2d');
+        var tasksChart = new Chart(ctxTasks, {
+            type: 'doughnut',
+            data: {
+                labels: ['Assigned Tasks', 'Unassigned Tasks', 'Completed Tasks'],
+                datasets: [{
+                    label: '# of Tasks',
+                    data: [{{ tasks_open }} - {{ tasks_unassigned }}, {{ tasks_unassigned }},  {{ tasks_completed }}],
+                    backgroundColor: [
+                        'rgba(63, 182, 24, 1)',   // Green for Assigned Tasks
+                        'rgba(255, 0, 57, 1)',    // Red for Unassigned Tasks
+                        'rgba(39, 128, 227, 1)'   // Blue for Completed Tasks
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false // Hide the default legend from Chart.js
+                    }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}
+

@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
-from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView, AttachmentListView, AttachmentCreateView, AttachmentDownloadView, AttachmentPreviewView
+from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView, AttachmentListView, AttachmentCreateView, AttachmentDownloadView, AttachmentPreviewView, UnassignedTasksListView
 
 urlpatterns = [
     ################################ Unauthorised users URLS ################################
@@ -14,18 +14,29 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 
     # Project Views
-    path('projects/', ProjectListView.as_view(), name='project_list'),  # List Projects
+    path('projects/', ProjectListView.as_view(), name='all_projects'),  # List All Projects
     path('projects/add/', ProjectCreateView.as_view(), name='project_create'),  # Create Project
     path('projects/<int:project_id>/', ProjectDetailView.as_view(), name='project_detail'),  # Project Details
     path('projects/<int:project_id>/edit/', ProjectUpdateView.as_view(), name='project_edit'),  # Edit Project
     path('projects/<int:project_id>/close/', ProjectCloseView.as_view(), name='project_close'),  # Close Project
-        
+    path('projects/open/', ProjectListView.as_view(), name='open_project_list'),
+    path('projects/closed/', ProjectListView.as_view(), name='closed_project_list'),
+
+
     # Project Task Views
     path('projects/<int:project_id>/tasks/', TaskListView.as_view(), name='project_taskview'),  # List Tasks for Project
     path('projects/<int:project_id>/tasks/add/', TaskCreateView.as_view(), name='task_create'),  # Create Task
     path('projects/<int:project_id>/tasks/<int:task_id>/', TaskDetailView.as_view(), name='task_detail'),  # Task Details
     path('projects/<int:project_id>/tasks/<int:task_id>/edit/', TaskUpdateView.as_view(), name='task_edit'),  # Edit Task
     path('projects/<int:project_id>/tasks/<int:task_id>/complete/', TaskCompleteView.as_view(), name='task_complete'),  # Task Complete
+
+    # Task List Views
+    path('tasks/all/', TaskListView.as_view(), name='all_task_list'),  # All tasks view
+    path('tasks/unassigned/', TaskListView.as_view(), name='unassigned_tasks'),
+    path('tasks/open/', TaskListView.as_view(), name='open_task_list'),
+    path('tasks/completed/', TaskListView.as_view(), name='completed_task_list'),
+    
+    path('projects/<int:project_id>/tasks/', TaskListView.as_view(), name='project_task_list'),
 
     # Project Risk Views
     path('projects/<int:project_id>/risks/', RiskListView.as_view(), name='risk_list'), # List Risks for Project

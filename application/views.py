@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q, Count
+from django.db.models import Q, Count, When, Case, BooleanField
 from django.http import HttpResponse, JsonResponse, FileResponse
 from django.shortcuts import render,get_object_or_404, redirect
 from django.views.generic import ListView, DetailView,CreateView, UpdateView, View
@@ -25,33 +25,29 @@ from django.core.files.storage import FileSystemStorage
 
 from django.conf import settings  # Import settings to access MEDIA_ROOT
 # Home page view
-@login_required  # Optional: Use this decorator if you want to restrict access to authenticated users only
+@login_required
 def home(request):
     # Project counts for open and closed using integer IDs for statuses
-    project_new = Project.objects.filter(project_status=1).count()  # Status ID 1: 'New'
-    projects_awaiting = Project.objects.filter(project_status=2).count()  # Status ID 2: 'Awaiting Closure'
-    projects_inprogress = Project.objects.filter(project_status=3).count()  # Status ID 3: 'In Progress'
+    projects_open = Project.objects.exclude(project_status=7).count()  # All projects except 'Closed'
     projects_onhold = Project.objects.filter(project_status=4).count()  # Status ID 4: 'On Hold'
-    projects_scoping = Project.objects.filter(project_status=5).count()  # Status ID 5: 'Scoping'
-    projects_responded = Project.objects.filter(project_status=6).count()  # Status ID 6: 'Responded'
     projects_closed = Project.objects.filter(project_status=7).count()  # Status ID 7: 'Closed'
     projects_total = Project.objects.count()
 
-    # Total tasks and outstanding tasks using integer IDs for statuses
+    # Task counts for open, completed, and total tasks
     tasks_total = Task.objects.count()
+    tasks_open = Task.objects.exclude(task_status=3).count()  # All tasks except 'Completed'
     tasks_completed = Task.objects.filter(task_status=3).count()  # Status ID 3: 'Completed'
+    tasks_unassigned = Task.objects.filter(task_status=1).count()  # Status ID 1: 'Unassigned'
 
     context = {
         'projects_total': projects_total,
+        'projects_open': projects_open,
+        'projects_onhold': projects_onhold,
         'projects_closed': projects_closed,
         'tasks_total': tasks_total,
+        'tasks_open': tasks_open,
         'tasks_completed': tasks_completed,
-        'project_new': project_new,
-        'projects_awaiting': projects_awaiting,
-        'projects_inprogress': projects_inprogress,
-        'projects_onhold': projects_onhold,
-        'projects_scoping': projects_scoping,
-        'projects_responded': projects_responded,
+        'tasks_unassigned': tasks_unassigned,
     }
     return render(request, 'home.html', context)
 
@@ -101,24 +97,39 @@ class ProjectUpdateView(PermissionRequiredMixin, UpdateView):
         form.save()
         return redirect(reverse('project_detail', kwargs={'project_id': self.object.pk}))
 
-class ProjectListView(LoginRequiredMixin,ListView):
-    """
-    View for displaying a list of active projects.
-    Inherits from LoginRequiredMixin and ListView.
-    Attributes:
-        model (Project): The model to use for the view.
-        template_name (str): The name of the template to use for rendering the view.
-        context_object_name (str): The name of the context object to use in the template.
-    Methods:
-        get_queryset(): Returns all active projects (excluding soft-deleted ones) ordered by project name.
-    """
-    model = Project  # Specify the model
-    template_name = 'project_list.html'  # Specify the template to use
-    context_object_name = 'projects'  # Name the context object to use in the template
+class ProjectListView(LoginRequiredMixin, ListView):
+    model = Project
+    template_name = 'project_list.html'
+    context_object_name = 'projects'
 
     def get_queryset(self):
-        # Return all active projects (excluding soft-deleted ones)
-        return Project.objects.filter(deleted=None).order_by('project_name')
+        # Determine the type of projects based on the URL route name
+        route_name = self.request.resolver_match.url_name
+
+        if route_name == 'open_project_list':
+            # Filter for open projects (exclude closed projects)
+            projects = Project.objects.filter(deleted=None).exclude(project_status=7).order_by('project_name')
+        elif route_name == 'closed_project_list':
+            # Filter for closed projects
+            projects = Project.objects.filter(project_status=7, deleted=None).order_by('project_name')
+        else:
+            # Default to all projects
+            projects = Project.objects.filter(deleted=None).order_by('project_name')
+
+        return projects
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        route_name = self.request.resolver_match.url_name
+
+        if route_name == 'open_project_list':
+            context['title'] = "Open Projects"
+        elif route_name == 'closed_project_list':
+            context['title'] = "Closed Projects"
+        else:
+            context['title'] = "All Projects"
+
+        return context
  
 class ProjectDetailView(LoginRequiredMixin, DetailView):
     model = Project
@@ -285,28 +296,54 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
 
 class TaskListView(LoginRequiredMixin, ListView):
     model = Task
-    template_name = 'project_task_list.html'
+    template_name = 'project_task_list.html'  # Generalized template for task lists
     context_object_name = 'tasks'
 
     def get_queryset(self):
-        # Get tasks related to the project using project_id
-        project_id = self.kwargs.get('project_id')
-        tasks = Task.objects.filter(project_id=project_id)
+        route_name = self.request.resolver_match.url_name
 
-        # Annotate each task to determine if it can be completed (i.e., if dependencies are complete)
-        for task in tasks:
-            # Check if the task has a dependant task and if it is not completed (status ID for 'Completed' is assumed to be 3)
-            if task.dependant_task and task.dependant_task.task_status != 3:
-                task.can_be_completed = False
-            else:
-                task.can_be_completed = True
-        
-        return tasks
+        if route_name == 'open_task_list':
+            tasks = Task.objects.filter(task_status__in=[1, 2])
+        elif route_name == 'completed_task_list':
+            tasks = Task.objects.filter(task_status=3)
+        elif route_name == 'unassigned_tasks':
+            tasks = Task.objects.filter(task_status=1)
+        elif 'project_id' in self.kwargs:
+            project_id = self.kwargs.get('project_id')
+            tasks = Task.objects.filter(project_id=project_id)
+        else:
+            tasks = Task.objects.all()
+
+        # Use `annotate` to add a `can_be_completed` field to each task
+        tasks = tasks.annotate(
+            can_be_completed=Case(
+                When(dependant_task__task_status=3, then=True),  # Completed dependant task
+                When(dependant_task__isnull=True, then=True),    # No dependant task
+                default=False,
+                output_field=BooleanField()
+            )
+        )
+
+        return tasks.order_by('-project__priority', '-priority', 'planned_start_date')
 
     def get_context_data(self, **kwargs):
-        # Add the project instance to the context
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
+        # Determine the type of task list from the URL route name
+        route_name = self.request.resolver_match.url_name
+
+        if route_name == 'open_task_list':
+            context['title'] = "Open Tasks Across All Projects"
+        elif route_name == 'completed_task_list':
+            context['title'] = "Completed Tasks Across All Projects"
+        elif route_name == 'unassigned_tasks':
+            context['title'] = "Unassigned Tasks Across All Projects"
+        elif 'project_id' in self.kwargs:
+            # If viewing tasks for a specific project
+            context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
+            context['title'] = f"Tasks for {context['project'].project_name}"
+        else:
+            context['title'] = "All Tasks"
+
         return context
 
 class TaskDetailView(LoginRequiredMixin, DetailView):
@@ -1040,7 +1077,7 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
                 })
 
             # Add a separate event for the due date if it exists, but only if the task is not completed
-            if task.due_date and task.task_status_id != 3:
+            if task.due_date and task.task_status != 3:
                 task_events.append({
                     'title': f'{task.task_name} (Due)',
                     'start': str(task.due_date),
@@ -1220,3 +1257,12 @@ class AttachmentPreviewView(LoginRequiredMixin, View):
         # Existing code to generate PDF thumbnail
         # Ensure this method is also within the class and properly indented
         pass  # Replace with your actual implementation
+
+class UnassignedTasksListView(LoginRequiredMixin, ListView):
+    model = Task
+    template_name = 'project_task_unassigned_list.html'
+    context_object_name = 'tasks'
+
+    def get_queryset(self):
+        # Get all unassigned tasks (task_status = 1) and order by project priority, then task priority
+        return Task.objects.filter(task_status=1).order_by('project__priority', 'priority')

@@ -83,10 +83,19 @@
     $(document).ready(function() {
         // Initialize DataTable
         $('#attachment-list').DataTable({
-            dom: 'lfrtipB',
+            dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                    '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
+                    '<"col-sm-4 d-flex justify-content-center"i>' +  // Info in the middle
+                    '<"col-sm-4 d-flex justify-content-end"f>' +  // Search on the right
+                 '>' + 
+                 '<"row"<"col-sm-12"tr>>' + 
+                 '<"d-flex justify-content-between align-items-center mt-2"' + 
+                    '<"col-sm-12 col-md-6"l>' + 
+                    '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
             buttons: [
-                'copy', 'csv', 'excel'
+                'copy', 'csv', 'excel' //'print','pdf', we can add these if required
             ],
+            pagingType: "full_numbers",
             "order": [[ 3, "desc" ]]
         });
 

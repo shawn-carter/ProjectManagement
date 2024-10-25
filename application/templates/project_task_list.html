@@ -6,55 +6,70 @@
 {% endblock %}
 
 {% block content %}
-    <h1>Tasks for {{ project.project_name }}</h1>
-    <a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
+    <h1>{{ title }}</h1>
 
-    <!-- Only show "Add New Task" if the project is not closed -->
-    {% if project.project_status != 7 %}
-        <a href="{% url 'task_create' project_id=project.id %}" class="btn btn-primary mb-3">Add New Task</a>
+    {% if project %}
+        <!-- Show "Back to Project" button if viewing tasks for a specific project -->
+        <a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
+
+        <!-- Add Task Button (only if viewing project task list) -->
+        {% if project.project_status != 7 %}  <!-- Assuming project_status 7 is 'Closed' -->
+            <a href="{% url 'task_create' project_id=project.id %}" class="btn btn-danger mb-3 ml-2">Add New Task</a>
+        {% endif %}
+    {% else %}
+        <!-- Otherwise, show "Back to Home" button -->
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Back to Home</a>
     {% endif %}
-
-    <a href="{% url 'project_task_calendar' project_id=project.id %}" class="btn btn-success mb-3">Project Task Calendar</a>
 
     {% if tasks %}
         <table class="table table-striped" id="task-list">
             <thead>
                 <tr>
+                    <!-- Only show project name if not viewing tasks of a single project -->
+                    {% if not project %}
+                        <th>Project Name</th>
+                    {% endif %}
                     <th>Task Name</th>
                     <th>Status</th>
                     <th>Priority</th>
                     <th>Owner</th>
                     <th>Start Date</th>
                     <th>End Date</th>
-                    <th>Actions</th> <!-- New column for actions -->
+                    {% if title != "Completed Tasks Across All Projects" %}
+                        <th>Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for task in tasks %}
                     <tr>
-                        <td><a href="{% url 'task_detail' project.pk task.pk %}">{{ task.task_name }}</a></td>
+                        <!-- Only show project name if not viewing tasks of a single project -->
+                        {% if not project %}
+                            <td><a href="{% url 'project_detail' project_id=task.project.id %}">{{ task.project.project_name }}</a></td>
+                        {% endif %}
+                        <td><a href="{% url 'task_detail' project_id=task.project.id task_id=task.id %}">{{ task.task_name }}</a></td>
                         <td>{{ task.get_task_status_display }}</td>
                         <td>{{ task.get_priority_display }}</td>
                         <td>{{ task.assigned_to }}</td>
                         <td>{{ task.planned_start_date|date:"Y-m-d" }}</td>
                         <td>{{ task.planned_end_date|date:"Y-m-d" }}</td>
-                        <td>
-                            <!-- Complete Task Button (only if task is not complete and dependencies are completed) -->
-                            {% if task.task_status != 3 %}
-                                <a href="{% url 'task_edit' project_id=project.id task_id=task.id %}" class="btn btn-sm btn-warning">Edit</a>
-                                {% if task.can_be_completed %}
-                                    <a href="{% url 'task_complete' project_id=project.id task_id=task.id %}" class="btn btn-sm btn-success">Complete Task</a>
+                        {% if title != "Completed Tasks Across All Projects" %}
+                            <td>
+                                {% if task.task_status != 3 %}
+                                    <a href="{% url 'task_edit' project_id=task.project.id task_id=task.id %}" class="btn btn-sm btn-warning">Edit</a>
+                                    {% if task.can_be_completed %}
+                                        <a href="{% url 'task_complete' project_id=task.project.id task_id=task.id %}" class="btn btn-sm btn-success">Complete Task</a>
+                                    {% endif %}
                                 {% endif %}
-                            {% endif %}
-                        </td>
+                            </td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <p>No tasks found for this project.</p>
+        <p>No tasks found.</p>
     {% endif %}
-    
 {% endblock %}
 
 {% block extraJS %}
@@ -62,12 +77,21 @@
 <script>
     $(document).ready(function() {
         $('#task-list').DataTable({
-            dom: 'Bfrtip',
+            dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                    '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
+                    '<"col-sm-4 d-flex justify-content-center"i>' +  // Info in the middle
+                    '<"col-sm-4 d-flex justify-content-end"f>' +  // Search on the right
+                 '>' + 
+                 '<"row"<"col-sm-12"tr>>' + 
+                 '<"d-flex justify-content-between align-items-center mt-2"' + 
+                    '<"col-sm-12 col-md-6"l>' + 
+                    '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
             buttons: [
-                'copy', 'csv', 'excel' //'print','pdf', we can add these if required
+                'copy', 'csv', 'excel' //,'print','pdf'// we can add these if required
             ],
-            "order": [[ 4, "asc" ]] // Order by the Start Date column (index 4) in ascending order
+            pagingType: "full_numbers",
         });
     });
 </script>
 {% endblock %}
+

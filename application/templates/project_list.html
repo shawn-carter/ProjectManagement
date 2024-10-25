@@ -7,7 +7,14 @@
 
 {% block content %}
     {% if projects %}
-    <h1>Projects List</h1>
+    <h1>{{ title }}</h1>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
+    <a href="{% url 'project_create' %}" class="btn btn-danger mb-3">New Project</a>
+    
+    <a href="{% url 'all_projects' %}" class="btn btn-primary mb-3">All Projects</a>
+    <a href="{% url 'open_project_list' %}" class="btn btn-success mb-3">Open Projects</a>
+    <a href="{% url 'closed_project_list' %}" class="btn btn-secondary mb-3">Closed Projects</a>
+
     <table id="project-table" class="table table-striped">
         <thead>
             <tr>
@@ -41,7 +48,6 @@
     {% else %}
         <p>No Projects Found</p>
     {% endif %}
-
 {% endblock %}
 
 {% block extraJS %}
@@ -49,10 +55,19 @@
 <script>
     $(document).ready(function() {
         $('#project-table').DataTable({
-            dom: '<"top"f>rt<"bottom"ipB><"clear">',
+            dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                    '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
+                    '<"col-sm-4 d-flex justify-content-center"i>' +  // Info in the middle
+                    '<"col-sm-4 d-flex justify-content-end"f>' +  // Search on the right
+                 '>' + 
+                 '<"row"<"col-sm-12"tr>>' + 
+                 '<"d-flex justify-content-between align-items-center mt-2"' + 
+                    '<"col-sm-12 col-md-6"l>' + 
+                    '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
             buttons: [
-                'copy', 'csv', 'excel' //'print','pdf' can be added if required
+                'copy', 'csv', 'excel' //'print','pdf', we can add these if required
             ],
+            pagingType: "full_numbers",
             "order": [[ 2, "asc" ]]
         });
     });
