@@ -2,7 +2,7 @@
 
 {% block content %}
     <h1>{{ project.project_name }}</h1>
-    <a href="{% url 'project_list' %}" class="btn btn-outline-secondary mb-3">Back to Projects List</a>
+    <a href="{% url 'all_projects' %}" class="btn btn-outline-secondary mb-3">Back to Projects List</a>
 
     <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-primary mb-3">Tasks</a>
     <a href="{% url 'risk_list' project_id=project.id %}" class="btn btn-danger mb-3">Risks</a>
