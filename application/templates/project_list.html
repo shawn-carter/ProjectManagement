@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-    {% if projects %}
+    
     <h1>{{ title }}</h1>
     <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
     <a href="{% url 'project_create' %}" class="btn btn-danger mb-3">New Project</a>
@@ -15,6 +15,7 @@
     <a href="{% url 'open_project_list' %}" class="btn btn-success mb-3">Open Projects</a>
     <a href="{% url 'closed_project_list' %}" class="btn btn-secondary mb-3">Closed Projects</a>
 
+    {% if projects %}
     <table id="project-table" class="table table-striped">
         <thead>
             <tr>
@@ -32,8 +33,22 @@
                 <tr>
                     <td><a href="{% url 'project_detail' project_id=project.id %}">{{ project.project_name }}</a></td>
                     <td>{{ project.get_project_status_display }}</td>
-                    <td>{{ project.planned_start_date|date:"Y-m-d" }}</td>
-                    <td>{{ project.original_target_end_date|date:"Y-m-d" }}</td>
+                    <td>
+                        {% if project.actual_end_date %}
+                            {{ project.actual_end_date|date:"Y-m-d" }}
+                        {% elif project.revised_target_end_date %}
+                            {{ project.revised_target_end_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ project.original_target_end_date|date:"Y-m-d" }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if project.actual_start_date %}
+                            {{ project.actual_start_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ project.planned_start_date|date:"Y-m-d" }}
+                        {% endif %}
+                    </td>
                     <td>{{ project.project_owner }}</td>
                     <td>{{ project.get_priority_display }}</td>
                     <td>
@@ -46,7 +61,7 @@
         </tbody>
     </table>
     {% else %}
-        <p>No Projects Found</p>
+        <p>No {{ title }} Found</p>
     {% endif %}
 {% endblock %}
 
@@ -68,7 +83,8 @@
                 'copy', 'csv', 'excel' //'print','pdf', we can add these if required
             ],
             pagingType: "full_numbers",
-            "order": [[ 2, "asc" ]]
+            "order": [],  // Disable initial ordering, respects backend order
+            "ordering": true  // Keep column sorting feature enabled for user clicks
         });
     });
 </script>

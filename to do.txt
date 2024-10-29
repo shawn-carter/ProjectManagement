@@ -2,11 +2,16 @@
     Task Templates for common Tasks such as building servers
         Will hold the title, description and skills required
         Can use the existing Create Task View
-    Import Users from Active Directory / Excel
+    Import Assets (Users) from Active Directory / Excel
+    Skill Proficiencies
+    Views for Assets and Skills - could potentially show skills shortages
 
 Bugs/Things to do:
     Stakeholders allows duplicate Names and Email Address...
-        There could be Stakeholders that exist in multiple projects - so we can't use model constraint - will have to be a view/form validation thing.
+        There could be Stakeholders that exist in multiple projects - so we can't use model constraint - will have to be a view/form validation thing. Conditional check for name and email in same project.
+    All Projects View is not showing Revised Target Date (which can be seen in the project details)
+    Assumption, Issue, Dependency, Stakeholders can currently be added by Normal.User (should not be able to)
+    New Projects need a start and end date at creation, but there are projects on the project task list that have no dates.
 
 Questions:
     Should a PM be able to create a task outside of the Project Date Range?

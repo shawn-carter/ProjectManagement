@@ -57,13 +57,13 @@ class ProjectCreateView(PermissionRequiredMixin,CreateView):
     model = Project
     form_class = ProjectForm
     template_name = 'project_create.html'
-    success_url = reverse_lazy('project_list')
+    success_url = reverse_lazy('all_projects')
 
     def handle_no_permission(self):
         # Add a custom error message
         messages.error(self.request, "You do not have permission to create a new project.")
         # Redirect to a different view or URL
-        return redirect(reverse_lazy('project_list'))  # Redirect to the project list view
+        return redirect(reverse_lazy('all_projects'))  # Redirect to the project list view
 
 class ProjectUpdateView(PermissionRequiredMixin, UpdateView):
     model = Project
@@ -74,21 +74,23 @@ class ProjectUpdateView(PermissionRequiredMixin, UpdateView):
 
     def get_object(self):
         # Retrieve the project object using project_id instead of pk
-        project_id = self.kwargs.get('project_id')
+        project_id = self.kwargs.get('project_id')    
         return get_object_or_404(Project, id=project_id)
 
     def handle_no_permission(self):
+        # Retrieve the project ID from kwargs
+        project_id = self.kwargs.get('project_id')
         # Add a custom error message
-        messages.error(self.request, "You do not have permission to change this project.")
-        # Redirect to a different view or URL
-        return redirect(reverse_lazy('project_list'))  # Redirect to the project list view
+        messages.error(self.request, "You do not have permission to edit this project.")
+        # Redirect to the project detail view
+        return redirect(reverse('project_detail', kwargs={'project_id': project_id}))  # Redirect to the project detail view
 
     def dispatch(self, request, *args, **kwargs):
         # Check if the project is closed
         project = self.get_object()
         if project.project_status == 7:  # Status ID 7 represents "Closed"
             messages.error(request, "This project is closed and cannot be edited.")
-            return redirect(reverse_lazy('project_list'))
+            return redirect(reverse_lazy('all_projects'))
 
         # Proceed with the regular dispatch if the project is not closed
         return super().dispatch(request, *args, **kwargs)
@@ -107,14 +109,14 @@ class ProjectListView(LoginRequiredMixin, ListView):
         route_name = self.request.resolver_match.url_name
 
         if route_name == 'open_project_list':
-            # Filter for open projects (exclude closed projects)
-            projects = Project.objects.filter(deleted=None).exclude(project_status=7).order_by('project_name')
+            # Filter for open projects (exclude closed projects) and order by priority (descending) and project name
+            projects = Project.objects.filter(deleted=None).exclude(project_status=7).order_by('-priority', '-planned_start_date')
         elif route_name == 'closed_project_list':
-            # Filter for closed projects
-            projects = Project.objects.filter(project_status=7, deleted=None).order_by('project_name')
+            # Filter for closed projects and order by priority (descending) and project name
+            projects = Project.objects.filter(project_status=7, deleted=None).order_by('-priority', '-planned_start_date')
         else:
-            # Default to all projects
-            projects = Project.objects.filter(deleted=None).order_by('project_name')
+            # Default to all projects and order by priority (descending) and project name
+            projects = Project.objects.filter(deleted=None).order_by('-priority', '-planned_start_date')
 
         return projects
 
@@ -154,15 +156,24 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['comments'] = Comment.objects.filter(content_type__model='project', object_id=self.object.pk)
         return context
 
-class ProjectCloseView(LoginRequiredMixin, UpdateView):
+class ProjectCloseView(PermissionRequiredMixin, UpdateView):
     model = Project
     form_class = ProjectCloseForm
     template_name = 'project_close.html'
+    permission_required = 'application.change_project'  # Only allow users with 'change_project' permission
 
     def get_object(self, queryset=None):
         # Retrieve the project object using project_id instead of pk
         project_id = self.kwargs.get('project_id')
         return get_object_or_404(Project, id=project_id)
+
+    def handle_no_permission(self):
+        # Retrieve the project ID from kwargs
+        project_id = self.kwargs.get('project_id')
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to close this project.")
+        # Redirect to the project detail view
+        return redirect(reverse('project_detail', kwargs={'project_id': project_id}))  # Redirect to the project detail view
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
@@ -562,10 +573,17 @@ class RiskCreateView(PermissionRequiredMixin, CreateView):
         # Redirect back to the project risk list view upon successful form submission
         return reverse_lazy('risk_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class AssumptionCreateView(LoginRequiredMixin, CreateView):
+class AssumptionCreateView(PermissionRequiredMixin, CreateView):
     model = Assumption
     form_class = AssumptionForm
     template_name = 'project_assumption_add.html'
+    permission_required = 'application.add_assumption'  # Only allow users with 'add_assumption' permission
+
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to create an assumption.")
+        # Redirect to the project risk list view
+        return redirect('assumption_list', project_id=self.kwargs['project_id'])
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
@@ -594,11 +612,18 @@ class AssumptionCreateView(LoginRequiredMixin, CreateView):
         # Redirect back to the project assumption list view upon successful form submission
         return reverse_lazy('assumption_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class IssueCreateView(LoginRequiredMixin, CreateView):
+class IssueCreateView(PermissionRequiredMixin, CreateView):
     model = Issue
     form_class = IssueForm
     template_name = 'project_issue_add.html'
-
+    permission_required = 'application.add_issue'  # Only allow users with 'add_issue' permission
+    
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to create an issue.")
+        # Redirect to the project risk list view
+        return redirect('issue_list', project_id=self.kwargs['project_id'])
+    
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
@@ -624,10 +649,17 @@ class IssueCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('issue_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class DependencyCreateView(LoginRequiredMixin, CreateView):
+class DependencyCreateView(PermissionRequiredMixin, CreateView):
     model = Dependency
     form_class = DependencyForm
     template_name = 'project_dependency_add.html'
+    permission_required = 'application.add_dependency'  # Only allow users with 'add_dependency' permission
+
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to create a dependency.")
+        # Redirect to the project risk list view
+        return redirect('dependency_list', project_id=self.kwargs['project_id'])
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
@@ -654,10 +686,17 @@ class DependencyCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('dependency_list', kwargs={'project_id': self.kwargs['project_id']})
     
-class StakeholderCreateView(LoginRequiredMixin, CreateView):
+class StakeholderCreateView(PermissionRequiredMixin, CreateView):
     model = Stakeholder
     form_class = StakeholderForm
     template_name = 'project_stakeholder_add.html'
+    permission_required = 'application.add_stakeholder'  # Only allow users with 'add_stakeholder' permission
+
+    def handle_no_permission(self):
+        # Add a custom error message
+        messages.error(self.request, "You do not have permission to create a stakeholder.")
+        # Redirect to the project risk list view
+        return redirect('stakeholder_list', project_id=self.kwargs['project_id'])
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
