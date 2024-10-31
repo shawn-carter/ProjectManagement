@@ -3,6 +3,7 @@
 
 {% block content %}
     <h1>Add New Project</h1>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
     <div class="card-body">
         <form method="post" novalidate>
             {% csrf_token %}

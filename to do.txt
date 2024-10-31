@@ -9,9 +9,9 @@
 Bugs/Things to do:
     Stakeholders allows duplicate Names and Email Address...
         There could be Stakeholders that exist in multiple projects - so we can't use model constraint - will have to be a view/form validation thing. Conditional check for name and email in same project.
-    All Projects View is not showing Revised Target Date (which can be seen in the project details)
-    Assumption, Issue, Dependency, Stakeholders can currently be added by Normal.User (should not be able to)
     New Projects need a start and end date at creation, but there are projects on the project task list that have no dates.
+        Col said to ignore those projects without dates, they are upcoming work but have no idea when they will be starting.
+    Estimated Time to Complete/Actual Time seems to be in minutes (or seconds) needs to be clear that this is in hours, and multiply if necessary to store the time in hours.
 
 Questions:
     Should a PM be able to create a task outside of the Project Date Range?

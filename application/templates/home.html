@@ -9,7 +9,7 @@
         <div class="row mt-4">
             <!-- Project Summary Cards -->
             <div class="col">
-                <div class="card bg-light mb-2">
+                <div class="card bg-primary mb-2">
                     <div class="card-header">All Projects</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ projects_total }}</h5>
@@ -18,7 +18,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-light mb-2">
+                <div class="card bg-warning mb-2">
                     <div class="card-header">Open Projects</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ projects_open }}</h5>
@@ -27,7 +27,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-light mb-2">
+                <div class="card bg-success mb-2">
                     <div class="card-header">Closed Projects</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ projects_closed }}</h5>
@@ -36,7 +36,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-light mb-3">
+                <div class="card bg-primary-subtle mb-3">
                     <div class="card-header">All Tasks</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_total }}</h5>
@@ -45,7 +45,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-light mb-3">
+                <div class="card bg-danger-subtle mb-3">
                     <div class="card-header">Unassigned Tasks</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_unassigned }}</h5>
@@ -54,7 +54,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-light mb-3">
+                <div class="card bg-info-subtle mb-3">
                     <div class="card-header">Open Tasks</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_open }}</h5>
@@ -63,8 +63,26 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-light mb-3">
+                <div class="card bg-success-subtle mb-3">
                     <div class="card-header">Completed Tasks</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ tasks_completed }}</h5>
+                        <a href="{% url 'completed_task_list' %}" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card bg-warning-subtle mb-3">
+                    <div class="card-header">Assets</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ assets_total }}</h5>
+                        <a href="{% url 'asset_list' %}" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card bg-primary-subtle mb-3">
+                    <div class="card-header">Skills</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_completed }}</h5>
                         <a href="{% url 'completed_task_list' %}" class="stretched-link"></a>
@@ -84,19 +102,34 @@
         <div class="row mt-4">
             <!-- Legend for Projects Status Chart -->
             <div class="col-md-6 text-center mt-2">
-                <div id="projectsLegend" class="chart-legend">
-                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(39, 128, 227, 1); margin-right: 5px;"></span> Open Projects
-                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(255, 193, 7, 1); margin-left: 15px; margin-right: 5px;"></span> On Hold Projects
+                <div id="projectsLegend" class="row chart-legend">
+                    <div class='col'>
+                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(39, 128, 227, 1); margin-right: 5px;"></span>
+                    Open Projects
+                    </div>
+                    <div class='col'>
+                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(255, 193, 7, 1); margin-left: 15px; margin-right: 5px;"></span>
+                    On Hold Projects
+                    </div>
+                    <div class='col'>
                     <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(55, 58, 60, 1); margin-left: 15px; margin-right: 5px;"></span> Closed Projects
+                    </div>
                 </div>
             </div>
         
             <!-- Legend for Tasks Chart -->
             <div class="col-md-6 text-center mt-2">
-                <div id="tasksLegend" class="chart-legend">
+                <div id="tasksLegend" class="row chart-legend">
+                    <div class='col'>
                     <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(63, 182, 24, 1); margin-left: 15px; margin-right: 5px;"></span> Assigned Tasks
-                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(255, 0, 57, 1); margin-right: 5px;"></span> Unassigned Tasks
+                    </div>
+                    <div class='col'>
+                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(255, 0, 57, 1); margin-right: 5px;"></span>
+                    Unassigned Tasks
+                    </div>
+                    <div class='col'>
                     <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(39, 128, 227, 1); margin-left: 15px; margin-right: 5px;"></span> Completed Tasks
+                    </div>
                 </div>
             </div>
         </div>

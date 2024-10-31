@@ -11,7 +11,7 @@ from django.urls import reverse_lazy,reverse
 
 from django.shortcuts import redirect
 
-from .models import Project, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment
+from .models import Project, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment, Asset
 from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm, AttachmentForm
 
 import os
@@ -24,20 +24,23 @@ from django.utils.timezone import now
 from django.core.files.storage import FileSystemStorage
 
 from django.conf import settings  # Import settings to access MEDIA_ROOT
+
 # Home page view
 @login_required
 def home(request):
     # Project counts for open and closed using integer IDs for statuses
-    projects_open = Project.objects.exclude(project_status=7).count()  # All projects except 'Closed'
-    projects_onhold = Project.objects.filter(project_status=4).count()  # Status ID 4: 'On Hold'
-    projects_closed = Project.objects.filter(project_status=7).count()  # Status ID 7: 'Closed'
-    projects_total = Project.objects.count()
+    projects_open = Project.objects.exclude(project_status=7).count()  # Open Projects (All projects except 'Closed' [7])
+    projects_onhold = Project.objects.filter(project_status=4).count()  # Projects with Status ID 4: 'On Hold'
+    projects_closed = Project.objects.filter(project_status=7).count()  # Projects with Status ID 7: 'Closed'
+    projects_total = Project.objects.count() # All Projects 
 
     # Task counts for open, completed, and total tasks
     tasks_total = Task.objects.count()
     tasks_open = Task.objects.exclude(task_status=3).count()  # All tasks except 'Completed'
     tasks_completed = Task.objects.filter(task_status=3).count()  # Status ID 3: 'Completed'
     tasks_unassigned = Task.objects.filter(task_status=1).count()  # Status ID 1: 'Unassigned'
+
+    assets_total = Asset.objects.count()
 
     context = {
         'projects_total': projects_total,
@@ -48,8 +51,10 @@ def home(request):
         'tasks_open': tasks_open,
         'tasks_completed': tasks_completed,
         'tasks_unassigned': tasks_unassigned,
+        'assets_total': assets_total
     }
     return render(request, 'home.html', context)
+
 
 # Project Views
 class ProjectCreateView(PermissionRequiredMixin,CreateView):
@@ -533,7 +538,9 @@ class StakeholderListView(LoginRequiredMixin, ListView):
         context['stakeholder_emails'] = stakeholder_emails  # Pass the list of emails
         return context
 
+
 # Create views for adding new entries
+
 class RiskCreateView(PermissionRequiredMixin, CreateView):
     model = Risk
     form_class = RiskForm
@@ -723,6 +730,7 @@ class StakeholderCreateView(PermissionRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('stakeholder_list', kwargs={'project_id': self.kwargs['project_id']})
 
+
 # Update views for editing existing entries
 
 class RiskUpdateView(LoginRequiredMixin, UpdateView):
@@ -900,6 +908,7 @@ class StakeholderUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy('stakeholder_list', kwargs={'project_id': self.kwargs['project_id']})
+
 
 # Detail Views
 
@@ -1297,11 +1306,87 @@ class AttachmentPreviewView(LoginRequiredMixin, View):
         # Ensure this method is also within the class and properly indented
         pass  # Replace with your actual implementation
 
-class UnassignedTasksListView(LoginRequiredMixin, ListView):
-    model = Task
-    template_name = 'project_task_unassigned_list.html'
-    context_object_name = 'tasks'
+class AssetListView(LoginRequiredMixin, ListView):
+    """
+    View for displaying a list of all assets.
+    Includes aggregated stats for each asset such as project ownership, tasks assigned, and time spent.
+    """
+    model = Asset
+    template_name = 'asset_list.html'  # Asset list view template
+    context_object_name = 'assets'
 
-    def get_queryset(self):
-        # Get all unassigned tasks (task_status = 1) and order by project priority, then task priority
-        return Task.objects.filter(task_status=1).order_by('project__priority', 'priority')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assets = Asset.objects.all()
+
+        # Collecting stats for each asset
+        asset_stats = []
+        for asset in assets:
+            # Number of projects owned by the asset
+            projects_owned = Project.objects.filter(project_owner=asset).count()
+
+            # Number of tasks assigned to the asset (including completed)
+            tasks_assigned = Task.objects.filter(assigned_to=asset).count()
+
+            # Completed tasks assigned to the asset
+            completed_tasks = Task.objects.filter(assigned_to=asset, task_status=3)
+            num_completed_tasks = completed_tasks.count()
+
+            # Aggregating total time spent on completed tasks
+            total_time_spent = sum(
+                [task.actual_time_to_complete for task in completed_tasks if task.actual_time_to_complete],
+                timedelta()
+            )
+
+            # Calculate average time per completed task
+            avg_time_per_task = (
+                total_time_spent / num_completed_tasks if num_completed_tasks > 0 else timedelta()
+            )
+            avg_time_per_task_hours = avg_time_per_task.total_seconds() / 3600 if num_completed_tasks > 0 else 0
+
+            # Collect percentage of tasks assigned compared to all tasks
+            total_tasks = Task.objects.count()
+            percentage_of_tasks = (tasks_assigned / total_tasks * 100) if total_tasks > 0 else 0
+
+            # Adding stats to list
+            asset_stats.append({
+                'asset': asset,
+                'projects_owned': projects_owned,
+                'tasks_assigned': tasks_assigned,
+                'total_time_spent_hours': total_time_spent.total_seconds() / 3600 if total_time_spent else 0,
+                'percentage_of_tasks': percentage_of_tasks,
+                'avg_time_per_task_hours': avg_time_per_task_hours,
+            })
+
+        # Add asset stats to the context
+        context['asset_stats'] = asset_stats
+        return context
+
+class AssetDetailView(LoginRequiredMixin, DetailView):
+    model = Asset
+    template_name = 'asset_detail.html'
+    context_object_name = 'asset'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        asset = self.get_object()
+
+        # Gathering additional context information
+        projects_owned = Project.objects.filter(project_owner=asset).count()
+        assigned_tasks = Task.objects.filter(assigned_to=asset)
+        completed_tasks = assigned_tasks.filter(task_status=3).count()
+        incomplete_tasks = assigned_tasks.exclude(task_status=3).count()
+        total_time_spent = sum(
+            [task.actual_time_to_complete for task in assigned_tasks if task.actual_time_to_complete],
+            timedelta()
+        )
+        total_time_spent_hours = total_time_spent.total_seconds() / 3600
+
+        # Adding the collected data to the context
+        context['projects_owned'] = projects_owned
+        context['assigned_tasks'] = assigned_tasks  # Make sure this is a queryset
+        context['completed_tasks'] = completed_tasks
+        context['incomplete_tasks'] = incomplete_tasks
+        context['total_time_spent_hours'] = round(total_time_spent_hours, 2)
+        
+        return context

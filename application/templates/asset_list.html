@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <h1>Asset List</h1>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
+
+    <table id="asset-table" class="table table-striped">
+        <thead>
+            <tr>
+                <th>Asset Name</th>
+                <th>Email</th>
+                <th>Projects Owned</th>
+                <th>Tasks Assigned</th>
+                <th>Total Time Spent (hours)</th>
+                <th>Average Time per Task (hours)</th>
+                <th>Percentage of Tasks Assigned (%)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in asset_stats %}
+                <tr>
+                    <td><a href="{% url 'asset_detail' pk=stat.asset.pk %}">{{ stat.asset.name }}</a></td>
+                    <td>{{ stat.asset.email }}</td>
+                    <td>{{ stat.projects_owned }}</td>
+                    <td>{{ stat.tasks_assigned }}</td>
+                    <td>{{ stat.total_time_spent_hours|floatformat:2 }}</td>
+                    <td>{{ stat.avg_time_per_task_hours|floatformat:2 }}</td>
+                    <td>{{ stat.percentage_of_tasks|floatformat:2 }}</td>
+                    <td><a href="{% url 'asset_detail' pk=stat.asset.pk %}" class="btn btn-primary btn-sm">View Details</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/datatables.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        $('#asset-table').DataTable({
+            dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                    '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
+                    '<"col-sm-4 d-flex justify-content-center"i>' +  // Info in the middle
+                    '<"col-sm-4 d-flex justify-content-end"f>' +  // Search on the right
+                 '>' + 
+                 '<"row"<"col-sm-12"tr>>' + 
+                 '<"d-flex justify-content-between align-items-center mt-2"' + 
+                    '<"col-sm-12 col-md-6"l>' + 
+                    '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
+            buttons: [
+                'copy', 'csv', 'excel' //'print','pdf', we can add these if required
+            ],
+            pagingType: "full_numbers",
+            "order": [],  // Disable initial ordering, respects backend order
+            "ordering": true  // Keep column sorting feature enabled for user clicks
+        });
+    });
+</script>
+{% endblock %}
+
