@@ -16,57 +16,78 @@
         {% if project.project_status != 7 %}  <!-- Assuming project_status 7 is 'Closed' -->
             <a href="{% url 'task_create' project_id=project.id %}" class="btn btn-danger mb-3 ml-2">Add New Task</a>
         {% endif %}
+        <a href="{% url 'project_task_calendar' project_id=project.id %}" class="btn btn-success mb-3">Project Task Calendar</a>
     {% else %}
         <!-- Otherwise, show "Back to Home" button -->
-        <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Back to Home</a>
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
     {% endif %}
 
     {% if tasks %}
-        <table class="table table-striped" id="task-list">
-            <thead>
+    <table class="table table-striped" id="task-list">
+        <thead>
+            <tr>
+                <!-- Only show project name if not viewing tasks of a single project -->
+                {% if not project %}
+                    <th>Project Name</th>
+                {% endif %}
+                <th>Task Name</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Owner</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                {% if title != "Completed Tasks Across All Projects" %}
+                    <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
                 <tr>
                     <!-- Only show project name if not viewing tasks of a single project -->
                     {% if not project %}
-                        <th>Project Name</th>
+                        <td><a href="{% url 'project_detail' project_id=task.project.id %}">{{ task.project.project_name }}</a></td>
                     {% endif %}
-                    <th>Task Name</th>
-                    <th>Status</th>
-                    <th>Priority</th>
-                    <th>Owner</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
+                    <td><a href="{% url 'task_detail' project_id=task.project.id task_id=task.id %}">{{ task.task_name }}</a></td>
+                    <td>{{ task.get_task_status_display }}</td>
+                    <td>{{ task.get_priority_display }}</td>
+                    <td>
+                        {% if task.assigned_to %}
+                            <a href="{% url 'asset_detail' pk=task.assigned_to.pk %}">
+                                {{ task.assigned_to }}
+                            </a>
+                        {% else %}
+                            Unassigned
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.actual_start_date %}
+                            {{ task.actual_start_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ task.planned_start_date|date:"Y-m-d" }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.actual_end_date %}
+                            {{ task.actual_end_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ task.planned_end_date|date:"Y-m-d" }}
+                        {% endif %}
+                    </td>
                     {% if title != "Completed Tasks Across All Projects" %}
-                        <th>Actions</th>
+                        <td>
+                            {% if task.task_status != 3 %}
+                                <a href="{% url 'task_edit' project_id=task.project.id task_id=task.id %}" class="btn btn-sm btn-warning">Edit</a>
+                                {% if task.can_be_completed %}
+                                    <a href="{% url 'task_complete' project_id=task.project.id task_id=task.id %}" class="btn btn-sm btn-success">Complete Task</a>
+                                {% endif %}
+                            {% endif %}
+                        </td>
                     {% endif %}
                 </tr>
-            </thead>
-            <tbody>
-                {% for task in tasks %}
-                    <tr>
-                        <!-- Only show project name if not viewing tasks of a single project -->
-                        {% if not project %}
-                            <td><a href="{% url 'project_detail' project_id=task.project.id %}">{{ task.project.project_name }}</a></td>
-                        {% endif %}
-                        <td><a href="{% url 'task_detail' project_id=task.project.id task_id=task.id %}">{{ task.task_name }}</a></td>
-                        <td>{{ task.get_task_status_display }}</td>
-                        <td>{{ task.get_priority_display }}</td>
-                        <td>{{ task.assigned_to }}</td>
-                        <td>{{ task.planned_start_date|date:"Y-m-d" }}</td>
-                        <td>{{ task.planned_end_date|date:"Y-m-d" }}</td>
-                        {% if title != "Completed Tasks Across All Projects" %}
-                            <td>
-                                {% if task.task_status != 3 %}
-                                    <a href="{% url 'task_edit' project_id=task.project.id task_id=task.id %}" class="btn btn-sm btn-warning">Edit</a>
-                                    {% if task.can_be_completed %}
-                                        <a href="{% url 'task_complete' project_id=task.project.id task_id=task.id %}" class="btn btn-sm btn-success">Complete Task</a>
-                                    {% endif %}
-                                {% endif %}
-                            </td>
-                        {% endif %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            {% endfor %}
+        </tbody>
+    </table>
     {% else %}
         <p>No tasks found.</p>
     {% endif %}

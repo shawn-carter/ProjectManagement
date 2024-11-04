@@ -4,6 +4,7 @@
 {% block content %}
     <h1>Add New Project</h1>
     <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
+    <a href="{% url 'all_projects' %}" class="btn btn-primary mb-3">All Projects</a>
     <div class="card-body">
         <form method="post" novalidate>
             {% csrf_token %}

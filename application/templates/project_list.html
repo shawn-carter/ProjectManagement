@@ -21,10 +21,10 @@
             <tr>
                 <th>Project Name</th>
                 <th>Status</th>
+                <th>Priority</th>
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th>Project Owner</th>
-                <th>Priority</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -33,6 +33,14 @@
                 <tr>
                     <td><a href="{% url 'project_detail' project_id=project.id %}">{{ project.project_name }}</a></td>
                     <td>{{ project.get_project_status_display }}</td>
+                    <td>{{ project.get_priority_display }}</td>
+                    <td>
+                        {% if project.actual_start_date %}
+                            {{ project.actual_start_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ project.planned_start_date|date:"Y-m-d" }}
+                        {% endif %}
+                    </td>
                     <td>
                         {% if project.actual_end_date %}
                             {{ project.actual_end_date|date:"Y-m-d" }}
@@ -43,14 +51,10 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if project.actual_start_date %}
-                            {{ project.actual_start_date|date:"Y-m-d" }}
-                        {% else %}
-                            {{ project.planned_start_date|date:"Y-m-d" }}
-                        {% endif %}
+                        <a href="{% url 'asset_detail' pk=project.project_owner.pk %}">
+                            {{ project.project_owner }}
+                        </a>
                     </td>
-                    <td>{{ project.project_owner }}</td>
-                    <td>{{ project.get_priority_display }}</td>
                     <td>
                         {% if project.project_status != 7 %}
                             <a href="{% url 'project_edit' project_id=project.id %}" class="btn btn-sm btn-warning">Edit</a>
@@ -61,7 +65,7 @@
         </tbody>
     </table>
     {% else %}
-        <p>No {{ title }} Found</p>
+        <p>No Projects Found</p>
     {% endif %}
 {% endblock %}
 

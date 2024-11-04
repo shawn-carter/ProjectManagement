@@ -1,37 +1,102 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block content %}
-    <h1>{{ asset.name }}</h1>
-    <a href="{% url 'asset_list' %}" class="btn btn-outline-secondary mb-3">Back to Asset List</a>
+{% block extraCSS %}
+<link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+{% endblock %}
 
-    <h3>Asset Details</h3>
+{% block content %}
+
+<h1>{{ asset.name }}</h1>
+<a href="{% url 'asset_list' %}" class="btn btn-outline-secondary mb-3">Back to Asset List</a>
+
+<div class="card p-3 mb-4">
     <p><strong>Email:</strong> {{ asset.email }}</p>
     <p><strong>Teams:</strong> 
         {% if asset.teams.all %}
             {% for team in asset.teams.all %}
-                {{ team.name }}{% if not forloop.last %}, {% endif %}
+                <a href="#">{{ team.team_name }}</a>{% if not forloop.last %}, {% endif %}
             {% endfor %}
         {% else %}
             None
         {% endif %}
     </p>
+</div>
 
+<div class="card p-3 mb-4">
     <h3>Statistics</h3>
     <ul>
-        <li><strong>Projects Owned:</strong> {{ projects_owned }}</li>
-        <li><strong>Assigned Tasks:</strong> {{ assigned_tasks.count }}</li> <!-- Updated to correctly show count -->
+        <li><strong>Projects Owned:</strong> {{ projects_owned_count }}</li>
+        <li><strong>Assigned Tasks:</strong> {{ assigned_tasks_count }}</li>
         <li><strong>Completed Tasks:</strong> {{ completed_tasks }}</li>
         <li><strong>Incomplete Tasks:</strong> {{ incomplete_tasks }}</li>
-        <li><strong>Total Time Spent on Tasks:</strong> {{ total_time_spent_hours|floatformat:2 }} hours</li> <!-- Converted to hours and formatted -->
+        <li><strong>Total Time Spent on Tasks:</strong> {{ total_time_spent_hours|floatformat:2 }} hours</li>
+        <li><strong>Average Time Per Task:</strong> {{ average_time_per_task|default:"N/A" }} hours</li>
     </ul>
+</div>
 
-    <h3>Assigned Tasks</h3>
-    <table id="assigned-tasks-table" class="table table-striped">
+<div class="card p-3 mb-4">
+    <h3>Skills</h3>
+    <ul>
+        {% for skill in asset.skills.all %}
+            <li><a href="#">{{ skill.skill_name }}</a></li>
+        {% empty %}
+            <li>No skills assigned.</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="card p-3 mb-4">
+    <h3>Projects Owned</h3>
+    <table id="project-table" class="table table-striped">
         <thead>
             <tr>
+                <th>Project Name</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects_owned %}
+                <tr>
+                    <td><a href="{% url 'project_detail' project_id=project.id %}">{{ project.project_name }}</a></td>
+                    <td>{{ project.get_project_status_display }}</td>
+                    <td>{{ project.get_priority_display }}</td>
+                    <td>
+                        {% if project.actual_start_date %}
+                            {{ project.actual_start_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ project.planned_start_date|date:"Y-m-d" }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if project.actual_end_date %}
+                            {{ project.actual_end_date|date:"Y-m-d" }}
+                        {% elif project.revised_target_end_date %}
+                            {{ project.revised_target_end_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ project.original_target_end_date|date:"Y-m-d" }}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card p-3 mb-4">
+    <h3>Assigned Tasks</h3>
+    {% if assigned_tasks %}
+    <table class="table table-striped" id="task-list">
+        <thead>
+            <tr>
+                <!-- Only show project name if not viewing tasks of a single project -->
+                {% if not project %}
+                    <th>Project Name</th>
+                {% endif %}
                 <th>Task Name</th>
-                <th>Project</th>
                 <th>Status</th>
                 <th>Priority</th>
                 <th>Start Date</th>
@@ -41,39 +106,83 @@
         <tbody>
             {% for task in assigned_tasks %}
                 <tr>
-                    <td><a href="{% url 'task_detail' project_id=task.project.pk task_id=task.pk %}">{{ task.task_name }}</a></td>
-                    <td><a href="{% url 'project_detail' project_id=task.project.pk %}">{{ task.project.project_name }}</a></td>
+                    <!-- Only show project name if not viewing tasks of a single project -->
+                    {% if not project %}
+                        <td><a href="{% url 'project_detail' project_id=task.project.id %}">{{ task.project.project_name }}</a></td>
+                    {% endif %}
+                    <td><a href="{% url 'task_detail' project_id=task.project.id task_id=task.id %}">{{ task.task_name }}</a></td>
                     <td>{{ task.get_task_status_display }}</td>
                     <td>{{ task.get_priority_display }}</td>
-                    <td>{{ task.planned_start_date|date:"Y-m-d" }}</td>
-                    <td>{{ task.planned_end_date|date:"Y-m-d" }}</td>
+                    <td>
+                        {% if task.actual_start_date %}
+                            {{ task.actual_start_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ task.planned_start_date|date:"Y-m-d" }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.actual_end_date %}
+                            {{ task.actual_end_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ task.planned_end_date|date:"Y-m-d" }}
+                        {% endif %}
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
+    
+    {% else %}
+        <p>No tasks assigned.</p>
+    {% endif %}
+</div>
+
 {% endblock %}
 
 {% block extraJS %}
 <script src="{% static 'js/datatables.min.js' %}"></script>
 <script>
     $(document).ready(function() {
-        $('#assigned-tasks-table').DataTable({
-            dom: '<"d-flex justify-content-between align-items-center mb-2"' +
-                    '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
-                    '<"col-sm-4 d-flex justify-content-center"i>' +  // Info in the middle
-                    '<"col-sm-4 d-flex justify-content-end"f>' +  // Search on the right
-                 '>' + 
-                 '<"row"<"col-sm-12"tr>>' + 
-                 '<"d-flex justify-content-between align-items-center mt-2"' + 
-                    '<"col-sm-12 col-md-6"l>' + 
-                    '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
-            buttons: [
-                'copy', 'csv', 'excel' //'print','pdf', we can add these if required
-            ],
-            pagingType: "full_numbers",
-            "order": [],  // Disable initial ordering, respects backend order
-            "ordering": true  // Keep column sorting feature enabled for user clicks
-        });
+        // Only initialize DataTables if there is data to display
+        if ($('#project-table tbody tr').length) {
+            $('#project-table').DataTable({
+                dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                        '<"col-sm-4 d-flex align-items-center"B>' +
+                        '<"col-sm-4 d-flex justify-content-center"i>' +
+                        '<"col-sm-4 d-flex justify-content-end"f>' +
+                     '>' +
+                     '<"row"<"col-sm-12"tr>>' +
+                     '<"d-flex justify-content-between align-items-center mt-2"' +
+                        '<"col-sm-12 col-md-6"l>' +
+                        '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
+                buttons: [
+                    'copy', 'csv', 'excel'
+                ],
+                pagingType: "full_numbers",
+                "order": [],  // Disable initial ordering, respects backend order
+                "ordering": true,
+            });
+        }
+
+        if ($('#task-list tbody tr').length) {
+            $('#task-list').DataTable({
+                dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                        '<"col-sm-4 d-flex align-items-center"B>' +
+                        '<"col-sm-4 d-flex justify-content-center"i>' +
+                        '<"col-sm-4 d-flex justify-content-end"f>' +
+                     '>' +
+                     '<"row"<"col-sm-12"tr>>' +
+                     '<"d-flex justify-content-between align-items-center mt-2"' +
+                        '<"col-sm-12 col-md-6"l>' +
+                        '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
+                buttons: [
+                    'copy', 'csv', 'excel'
+                ],
+                pagingType: "full_numbers",
+                "order": [],  // Disable initial ordering, respects backend order
+                "ordering": true,
+            });
+        }
     });
 </script>
 {% endblock %}

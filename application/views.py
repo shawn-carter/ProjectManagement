@@ -1372,21 +1372,41 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
         asset = self.get_object()
 
         # Gathering additional context information
-        projects_owned = Project.objects.filter(project_owner=asset).count()
-        assigned_tasks = Task.objects.filter(assigned_to=asset)
+        projects_owned_queryset = Project.objects.filter(project_owner=asset).order_by('-priority')
+        projects_owned_count = projects_owned_queryset.count()  # Count of projects owned
+
+        # Gathering assigned tasks and sorting them as per the desired order
+        assigned_tasks = Task.objects.filter(assigned_to=asset).order_by(
+            '-project__priority',  # Project priority (descending)
+            '-priority',           # Task priority (descending)
+            'planned_start_date'   # Planned start date (ascending)
+        )
+        assigned_tasks_count = assigned_tasks.count()  # Count of tasks assigned to the asset
         completed_tasks = assigned_tasks.filter(task_status=3).count()
         incomplete_tasks = assigned_tasks.exclude(task_status=3).count()
+
+        # Calculate total time spent and average time per task
         total_time_spent = sum(
             [task.actual_time_to_complete for task in assigned_tasks if task.actual_time_to_complete],
             timedelta()
         )
-        total_time_spent_hours = total_time_spent.total_seconds() / 3600
+        total_time_spent_hours = total_time_spent.total_seconds() / 3600 if total_time_spent else 0
+
+        average_time_per_task = (
+            total_time_spent_hours / completed_tasks if completed_tasks > 0 else 0
+        )
 
         # Adding the collected data to the context
-        context['projects_owned'] = projects_owned
-        context['assigned_tasks'] = assigned_tasks  # Make sure this is a queryset
+        context['projects_owned'] = projects_owned_queryset  # Pass the sorted queryset for the table
+        context['projects_owned_count'] = projects_owned_count  # Pass the count for stats
+        context['assigned_tasks'] = assigned_tasks  # Pass sorted queryset for use in template
+        context['assigned_tasks_count'] = assigned_tasks_count  # Pass count of assigned tasks
         context['completed_tasks'] = completed_tasks
         context['incomplete_tasks'] = incomplete_tasks
         context['total_time_spent_hours'] = round(total_time_spent_hours, 2)
-        
+        context['average_time_per_task'] = round(average_time_per_task, 2)
+
         return context
+
+
+
