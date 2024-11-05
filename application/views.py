@@ -5,13 +5,15 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q, Count, When, Case, BooleanField
 from django.http import HttpResponse, JsonResponse, FileResponse
+
+from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render,get_object_or_404, redirect
 from django.views.generic import ListView, DetailView,CreateView, UpdateView, View
 from django.urls import reverse_lazy,reverse
 
 from django.shortcuts import redirect
 
-from .models import Project, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment, Asset
+from .models import Project, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment, Asset, Skill
 from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm, AttachmentForm
 
 import os
@@ -41,6 +43,7 @@ def home(request):
     tasks_unassigned = Task.objects.filter(task_status=1).count()  # Status ID 1: 'Unassigned'
 
     assets_total = Asset.objects.count()
+    skills_total = Skill.objects.count()
 
     context = {
         'projects_total': projects_total,
@@ -51,7 +54,8 @@ def home(request):
         'tasks_open': tasks_open,
         'tasks_completed': tasks_completed,
         'tasks_unassigned': tasks_unassigned,
-        'assets_total': assets_total
+        'assets_total': assets_total,
+        'skills_total': skills_total,
     }
     return render(request, 'home.html', context)
 
@@ -224,7 +228,6 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
-        
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
         # Check if the project is closed
         if project.project_status == 7:
@@ -238,6 +241,21 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
         kwargs = super().get_form_kwargs()
         kwargs['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return kwargs
+
+    def get_form(self, *args, **kwargs):
+        form = super().get_form(*args, **kwargs)
+
+        # Get filtered assets from session if available
+        filtered_assets = self.request.session.get('filtered_assets', None)
+
+        if filtered_assets:
+            # Filter the assets by the IDs stored in session
+            form.fields['assigned_to'].queryset = Asset.objects.filter(asset_id__in=filtered_assets)
+        else:
+            # If no filtering was applied, show all assets
+            form.fields['assigned_to'].queryset = Asset.objects.all()
+
+        return form
 
     def get_initial(self):
         initial = super().get_initial()
@@ -258,6 +276,7 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse('project_taskview', kwargs={'project_id': self.kwargs['project_id']})
+
 
 class TaskUpdateView(PermissionRequiredMixin, UpdateView):
     model = Task
@@ -1106,7 +1125,7 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
             if task.task_status == 3:  # Assuming status ID 3 means 'Completed'
                 background_color = '#808080'  # Grey
                 text_color = '#FFFFFF'  # White text for completed tasks
-                task_title = f'{task.task_name} (Complete)'  # Add '(Complete)' to the task name
+                task_title = f'{task.task_name} (Completed)'  # Add '(Complete)' to the task name
             else:
                 # Use the priority color or fallback to grey
                 background_color = colors.get(task.priority, '#808080')
@@ -1375,13 +1394,20 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
         projects_owned_queryset = Project.objects.filter(project_owner=asset).order_by('-priority')
         projects_owned_count = projects_owned_queryset.count()  # Count of projects owned
 
+        # Separate open and closed projects owned by the asset
+        projects_owned_open = projects_owned_queryset.exclude(project_status=7)  # Status 7 is 'Closed'
+        projects_owned_closed = projects_owned_queryset.filter(project_status=7)
+
+        projects_owned_open_count = projects_owned_open.count()
+        projects_owned_closed_count = projects_owned_closed.count()
+
         # Gathering assigned tasks and sorting them as per the desired order
         assigned_tasks = Task.objects.filter(assigned_to=asset).order_by(
             '-project__priority',  # Project priority (descending)
             '-priority',           # Task priority (descending)
             'planned_start_date'   # Planned start date (ascending)
         )
-        assigned_tasks_count = assigned_tasks.count()  # Count of tasks assigned to the asset
+        all_tasks_count = assigned_tasks.count()  # Count of tasks assigned to the asset
         completed_tasks = assigned_tasks.filter(task_status=3).count()
         incomplete_tasks = assigned_tasks.exclude(task_status=3).count()
 
@@ -1399,8 +1425,10 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
         # Adding the collected data to the context
         context['projects_owned'] = projects_owned_queryset  # Pass the sorted queryset for the table
         context['projects_owned_count'] = projects_owned_count  # Pass the count for stats
+        context['projects_owned_open_count'] = projects_owned_open_count
+        context['projects_owned_closed_count'] = projects_owned_closed_count
         context['assigned_tasks'] = assigned_tasks  # Pass sorted queryset for use in template
-        context['assigned_tasks_count'] = assigned_tasks_count  # Pass count of assigned tasks
+        context['all_tasks_count'] = all_tasks_count  # Updated to reflect all tasks
         context['completed_tasks'] = completed_tasks
         context['incomplete_tasks'] = incomplete_tasks
         context['total_time_spent_hours'] = round(total_time_spent_hours, 2)
@@ -1408,5 +1436,100 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
 
         return context
 
+class SkillListView(LoginRequiredMixin, ListView):
+    model = Skill
+    template_name = 'skill_list.html'
+    context_object_name = 'skill_assets'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        skills = Skill.objects.all()
+        skill_assets = []
 
+        # Check for skills without assigned assets
+        skills_without_assets_flag = False
+
+        for skill in skills:
+            assets_with_skill = Asset.objects.filter(skills=skill)
+            skill_assets.append({
+                'skill': skill,
+                'assets': assets_with_skill,
+            })
+
+            # If no assets have this skill, set the flag to True
+            if not assets_with_skill.exists():
+                skills_without_assets_flag = True
+
+        # Pass the collected data to the template context
+        context['skill_assets'] = skill_assets
+        context['skills_without_assets'] = skills_without_assets_flag  # Flag for the warning message
+
+        return context
+
+class SkillDetailView(LoginRequiredMixin, DetailView):
+    model = Skill
+    template_name = 'skill_detail.html'
+    context_object_name = 'skill'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        skill = self.get_object()
+
+        # Get tasks that include this skill
+        tasks_with_skill = Task.objects.filter(skills_required=skill)
+
+        # Number of tasks using this skill
+        tasks_with_skill_count = tasks_with_skill.count()
+
+        # Get assets that have this skill
+        assets_with_skill = Asset.objects.filter(skills=skill)
+
+        # Calculate the total time spent on all tasks that require this skill
+        total_time_spent = sum(
+            [task.actual_time_to_complete for task in tasks_with_skill if task.actual_time_to_complete],
+            timedelta()
+        )
+        total_time_spent_hours = total_time_spent.total_seconds() / 3600 if total_time_spent else 0
+
+        # Calculate average time spent on tasks that use this skill
+        average_time_per_task = (
+            total_time_spent_hours / tasks_with_skill_count if tasks_with_skill_count > 0 else 0
+        )
+
+        # Add collected data to the context
+        context['tasks_with_skill'] = tasks_with_skill  # Pass queryset to be used in template
+        context['tasks_with_skill_count'] = tasks_with_skill_count  # Total number of tasks using the skill
+        context['total_time_spent_hours'] = round(total_time_spent_hours, 2)
+        context['average_time_per_task'] = round(average_time_per_task, 2)
+        context['assets_with_skill'] = assets_with_skill  # Pass the assets queryset
+
+        return context
+
+@login_required
+def filter_assets_by_skills(request):
+    if request.method == 'GET':
+        skill_ids = request.GET.getlist('skills[]')
+
+        # If skill_ids is empty, return no assets (i.e., empty list)
+        if not skill_ids:
+            return JsonResponse({'assets': []})
+
+        # Filter assets that contain ALL the selected skills
+        assets = Asset.objects.all()
+        for skill_id in skill_ids:
+            assets = assets.filter(skills__pk=skill_id)
+
+        # Eliminate duplicates and prepare response data
+        assets_list = [{'asset_id': asset.asset_id, 'name': asset.name} for asset in assets.distinct()]
+        return JsonResponse({'assets': assets_list})
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def save_filtered_assets(request):
+    """
+    Save filtered asset IDs to the session.
+    """
+    asset_ids = request.POST.getlist('assets[]')
+    request.session['filtered_assets'] = asset_ids
+    return JsonResponse({'message': 'Filtered assets saved successfully.'})

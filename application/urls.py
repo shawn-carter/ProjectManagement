@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
-from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView, AttachmentListView, AttachmentCreateView, AttachmentDownloadView, AttachmentPreviewView, AssetListView, AssetDetailView
+from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView, AttachmentListView, AttachmentCreateView, AttachmentDownloadView, AttachmentPreviewView, AssetListView, AssetDetailView, SkillListView, SkillDetailView, filter_assets_by_skills, save_filtered_assets
 
 urlpatterns = [
     ################################ Unauthorised users URLS ################################
@@ -87,5 +87,12 @@ urlpatterns = [
     # Asset Views
     path('assets/', AssetListView.as_view(), name='asset_list'),
     path('assets/<int:pk>/', AssetDetailView.as_view(), name='asset_detail'),
+
+    # Skills Views
+    path('skills/', SkillListView.as_view(), name='skill_list'),
+    path('skills/<int:pk>/', SkillDetailView.as_view(), name='skill_detail'),  # URL for skill details
+
+    path('ajax/filter_assets/', filter_assets_by_skills, name='filter_assets_by_skills'),
+    path('ajax/save_filtered_assets/', save_filtered_assets, name='save_filtered_assets'),
 
 ]

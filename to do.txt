@@ -1,10 +1,10 @@
  Potentially Add:
-    Task Templates for common Tasks such as building servers
-        Will hold the title, description and skills required
-        Can use the existing Create Task View
-    Import Assets (Users) from Active Directory / Excel
-    Skill Proficiencies
-    Views for Assets and Skills - could potentially show skills shortages
+    Task Templates for common Tasks such as building servers.
+        Will hold the title, description and skills required.
+        Can use the existing Create Task View.
+    Import Assets (Users) from Active Directory / Excel.
+    Skill Proficiencies.
+    Views for Assets and Skills - could potentially show skills shortages.
 
 Bugs/Things to do:
     Stakeholders allows duplicate Names and Email Address...
@@ -15,3 +15,56 @@ Bugs/Things to do:
 
 Questions:
     Should a PM be able to create a task outside of the Project Date Range?
+
+Stats:
+    Asset
+    Task Allocation % (% of tasks that have been allocated to Asset)
+    Actual Time Taken (Total time taken on all Tasks)
+    Number of Projects allocated
+
+Other Pages: 
+    Skills
+    Teams 
+
+You're touching on a lot of ambitious and exciting ideas, and I completely understand how easy it is to get carried away with all the possibilities. Let's unpack this a bit and consider what might realistically fit within your 8-week timeframe, given your tight schedule for a presentation and a written assignment.
+
+Prioritizing What’s Essential for the MVP (Minimum Viable Product)
+Considering the complexity of what you're envisioning and your available time, it’s important to prioritize the features that will give the most impact for your MVP or Working Prototype. Here’s a breakdown of your ideas and what I think might be feasible to implement in stages:
+
+Core Features to Implement Now (for the MVP)
+Optimization for Scheduling Tasks
+
+New Start Date Input: Allow the user to set a new start date for the project optimization. This is relatively simple and adds flexibility for when to initiate the optimization.
+Dependency-Based Scheduling: Automatically prioritize tasks based on their dependencies. Tasks with dependencies should be scheduled after their prerequisites.
+Priority-Based Ordering: When optimizing, prioritize tasks by their priority level and dependencies. Dependencies must be completed before dependent tasks, even if the priority is lower.
+Duration Calculation: Use the current Start and End Dates to calculate the planned duration. While using historical data to infer actual durations would be amazing, it could be left as a future feature.
+Visualization of Re-Optimized Project Plan: Updating the Gantt chart (or FullCalendar) to visualize the optimized project timeline based on skills and resource availability would be extremely beneficial and visually impactful for the presentation.
+Template-Based Task Creation
+
+Reusable Task Templates: Creating reusable task templates for common sequences (e.g., commissioning a server) can add real value. For the MVP, start by allowing the creation and storage of a template for one type of project.
+Import/Export of Tasks via JSON or CSV: Start by providing a simple way to save a list of tasks as a JSON file, with dependencies, durations, and skills. CSV support could follow later. JSON is relatively easy to parse and validate, making it a good starting point.
+Data Management and Visualization
+
+Basic Data Export Feature: Allow users to export all projects, tasks, and related artifacts as a JSON dump. This would provide easy future portability without having to build a fully automated backup system for now.
+API Endpoints: Create a couple of essential API endpoints—perhaps for listing projects or tasks. This provides a good start for integration without trying to tackle a fully-fledged API.
+Basic Integration and Workflow Features
+
+Integration with Skill Matching for Tasks: Implement a basic skill-matching algorithm where tasks are assigned based on skills needed. This feature adds a lot of value to project management and can show off some of the unique capabilities of your system in the presentation.
+These are manageable features that will provide enough depth and complexity for your MVP while also ensuring you can clearly demonstrate and discuss the unique functionality during your presentation.
+
+Features for Future Development (After the Assessment)
+Advanced Optimization (Project Compression)
+
+The idea of compressing the schedule by finding opportunities for concurrent task execution based on different skills is great but quite complex. It requires a sophisticated optimization algorithm. This could be a great enhancement once the foundation is solid.
+Full Template System for Projects and Import/Export Enhancements
+
+Full export and import capability (e.g., full CSV imports for all tasks in a project) and saving multiple project templates could be quite challenging to complete before the presentation, especially if you also need robust error checking to ensure no data inconsistencies during import.
+Full API Implementation
+
+Developing a comprehensive REST API that allows CRUD operations on all artifacts could be a longer-term project. APIs add a lot of value for integration but take time to design and implement securely.
+Advanced Reporting & Gantt Chart Integration
+
+Adding an advanced Gantt chart tool later to provide richer visual representation of timelines and dependencies (beyond FullCalendar) could be another future goal. Tools like Chart.js or even more specialized visualization libraries could be leveraged here.
+Machine Learning for Estimating Task Durations
+
+Using historical task data to estimate durations for similar future tasks is a very exciting idea that brings a level of prediction and machine learning into the system. However, it would require a lot more data collection, algorithm testing, and validation to ensure accuracy.

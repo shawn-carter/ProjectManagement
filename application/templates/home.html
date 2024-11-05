@@ -84,8 +84,8 @@
                 <div class="card bg-primary-subtle mb-3">
                     <div class="card-header">Skills</div>
                     <div class="card-body">
-                        <h5 class="card-title">{{ tasks_completed }}</h5>
-                        <a href="{% url 'completed_task_list' %}" class="stretched-link"></a>
+                        <p class="card-text">{{ skills_total }}</p> 
+                        <a href="{% url 'skill_list' %}" class="stretched-link"></a>
                     </div>
                 </div>
             </div>
@@ -170,6 +170,21 @@
                     legend: {
                         display: false // Hide the default legend from Chart.js
                     }
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        var index = elements[0].index;
+                        if (index === 0) {
+                            // Open Projects
+                            window.location.href = "{% url 'open_project_list' %}";
+                        } else if (index === 1) {
+                            // On Hold Projects (we don't have a view for this at the moment!) so we'll show Open Projects
+                            window.location.href = "{% url 'open_project_list' %}";
+                        } else if (index === 2) {
+                            // Closed Projects
+                            window.location.href = "{% url 'closed_project_list' %}";
+                        }
+                    }
                 }
             }
         });
@@ -197,6 +212,21 @@
                 plugins: {
                     legend: {
                         display: false // Hide the default legend from Chart.js
+                    }
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        var index = elements[0].index;
+                        if (index === 0) {
+                            // Assigned Tasks
+                            window.location.href = "{% url 'open_task_list' %}";
+                        } else if (index === 1) {
+                            // Unassigned Tasks
+                            window.location.href = "{% url 'unassigned_tasks' %}";
+                        } else if (index === 2) {
+                            // Completed Tasks
+                            window.location.href = "{% url 'completed_task_list' %}";
+                        }
                     }
                 }
             }

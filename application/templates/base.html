@@ -26,16 +26,19 @@
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'all_projects' %}">Projects</a>
+                            <a class="nav-link" href="{% url 'project_calendar' %}">Calendar</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'all_task_list' %}">Tasks</a>
+                            <a class="nav-link" href="{% url 'all_projects' %}">All Projects</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'all_task_list' %}">All Tasks</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'asset_list' %}">Assets</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'project_calendar' %}">Calendar</a>
+                            <a class="nav-link" href="{% url 'skill_list' %}">Skills</a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">

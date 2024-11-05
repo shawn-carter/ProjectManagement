@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <h1>{{ skill.skill_name }}</h1>
+    <a href="{% url 'skill_list' %}" class="btn btn-outline-secondary mb-3">Back to Skills List</a>
+
+    <div class="card p-3 mb-4">
+        <h3>Skill Overview</h3>
+        <ul>
+            <li><strong>Number of Tasks requiring this Skill:</strong> {{ tasks_with_skill_count }}</li>
+            <li><strong>Actual Time Spent on Tasks (hours):</strong> {{ total_time_spent_hours|floatformat:2 }}</li>
+            <li><strong>Average Time per Task (hours):</strong> {{ average_time_per_task|floatformat:2 }}</li>
+        </ul>
+    </div>
+    <div class="card p-3 mb-4">
+        <h3>Assets with This Skill</h3>
+        {% if assets_with_skill %}
+            <table class="table table-striped" id="assets-skill-list">
+                <thead>
+                    <tr>
+                        <th>Asset Name</th>
+                        <th>Email</th>
+                        <th>Teams</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset in assets_with_skill %}
+                        <tr>
+                            <td><a href="{% url 'asset_detail' pk=asset.pk %}">{{ asset.name }}</a></td>
+                            <td>{{ asset.email }}</td>
+                            <td>
+                                {% for team in asset.teams.all %}
+                                    {{ team.team_name }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No assets have this skill.</p>
+        {% endif %}
+    </div>
+    <div class="card p-3 mb-4">
+        <h3>Tasks Requiring This Skill</h3>
+        {% if tasks_with_skill %}
+            <table id="tasks-table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Task Name</th>
+                        <th>Project</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Assigned To</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks_with_skill %}
+                        <tr>
+                            <td><a href="{% url 'task_detail' project_id=task.project.id task_id=task.id %}">{{ task.task_name }}</a></td>
+                            <td><a href="{% url 'project_detail' project_id=task.project.id %}">{{ task.project.project_name }}</a></td>
+                            <td>{{ task.get_task_status_display }}</td>
+                            <td>{{ task.get_priority_display }}</td>
+                            <td>
+                                {% if task.assigned_to %}
+                                    <a href="{% url 'asset_detail' pk=task.assigned_to.pk %}">{{ task.assigned_to }}</a>
+                                {% else %}
+                                    Unassigned
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No tasks currently use this skill.</p>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/datatables.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        $('#tasks-table').DataTable({
+            dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                    '<"col-sm-4 d-flex align-items-center"B>' +  
+                    '<"col-sm-4 d-flex justify-content-center"i>' +  
+                    '<"col-sm-4 d-flex justify-content-end"f>' +  
+                 '>' + 
+                 '<"row"<"col-sm-12"tr>>' + 
+                 '<"d-flex justify-content-between align-items-center mt-2"' + 
+                    '<"col-sm-12 col-md-6"l>' + 
+                    '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
+            pagingType: "full_numbers",
+            buttons: [
+                'copy', 'csv', 'excel' 
+            ],
+            order: [],  
+            ordering: true  
+        });
+    });
+</script>
+{% endblock %}

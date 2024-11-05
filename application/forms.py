@@ -191,6 +191,10 @@ class CreateTaskForm(forms.ModelForm):
         self.project = kwargs.pop('project', None)
         super().__init__(*args, **kwargs)
 
+        # Set "Unassigned" as the default option for "assigned_to"
+        self.fields['assigned_to'].queryset = Asset.objects.none()  # Ensure no assets are initially shown
+        self.fields['assigned_to'].empty_label = "Unassigned"
+
         if self.project:
             # Filter dependant_task to only include tasks from the same project
             self.fields['dependant_task'].queryset = Task.objects.filter(project=self.project)
@@ -207,7 +211,7 @@ class CreateTaskForm(forms.ModelForm):
                 css_class='form-row'
             ),
             Row(
-                Column(Field('due_date', css_class='form-control'),css_class='col-md-6'),
+                Column(Field('due_date', css_class='form-control'), css_class='col-md-6'),
                 Column(Field('halo_ref', css_class='form-control'), css_class='col-md-6'),
             ),
             Row(
@@ -217,23 +221,12 @@ class CreateTaskForm(forms.ModelForm):
             ),
             Field('estimated_time_to_complete', css_class='form-control'),
             Field('skills_required', css_class='checkbox-group'),
+            Div(id='no-assets-warning', css_class='alert alert-danger d-none'),  # Warning message placeholder
             Field('dependant_task', css_class='form-select'),
             Submit('submit', 'Save Task', css_class='btn btn-success')
         )
 
-    def clean(self):
-        """
-        Custom validation to ensure the end date is not before the start date.
-        """
-        cleaned_data = super().clean()
-        planned_start_date = cleaned_data.get("planned_start_date")
-        planned_end_date = cleaned_data.get("planned_end_date")
 
-        # Check if both dates are provided and end date is not before start date
-        if planned_start_date and planned_end_date and planned_end_date < planned_start_date:
-            self.add_error('planned_end_date', 'End date cannot be earlier than the start date.')
-
-        return cleaned_data
 
 class EditTaskForm(forms.ModelForm):
     class Meta:

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extraCSS %}
+<link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+{% endblock %}
+
+{% block content %}
+    <h1>Skills List</h1>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
+
+    <!-- Warning Message if Skills without Assets Exist -->
+    {% if skills_without_assets %}
+    <div class="alert alert-danger" role="alert">
+        <strong>Warning:</strong> There are skills with no assigned assets. Please address these gaps to ensure proper resource allocation.
+    </div>
+    {% endif %}
+
+    <table id="skill-table" class="table table-striped">
+        <thead>
+            <tr>
+                <th>Skill Name</th>
+                <th>Assets with this Skill</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for skill_asset in skill_assets %}
+                <tr>
+                    <td><a href="{% url 'skill_detail' pk=skill_asset.skill.pk %}">{{ skill_asset.skill.skill_name }}</a></td> <!-- Updated link -->
+                    <td>
+                        {% if skill_asset.assets %}
+                            <ul>
+                                {% for asset in skill_asset.assets %}
+                                    <li><a href="{% url 'asset_detail' pk=asset.pk %}">{{ asset.name }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <ul>
+                                No assets have this skill.
+                            </ul>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/datatables.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        $('#skill-table').DataTable({
+            dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                    '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
+                    '<"col-sm-4 d-flex justify-content-center"i>' +  // Info in the middle
+                    '<"col-sm-4 d-flex justify-content-end"f>' +  // Search on the right
+                 '>' + 
+                 '<"row"<"col-sm-12"tr>>' + 
+                 '<"d-flex justify-content-between align-items-center mt-2"' + 
+                    '<"col-sm-12 col-md-6"l>' + 
+                    '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
+            pagingType: "full_numbers",
+            buttons: [
+                'copy', 'csv', 'excel' //'print','pdf', we can add these if required
+            ],
+            order: [],  // Keep the backend order or enable sorting by columns if needed
+        });
+    });
+</script>
+{% endblock %}
+
