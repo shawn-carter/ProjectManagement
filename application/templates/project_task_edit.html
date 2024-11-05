@@ -16,166 +16,31 @@
 {% block extraJS %}
 <script>
     $(document).ready(function () {
-        const assetsDropdown = $('#id_assigned_to');
-        let dependentTaskEndDate = null; // Variable to store dependent task's end date
-    
-        // Clear assigned_to dropdown and set default to "Unassigned"
-        assetsDropdown.empty().append($('<option>', {
-            value: '',
-            text: 'Unassigned'
-        }));
-    
-        // Function to retrieve selected skills from the form.
-        function getSelectedSkills() {
-            const selectedSkills = [];
-            $('#div_id_skills_required input[type="checkbox"]:checked').each(function () {
-                selectedSkills.push($(this).val());
-            });
-            return selectedSkills;
-        }
-    
-        // Function to update the "assigned_to" dropdown based on selected skills.
-        function updateAssetDropdown(skillIds) {
-            const noAssetsWarning = $('#no-assets-warning');
-            assetsDropdown.empty(); // Clear the dropdown
-    
-            // Add an "Unassigned" option to allow the task to be left unassigned
-            assetsDropdown.append($('<option>', {
-                value: '',
-                text: 'Unassigned'
-            }));
-    
-            if (skillIds.length > 0) {
-                // Make an AJAX request only if skills are selected
-                $.ajax({
-                    headers: { "X-CSRFToken": "{{ csrf_token }}" },
-                    url: "{% url 'filter_assets_by_skills' %}",
-                    data: {
-                        'skills[]': skillIds,
-                    },
-                    success: function (data) {
-                        if (data.assets.length > 0) {
-                            noAssetsWarning.addClass('d-none'); // Hide the warning if we have assets
-                            $.each(data.assets, function (index, asset) {
-                                assetsDropdown.append($('<option>', {
-                                    value: asset.asset_id,  // Use 'asset_id' as per the model
-                                    text: asset.name
-                                }));
-                            });
-    
-                            const currentAssigned = "{{ form.instance.assigned_to.asset_id|default_if_none:'' }}";
-                            if (currentAssigned) {
-                                assetsDropdown.val(currentAssigned);
-                            }
-                        } else {
-                            noAssetsWarning.removeClass('d-none');
-                            noAssetsWarning.html('No assets have the selected skills.');
-                        }
-                    },
-                    error: function () {
-                        alert('An error occurred while fetching assets. Please try again.');
-                    }
-                });
-            } else {
-                assetsDropdown.empty().append($('<option>', {
-                    value: '',
-                    text: 'Unassigned'
-                }));
-                noAssetsWarning.addClass('d-none'); // Hide the warning
-            }
-        }
-    
-        // Function to handle the dependent task change and update planned start date
-        function updateDatesFromDependentTask(taskId) {
-            if (taskId) {
-                $.ajax({
-                    headers: { "X-CSRFToken": "{{ csrf_token }}" },
-                    url: "{% url 'get_dependent_task_dates' %}",
-                    data: { 'task_id': taskId },
-                    success: function (data) {
-                        if (data.end_date) {
-                            $('#id_planned_start_date').val(data.end_date);
-                            updateDateFields(data.end_date);
-    
-                            dependentTaskEndDate = new Date(data.end_date);
-                            $('#date-warning').addClass('d-none');
-                        }
-                    },
-                    error: function () {
-                        alert('An error occurred while fetching task details. Please try again.');
-                    }
-                });
-            }
-        }
-    
-        // Listen for changes in the dependent task dropdown
-        $('#id_dependant_task').on('change', function () {
-            const dependentTaskId = $(this).val();
-            updateDatesFromDependentTask(dependentTaskId);
+        // Get the project start and end dates from the HTML attributes
+        const projectStartDate = "{{ project.planned_start_date|date:'Y-m-d' }}";
+        const projectEndDate = "{{ project.revised_target_end_date|default_if_none:project.original_target_end_date|date:'Y-m-d' }}";
+
+        // Get the URLs for AJAX calls
+        const filterAssetsUrl = "{% url 'filter_assets_by_skills' %}";
+        const getTaskDatesUrl = "{% url 'get_dependent_task_dates' %}";
+
+        // Set the current assigned asset to the dropdown's data attribute
+        const currentAssignedAssetId = "{{ form.instance.assigned_to.asset_id|default_if_none:'' }}";
+        $('#id_assigned_to').data('current-assigned', currentAssignedAssetId);
+
+        // Call the initializeTaskForm function from custom.js
+        initializeTaskForm(projectStartDate, projectEndDate, filterAssetsUrl, getTaskDatesUrl);
+
+        // After initialization, run the asset dropdown update for pre-selected skills
+        const selectedSkills = [];
+        $('#div_id_skills_required input[type="checkbox"]:checked').each(function () {
+            selectedSkills.push($(this).val());
         });
-    
-        // Function to update the min attributes of planned end date and due date fields.
-        function updateDateFields(plannedStartDate) {
-            if (plannedStartDate) {
-                $('#id_planned_end_date').attr('min', plannedStartDate);
-                $('#id_due_date').attr('min', plannedStartDate);
-            }
-            validateDates();
+
+        // If there are selected skills, update the "Assigned to" dropdown immediately
+        if (selectedSkills.length > 0) {
+            updateAssetDropdown(selectedSkills, filterAssetsUrl);
         }
-    
-        // Function to validate dates and provide warnings if necessary
-        function validateDates() {
-            const plannedStartDate = $('#id_planned_start_date').val() ? new Date($('#id_planned_start_date').val()) : null;
-            const plannedEndDate = $('#id_planned_end_date').val() ? new Date($('#id_planned_end_date').val()) : null;
-            const warningDiv = $('#date-warning');
-            let warningMessage = '';
-    
-            const projectStartDate = new Date('{{ project.planned_start_date|date:"Y-m-d" }}');
-            const projectEndDate = new Date('{{ project.original_target_end_date|date:"Y-m-d" }}');
-    
-            if (dependentTaskEndDate && plannedStartDate && plannedStartDate < dependentTaskEndDate) {
-                warningMessage += 'Warning! The planned start date is earlier than the dependent task\'s end date. Please adjust.<br>';
-            }
-    
-            if (plannedStartDate && plannedEndDate && plannedEndDate < plannedStartDate) {
-                warningMessage += 'Warning! The planned end date cannot be before the planned start date. Please adjust.<br>';
-            }
-    
-            if (plannedStartDate && (plannedStartDate < projectStartDate || plannedStartDate > projectEndDate)) {
-                warningMessage += 'Warning! The planned start date is outside of the project\'s date range. This will be saved only if you are sure.<br>';
-            }
-    
-            if (plannedEndDate && plannedEndDate > projectEndDate) {
-                warningMessage += 'Warning! The planned end date is beyond the project\'s end date. Please double-check if this is correct.<br>';
-            }
-    
-            if (warningMessage) {
-                warningDiv.removeClass('d-none');
-                warningDiv.html(warningMessage);
-            } else {
-                warningDiv.addClass('d-none');
-            }
-        }
-    
-        // Initial setup on page load
-        const initialSelectedSkills = getSelectedSkills();
-        updateAssetDropdown(initialSelectedSkills);
-    
-        const initialPlannedStartDate = $('#id_planned_start_date').val();
-        updateDateFields(initialPlannedStartDate);
-    
-        // Trigger validation on change
-        $('#div_id_skills_required input[type="checkbox"]').on('change', function () {
-            const selectedSkills = getSelectedSkills();
-            updateAssetDropdown(selectedSkills);
-        });
-    
-        $('#id_planned_start_date, #id_planned_end_date, #id_actual_end_date').on('change', function () {
-            validateDates();
-        });
-    
-        // Run validation on page load to catch any pre-existing issues
-        validateDates();
     });
 </script>
 {% endblock %}

@@ -4,7 +4,6 @@
         Can use the existing Create Task View.
     Import Assets (Users) from Active Directory / Excel.
     Skill Proficiencies.
-    Views for Assets and Skills - could potentially show skills shortages.
 
 Bugs/Things to do:
     Stakeholders allows duplicate Names and Email Address...
@@ -13,17 +12,8 @@ Bugs/Things to do:
         Col said to ignore those projects without dates, they are upcoming work but have no idea when they will be starting.
     Estimated Time to Complete/Actual Time seems to be in minutes (or seconds) needs to be clear that this is in hours, and multiply if necessary to store the time in hours.
 
-Questions:
-    Should a PM be able to create a task outside of the Project Date Range?
-
-Stats:
-    Asset
-    Task Allocation % (% of tasks that have been allocated to Asset)
-    Actual Time Taken (Total time taken on all Tasks)
-    Number of Projects allocated
 
 Other Pages: 
-    Skills
     Teams 
 
 You're touching on a lot of ambitious and exciting ideas, and I completely understand how easy it is to get carried away with all the possibilities. Let's unpack this a bit and consider what might realistically fit within your 8-week timeframe, given your tight schedule for a presentation and a written assignment.

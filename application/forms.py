@@ -113,8 +113,8 @@ class ProjectUpdateForm(forms.ModelForm):
                 css_class='form-row'
             ),
             Row(
-                Column(Field('revised_target_end_date', css_class='form-control'), css_class='col-md-6'),
                 Column(Field('halo_ref', css_class='form-control'), css_class='col-md-6'),
+                Column(Field('revised_target_end_date', css_class='form-control'), css_class='col-md-6'),
                 css_class='form-row'
             ),
             Row(
@@ -260,7 +260,6 @@ class EditTaskForm(forms.ModelForm):
             'dependant_task': forms.Select(attrs={'class': 'form-select'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'actual_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'actual_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'estimated_time_to_complete': forms.NumberInput(attrs={'class': 'form-control'}),
             'skills_required': forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-group'}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
@@ -309,9 +308,8 @@ class EditTaskForm(forms.ModelForm):
             ),
             Row(
                 Column('actual_start_date', css_class='form-group col-md-6 mb-0'),
-                Column('actual_end_date', css_class='form-group col-md-6 mb-0'),
+                Column('estimated_time_to_complete', css_class='form-group col-md-6 mb-0'),
             ),
-            'estimated_time_to_complete',
             'skills_required',
             Div(id='no-assets-warning', css_class='alert alert-danger d-none'),  # Warning message placeholder
             'delay_reason',

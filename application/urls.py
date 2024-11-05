@@ -93,8 +93,6 @@ urlpatterns = [
     path('skills/<int:pk>/', SkillDetailView.as_view(), name='skill_detail'),  # URL for skill details
 
     path('ajax/filter_assets/', filter_assets_by_skills, name='filter_assets_by_skills'),
-
     path('ajax/get_task_dates/', views.get_dependent_task_dates, name='get_dependent_task_dates'),
-
 
 ]

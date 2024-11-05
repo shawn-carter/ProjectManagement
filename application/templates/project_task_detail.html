@@ -22,11 +22,11 @@
         {% endif %}
     </p>
     <p><strong>Details:</strong> {{ task.task_details }}</p>
-    <p><strong>Planned Start Date:</strong> {{ task.planned_start_date }}</p>
-    <p><strong>Planned End Date:</strong> {{ task.planned_end_date }}</p>
-    <p><strong>Actual Start Date:</strong> {{ task.actual_start_date }}</p>
-    <p><strong>Actual End Date:</strong> {{ task.actual_end_date }}</p>
-    <p><strong>Due Date:</strong> {{ task.due_date }}</p>
+    <p><strong>Planned Start Date:</strong> {{ task.planned_start_date|date:'d/m/Y' }}</p>
+    <p><strong>Planned End Date:</strong> {{ task.planned_end_date|date:'d/m/Y' }}</p>
+    <p><strong>Actual Start Date:</strong> {{ task.actual_start_date|date:'d/m/Y' }}</p>
+    <p><strong>Actual End Date:</strong> {{ task.actual_end_date|date:'d/m/Y' }}</p>
+    <p><strong>Due Date:</strong> {{ task.due_date|date:'d/m/Y' }}</p>
     <p><strong>Estimated Time to Complete:</strong> {{ task.estimated_time_to_complete }}</p>
     <p><strong>Actual Time to Complete:</strong> {{ task.actual_time_to_complete }}</p>
     <p><strong>Has Dependency:</strong> {{ task.has_dependency }}</p>

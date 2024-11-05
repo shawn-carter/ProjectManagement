@@ -1,16 +1,11 @@
 from application.factories import ProjectFactory, TaskFactory, RiskFactory, AssumptionFactory, IssueFactory, DependencyFactory, StakeholderFactory, CategoryFactory, DayOfWeekFactory, AssetFactory, SkillFactory, TeamFactory, CommentFactory, UserFactory
 
-from application.signals import create_default_data
-from application.models import Skill, DayOfWeek, Project, Task, Risk, Stakeholder, Assumption, Issue, Dependency, Category, Team, Asset, Comment
-
-from django.contrib.contenttypes.models import ContentType
-
-from django.db.models.signals import post_migrate
-from django.test import TestCase
-from django.apps import apps
+from application.models import Skill, DayOfWeek, Project, Task, Risk, Category, Team, Asset, Comment
 
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.models import ContentType
+from django.test import TestCase
 
 # Testing the signals (objects that are created after the migration - things like days of week, project and task status defaults)
 class SignalTests(TestCase):

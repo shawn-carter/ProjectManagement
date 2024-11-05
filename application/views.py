@@ -160,9 +160,22 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         # Use the corresponding status ID for 'Completed', which is assumed to be 3
         all_tasks_completed = project.task_set.filter(~Q(task_status=3)).count() == 0
 
-        # Pass the 'all_tasks_completed' status to the template
+        # Determine start date (Actual Start Date preferred, otherwise Planned Start Date)
+        display_start_date = project.actual_start_date or project.planned_start_date
+
+        # Determine end date (Actual End Date preferred, otherwise Revised or Original Target End Date)
+        display_end_date = (
+            project.actual_end_date or 
+            project.revised_target_end_date or 
+            project.original_target_end_date
+        )
+
+        # Pass values to the template
         context['all_tasks_completed'] = all_tasks_completed
-        context['comments'] = Comment.objects.filter(content_type__model='project', object_id=self.object.pk)
+        context['comments'] = Comment.objects.filter(content_type__model='project', object_id=project.pk)
+        context['display_start_date'] = display_start_date
+        context['display_end_date'] = display_end_date
+
         return context
 
 class ProjectCloseView(PermissionRequiredMixin, UpdateView):
@@ -270,11 +283,28 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Determine project start date (Actual Start Date preferred, otherwise Planned Start Date)
+        project_start_date = project.actual_start_date or project.planned_start_date
+
+        # Determine project end date (Actual End Date preferred, otherwise Revised or Original Target End Date)
+        project_end_date = (
+            project.actual_end_date or 
+            project.revised_target_end_date or 
+            project.original_target_end_date
+        )
+
+        # Pass project start and end dates to the context
+        context['project'] = project
+        context['project_start_date'] = project_start_date
+        context['project_end_date'] = project_end_date
+
         return context
 
     def get_success_url(self):
         return reverse('project_taskview', kwargs={'project_id': self.kwargs['project_id']})
+
 
 class TaskUpdateView(PermissionRequiredMixin, UpdateView):
     model = Task
@@ -287,30 +317,25 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
         return redirect('task_detail', project_id=self.kwargs['project_id'], task_id=self.kwargs['task_id'])
 
     def get_object(self):
-        # Use project_id and task_id to get the task object
         project_id = self.kwargs.get('project_id')
         task_id = self.kwargs.get('task_id')
         return get_object_or_404(Task, id=task_id, project_id=project_id)
 
     def dispatch(self, request, *args, **kwargs):
-        # Get the project and task objects
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
         task = self.get_object()
 
-        # Check if the project is closed
-        if project.project_status == 7:  # Status ID 7 is "Closed"
+        if project.project_status == 7:  # Closed
             messages.error(request, "This project is closed and its tasks cannot be edited.")
             return redirect('task_detail', project_id=project.id, task_id=task.id)
 
-        # Check if the task is completed
-        if task.task_status == 3:  # Status ID 3 is "Completed"
+        if task.task_status == 3:  # Completed
             messages.error(request, "This task is completed and cannot be edited.")
             return redirect('task_detail', project_id=project.id, task_id=task.id)
 
         if request.method == 'GET':
             selected_skills = task.skills_required.values_list('pk', flat=True)
             if selected_skills:
-                # Filter assets that have ALL the selected skills
                 assets = Asset.objects.all()
                 for skill_id in selected_skills:
                     assets = assets.filter(skills__pk=skill_id)
@@ -319,47 +344,49 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
             else:
                 request.session['filtered_assets'] = []
 
-        # Proceed with the regular dispatch if the project is not closed and the task is not completed
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
 
-        # Get filtered assets from session if available
         filtered_assets = self.request.session.get('filtered_assets', None)
         task = self.get_object()
         current_asset = task.assigned_to
 
         if filtered_assets:
-            # Fetch assets based on filtered asset_ids
             assets_queryset = Asset.objects.filter(asset_id__in=filtered_assets)
             if current_asset:
-                # Include the current assigned asset if it's not already in the filtered queryset
                 if current_asset.asset_id not in filtered_assets:
                     assets_queryset = assets_queryset | Asset.objects.filter(asset_id=current_asset.asset_id)
             kwargs['assets_queryset'] = assets_queryset.distinct()
         else:
             if current_asset:
-                # Only include the current assigned asset
                 kwargs['assets_queryset'] = Asset.objects.filter(asset_id=current_asset.asset_id)
             else:
-                # No assets to include
                 kwargs['assets_queryset'] = Asset.objects.none()
 
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        
+        # Determine the relevant end date to use
+        project_end_date = project.actual_end_date or project.revised_target_end_date or project.original_target_end_date
+        
+        # Add project date data to context
+        context['project'] = project
+        context['project_start_date'] = project.planned_start_date
+        context['project_end_date'] = project_end_date
+
+        return context
+
     def form_valid(self, form):
         response = super().form_valid(form)
-        # Clear filtered_assets from session after successful form submission
         if 'filtered_assets' in self.request.session:
             del self.request.session['filtered_assets']
         return response
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
-        return context
 
     def get_success_url(self):
         return reverse('task_detail', kwargs={'project_id': self.kwargs['project_id'], 'task_id': self.object.pk})
@@ -1129,6 +1156,16 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         project = self.get_object()
 
+        # Determine project start date (Actual Start Date preferred, otherwise Planned Start Date)
+        project_start_date = project.actual_start_date or project.planned_start_date
+
+        # Determine project end date (Actual End Date preferred, otherwise Revised or Original Target End Date)
+        project_end_date = (
+            project.actual_end_date or
+            project.revised_target_end_date or
+            project.original_target_end_date
+        )
+
         # Filter tasks for the current project
         tasks = Task.objects.filter(project=project)
 
@@ -1141,7 +1178,7 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
             4: '#FFA500',  # Critical (Orange)
             5: '#FF0000',  # Urgent (Red)
         }
-        
+
         # Define corresponding text colors for each background color
         text_colors = {
             1: '#FFFFFF',  # White for Low (Blue)
@@ -1152,7 +1189,7 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
         }
 
         for task in tasks:
-            # Determine start and end dates
+            # Determine start and end dates for each task
             start_date = task.actual_start_date or task.planned_start_date
             end_date = task.actual_end_date or task.planned_end_date
 
@@ -1160,7 +1197,7 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
             if task.task_status == 3:  # Assuming status ID 3 means 'Completed'
                 background_color = '#808080'  # Grey
                 text_color = '#FFFFFF'  # White text for completed tasks
-                task_title = f'{task.task_name} (Completed)'  # Add '(Complete)' to the task name
+                task_title = f'{task.task_name} (Completed)'  # Add '(Completed)' to the task name
             else:
                 # Use the priority color or fallback to grey
                 background_color = colors.get(task.priority, '#808080')
@@ -1190,7 +1227,10 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
                     'url': reverse('task_detail', kwargs={'project_id': project.pk, 'task_id': task.pk}),
                 })
 
+        # Add calculated project start and end dates to the context
         context['task_events'] = task_events
+        context['project_start_date'] = project_start_date
+        context['project_end_date'] = project_end_date
         return context
     
 @login_required
