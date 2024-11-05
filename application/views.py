@@ -214,7 +214,6 @@ class ProjectCloseView(PermissionRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse('project_detail', kwargs={'project_id': self.object.pk})
 
-
 # Task Views
 class TaskCreateView(PermissionRequiredMixin, CreateView):
     model = Task
@@ -277,7 +276,6 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse('project_taskview', kwargs={'project_id': self.kwargs['project_id']})
 
-
 class TaskUpdateView(PermissionRequiredMixin, UpdateView):
     model = Task
     form_class = EditTaskForm
@@ -309,17 +307,54 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
             messages.error(request, "This task is completed and cannot be edited.")
             return redirect('task_detail', project_id=project.id, task_id=task.id)
 
+        if request.method == 'GET':
+            selected_skills = task.skills_required.values_list('pk', flat=True)
+            if selected_skills:
+                # Filter assets that have ALL the selected skills
+                assets = Asset.objects.all()
+                for skill_id in selected_skills:
+                    assets = assets.filter(skills__pk=skill_id)
+                filtered_assets_ids = list(assets.values_list('asset_id', flat=True).distinct())
+                request.session['filtered_assets'] = filtered_assets_ids
+            else:
+                request.session['filtered_assets'] = []
+
         # Proceed with the regular dispatch if the project is not closed and the task is not completed
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
+
+        # Get filtered assets from session if available
+        filtered_assets = self.request.session.get('filtered_assets', None)
+        task = self.get_object()
+        current_asset = task.assigned_to
+
+        if filtered_assets:
+            # Fetch assets based on filtered asset_ids
+            assets_queryset = Asset.objects.filter(asset_id__in=filtered_assets)
+            if current_asset:
+                # Include the current assigned asset if it's not already in the filtered queryset
+                if current_asset.asset_id not in filtered_assets:
+                    assets_queryset = assets_queryset | Asset.objects.filter(asset_id=current_asset.asset_id)
+            kwargs['assets_queryset'] = assets_queryset.distinct()
+        else:
+            if current_asset:
+                # Only include the current assigned asset
+                kwargs['assets_queryset'] = Asset.objects.filter(asset_id=current_asset.asset_id)
+            else:
+                # No assets to include
+                kwargs['assets_queryset'] = Asset.objects.none()
+
         return kwargs
 
     def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        # Clear filtered_assets from session after successful form submission
+        if 'filtered_assets' in self.request.session:
+            del self.request.session['filtered_assets']
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1510,8 +1545,9 @@ def filter_assets_by_skills(request):
     if request.method == 'GET':
         skill_ids = request.GET.getlist('skills[]')
 
-        # If skill_ids is empty, return no assets (i.e., empty list)
+        # If skill_ids is empty, return no assets and clear 'filtered_assets' in session
         if not skill_ids:
+            request.session['filtered_assets'] = []
             return JsonResponse({'assets': []})
 
         # Filter assets that contain ALL the selected skills
@@ -1521,15 +1557,10 @@ def filter_assets_by_skills(request):
 
         # Eliminate duplicates and prepare response data
         assets_list = [{'asset_id': asset.asset_id, 'name': asset.name} for asset in assets.distinct()]
+
+        # Save the asset_ids to the session
+        request.session['filtered_assets'] = [asset.asset_id for asset in assets.distinct()]
+
         return JsonResponse({'assets': assets_list})
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-@csrf_exempt
-def save_filtered_assets(request):
-    """
-    Save filtered asset IDs to the session.
-    """
-    asset_ids = request.POST.getlist('assets[]')
-    request.session['filtered_assets'] = asset_ids
-    return JsonResponse({'message': 'Filtered assets saved successfully.'})

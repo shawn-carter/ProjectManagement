@@ -226,8 +226,6 @@ class CreateTaskForm(forms.ModelForm):
             Submit('submit', 'Save Task', css_class='btn btn-success')
         )
 
-
-
 class EditTaskForm(forms.ModelForm):
     class Meta:
         model = Task
@@ -256,7 +254,15 @@ class EditTaskForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.project = kwargs.pop('project', None)
+        assets_queryset = kwargs.pop('assets_queryset', None)
         super().__init__(*args, **kwargs)
+
+        # Set "Unassigned" as the default option for "assigned_to"
+        if assets_queryset is not None:
+            self.fields['assigned_to'].queryset = assets_queryset
+        else:
+            self.fields['assigned_to'].queryset = Asset.objects.none()
+        self.fields['assigned_to'].empty_label = "Unassigned"
 
         if self.project:
             # Filter dependant_task to only include tasks from the same project
@@ -288,6 +294,7 @@ class EditTaskForm(forms.ModelForm):
             ),
             'estimated_time_to_complete',
             'skills_required',
+            Div(id='no-assets-warning', css_class='alert alert-danger d-none'),  # Warning message placeholder
             'dependant_task',
             'delay_reason',
             Submit('submit', 'Save Changes', css_class='btn btn-danger')
@@ -311,6 +318,7 @@ class EditTaskForm(forms.ModelForm):
             self.add_error('actual_end_date', 'End date cannot be earlier than the start date.')
 
         return cleaned_data
+
 
 class TaskCompleteForm(forms.ModelForm):
     class Meta:

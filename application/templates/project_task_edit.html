@@ -1,3 +1,5 @@
+<!-- project_task_edit.html -->
+
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
@@ -11,17 +13,115 @@
             {% crispy form %}
         </form>
     </div>
-
 {% endblock %}
 
 {% block extraJS %}
 <script>
     $(document).ready(function () {
-        // Check for elements with the 'is-invalid' class and focus on the first one found
-        var firstInvalidField = $('.is-invalid').first();
-        if (firstInvalidField.length) {
-            firstInvalidField.focus();
+        /**
+         * Function to retrieve selected skills from the form.
+         * @returns {Array} Array of selected skill IDs.
+         */
+        function getSelectedSkills() {
+            const selectedSkills = [];
+            $('#div_id_skills_required input[type="checkbox"]:checked').each(function () {
+                selectedSkills.push($(this).val());
+            });
+            return selectedSkills;
         }
+
+        /**
+         * Function to update the "assigned_to" dropdown based on selected skills.
+         * @param {Array} skillIds - Array of selected skill IDs.
+         */
+        function updateAssetDropdown(skillIds) {
+            const assetsDropdown = $('#id_assigned_to');
+            const noAssetsWarning = $('#no-assets-warning');
+            assetsDropdown.empty(); // Clear the dropdown
+
+            // Add an "Unassigned" option to allow the task to be left unassigned
+            assetsDropdown.append($('<option>', {
+                value: '',
+                text: 'Unassigned'
+            }));
+
+            if (skillIds.length > 0) {
+                // Make an AJAX request only if skills are selected
+                $.ajax({
+                    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+                    url: "{% url 'filter_assets_by_skills' %}",
+                    data: {
+                        'skills[]': skillIds,
+                    },
+                    success: function (data) {
+                        // Populate the dropdown with the filtered assets
+                        if (data.assets.length > 0) {
+                            noAssetsWarning.addClass('d-none'); // Hide the warning if we have assets
+                            $.each(data.assets, function (index, asset) {
+                                assetsDropdown.append($('<option>', {
+                                    value: asset.asset_id,  // Use 'asset_id' as per the model
+                                    text: asset.name
+                                }));
+                            });
+
+                            // Preserve the currently assigned asset if any
+                            const currentAssigned = "{{ form.instance.assigned_to.asset_id|default_if_none:'' }}";
+                            if (currentAssigned) {
+                                assetsDropdown.val(currentAssigned);
+                            }
+                        } else {
+                            // Show a warning message if no assets are found
+                            noAssetsWarning.removeClass('d-none');
+                            noAssetsWarning.html('No assets have the selected skills.');
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred while fetching assets. Please try again.');
+                    }
+                });
+            } else {
+                // Clear the dropdown and reset warning if no skills are selected
+                assetsDropdown.empty().append($('<option>', {
+                    value: '',
+                    text: 'Unassigned'
+                }));
+                noAssetsWarning.addClass('d-none'); // Hide the warning
+            }
+        }
+
+        // Listen for changes in the skills_required checkbox list within div_id_skills_required
+        $('#div_id_skills_required input[type="checkbox"]').on('change', function () {
+            const selectedSkills = getSelectedSkills();
+
+            // Update the assigned_to dropdown based on selected skills
+            updateAssetDropdown(selectedSkills);
+        });
+
+        // On page load, populate the assigned_to dropdown based on pre-selected skills
+        const initialSelectedSkills = getSelectedSkills();
+        updateAssetDropdown(initialSelectedSkills);
+
+        /**
+         * Function to update the min attributes of planned end date and due date fields.
+         * @param {String} plannedStartDate - The planned start date in 'YYYY-MM-DD' format.
+         */
+        function updateDateFields(plannedStartDate) {
+            if (plannedStartDate) {
+                // Ensure the planned end date and due date cannot be before the start date
+                $('#id_planned_end_date').attr('min', plannedStartDate);
+                $('#id_due_date').attr('min', plannedStartDate);
+            }
+        }
+
+        // On document ready, set the min attributes based on the initial planned start date
+        var initialPlannedStartDate = $('#id_planned_start_date').val();
+        updateDateFields(initialPlannedStartDate);
+
+        // Update min date attributes when planned start date changes
+        $('#id_planned_start_date').on('change', function () {
+            var plannedStartDate = $(this).val();
+            updateDateFields(plannedStartDate);
+        });
     });
 </script>
 {% endblock %}
