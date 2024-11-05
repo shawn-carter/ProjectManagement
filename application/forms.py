@@ -169,31 +169,28 @@ class CreateTaskForm(forms.ModelForm):
         model = Task
         fields = [
             'task_name', 'task_details', 'priority',
-            'planned_start_date', 'planned_end_date', 'due_date', 
+            'dependant_task',  # Move dependant_task up in the list
+            'planned_start_date', 'planned_end_date', 'due_date',
             'estimated_time_to_complete', 'skills_required', 'assigned_to',
-            'dependant_task', 'halo_ref',
+            'halo_ref',
         ]
         widgets = {
             'task_name': forms.TextInput(attrs={'class': 'form-control'}),
             'task_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'priority': forms.Select(attrs={'class': 'form-select'}),
+            'dependant_task': forms.Select(attrs={'class': 'form-select'}),
             'planned_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'planned_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'estimated_time_to_complete': forms.NumberInput(attrs={'class': 'form-control'}),
             'skills_required': forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-group'}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
-            'dependant_task': forms.Select(attrs={'class': 'form-select'}),
             'halo_ref': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
         self.project = kwargs.pop('project', None)
         super().__init__(*args, **kwargs)
-
-        # Set "Unassigned" as the default option for "assigned_to"
-        self.fields['assigned_to'].queryset = Asset.objects.none()  # Ensure no assets are initially shown
-        self.fields['assigned_to'].empty_label = "Unassigned"
 
         if self.project:
             # Filter dependant_task to only include tasks from the same project
@@ -205,11 +202,13 @@ class CreateTaskForm(forms.ModelForm):
         self.helper.layout = Layout(
             'task_name',
             'task_details',
+            Field('dependant_task', css_class='form-select'),  # Move dependant_task field to the top of the form layout
             Row(
                 Column(Field('planned_start_date', css_class='form-control'), css_class='col-md-6'),
                 Column(Field('planned_end_date', css_class='form-control'), css_class='col-md-6'),
                 css_class='form-row'
             ),
+            Div(id='date-warning', css_class='alert alert-danger d-none'),  # Date message placeholder
             Row(
                 Column(Field('due_date', css_class='form-control'), css_class='col-md-6'),
                 Column(Field('halo_ref', css_class='form-control'), css_class='col-md-6'),
@@ -222,9 +221,26 @@ class CreateTaskForm(forms.ModelForm):
             Field('estimated_time_to_complete', css_class='form-control'),
             Field('skills_required', css_class='checkbox-group'),
             Div(id='no-assets-warning', css_class='alert alert-danger d-none'),  # Warning message placeholder
-            Field('dependant_task', css_class='form-select'),
             Submit('submit', 'Save Task', css_class='btn btn-success')
         )
+    
+    def clean(self):
+        """
+        Custom validation to ensure the end date is not before the start date.
+        """
+        cleaned_data = super().clean()
+        planned_start_date = cleaned_data.get("planned_start_date")
+        planned_end_date = cleaned_data.get("planned_end_date")
+        due_date = cleaned_data.get("due_date")
+
+        # Check if both dates are provided and end date is not before start date
+        if planned_start_date and planned_end_date and planned_end_date < planned_start_date:
+            self.add_error('planned_end_date', 'End date cannot be earlier than the start date.')
+
+        if planned_start_date and due_date and due_date < planned_start_date:
+            self.add_error('due_date', 'Due date cannot be earlier than the start date.')
+
+        return cleaned_data
 
 class EditTaskForm(forms.ModelForm):
     class Meta:
@@ -241,13 +257,14 @@ class EditTaskForm(forms.ModelForm):
             'priority': forms.Select(attrs={'class': 'form-select'}),
             'planned_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'planned_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'dependant_task': forms.Select(attrs={'class': 'form-select'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'actual_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'actual_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'estimated_time_to_complete': forms.NumberInput(attrs={'class': 'form-control'}),
             'skills_required': forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-group'}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
-            'dependant_task': forms.Select(attrs={'class': 'form-select'}),
+            
             'delay_reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'halo_ref': forms.NumberInput(attrs={'class': 'form-control'}),
         }
@@ -276,10 +293,12 @@ class EditTaskForm(forms.ModelForm):
         self.helper.layout = Layout(
             'task_name',
             'task_details',
+            Field('dependant_task', css_class='form-select'),  # Move dependant_task field to the top of the form layout
             Row(
                 Column('planned_start_date', css_class='form-group col-md-6 mb-0'),
                 Column('planned_end_date', css_class='form-group col-md-6 mb-0'),
             ),
+            Div(id='date-warning', css_class='alert alert-danger d-none'),  # Date message placeholder
             Row(
                 Column('due_date', css_class='form-group col-md-6 mb-0'),
                 Column('halo_ref', css_class='form-group col-md-6 mb-0'),
@@ -295,7 +314,6 @@ class EditTaskForm(forms.ModelForm):
             'estimated_time_to_complete',
             'skills_required',
             Div(id='no-assets-warning', css_class='alert alert-danger d-none'),  # Warning message placeholder
-            'dependant_task',
             'delay_reason',
             Submit('submit', 'Save Changes', css_class='btn btn-danger')
         )
@@ -307,18 +325,21 @@ class EditTaskForm(forms.ModelForm):
         cleaned_data = super().clean()
         planned_start_date = cleaned_data.get("planned_start_date")
         planned_end_date = cleaned_data.get("planned_end_date")
+        due_date = cleaned_data.get("due_date")
+        actual_start_date = cleaned_data.get("actual_start_date")
+        actual_end_date = cleaned_data.get("actual_end_date")
 
         # Check if both dates are provided and end date is not before start date
         if planned_start_date and planned_end_date and planned_end_date < planned_start_date:
             self.add_error('planned_end_date', 'End date cannot be earlier than the start date.')
 
-        actual_start_date = cleaned_data.get("actual_start_date")
-        actual_end_date = cleaned_data.get("actual_end_date")
+        if planned_start_date and due_date and due_date < planned_start_date:
+            self.add_error('due_date', 'Due date cannot be earlier than the start date.')
+
         if actual_start_date and actual_end_date and actual_end_date < actual_start_date:
             self.add_error('actual_end_date', 'End date cannot be earlier than the start date.')
 
         return cleaned_data
-
 
 class TaskCompleteForm(forms.ModelForm):
     class Meta:

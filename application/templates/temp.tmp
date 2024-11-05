@@ -1,0 +1,87 @@
+{% block extraJS %}
+<script>
+    $(document).ready(function () {
+        let dependentTaskEndDate = null; // Variable to store dependent task's end date
+
+        // Function to handle the dependent task change and update planned start date
+        function updateDatesFromDependentTask(taskId) {
+            if (taskId) {
+                $.ajax({
+                    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+                    url: "{% url 'get_dependent_task_dates' %}",
+                    data: { 'task_id': taskId },
+                    success: function (data) {
+                        if (data.end_date) {
+                            // Set planned start date to the dependent task's end date
+                            $('#id_planned_start_date').val(data.end_date);
+                            updateDateFields(data.end_date);
+
+                            // Store the dependent task end date for further validation
+                            dependentTaskEndDate = new Date(data.end_date);
+
+                            // Hide the date warning since we're using a valid dependent task date
+                            $('#date-warning').addClass('d-none');
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred while fetching task details. Please try again.');
+                    }
+                });
+            }
+        }
+
+        // Listen for changes in the dependent task dropdown
+        $('#id_dependant_task').on('change', function () {
+            const dependentTaskId = $(this).val();
+            updateDatesFromDependentTask(dependentTaskId);
+        });
+
+        // Function to update the min attributes of planned end date and due date fields
+        function updateDateFields(plannedStartDate) {
+            if (plannedStartDate) {
+                // Ensure the planned end date and due date cannot be before the start date
+                $('#id_planned_end_date').attr('min', plannedStartDate);
+                $('#id_due_date').attr('min', plannedStartDate);
+            }
+            validateDates();
+        }
+
+        // Function to validate dates and provide warnings if necessary
+        function validateDates() {
+            const plannedStartDate = $('#id_planned_start_date').val() ? new Date($('#id_planned_start_date').val()) : null;
+            const plannedEndDate = $('#id_planned_end_date').val() ? new Date($('#id_planned_end_date').val()) : null;
+            const warningDiv = $('#date-warning');
+            let warningMessage = '';
+
+            // Check if the planned start date is earlier than the dependent task's end date
+            if (dependentTaskEndDate && plannedStartDate && plannedStartDate < dependentTaskEndDate) {
+                warningMessage += 'The planned start date is earlier than the dependent task\'s end date. Please adjust.<br>';
+            }
+
+            // Validate if planned end date is before planned start date
+            if (plannedStartDate && plannedEndDate && plannedEndDate < plannedStartDate) {
+                warningMessage += 'The planned end date cannot be before the planned start date. Please adjust.<br>';
+            }
+
+            // Show or hide warning based on validation results
+            if (warningMessage) {
+                warningDiv.removeClass('d-none');
+                warningDiv.html(warningMessage);
+            } else {
+                warningDiv.addClass('d-none');
+            }
+        }
+
+        // Update min date attributes when planned start date changes
+        $('#id_planned_start_date').on('change', function () {
+            var plannedStartDate = $(this).val();
+            updateDateFields(plannedStartDate);
+        });
+
+        // Update validation when planned end date changes
+        $('#id_planned_end_date').on('change', function () {
+            validateDates();
+        });
+    });
+</script>
+{% endblock %}

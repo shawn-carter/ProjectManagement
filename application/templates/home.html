@@ -3,13 +3,13 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-1">
     <div class="jumbotron">
         <h1 class="display-4">Welcome to Resource Manager</h1>
         <div class="row mt-4">
             <!-- Project Summary Cards -->
             <div class="col">
-                <div class="card bg-primary mb-2">
+                <div class="card bg-primary text-white mb-2">
                     <div class="card-header">All Projects</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ projects_total }}</h5>
@@ -18,7 +18,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-warning mb-2">
+                <div class="card bg-info text-white mb-2">
                     <div class="card-header">Open Projects</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ projects_open }}</h5>
@@ -27,7 +27,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-success mb-2">
+                <div class="card bg-dark text-white mb-2">
                     <div class="card-header">Closed Projects</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ projects_closed }}</h5>
@@ -36,7 +36,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-primary-subtle mb-3">
+                <div class="card bg-primary text-white mb-3">
                     <div class="card-header">All Tasks</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_total }}</h5>
@@ -45,7 +45,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-danger-subtle mb-3">
+                <div class="card bg-danger text-white mb-3">
                     <div class="card-header">Unassigned Tasks</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_unassigned }}</h5>
@@ -54,7 +54,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-info-subtle mb-3">
+                <div class="card bg-warning text-white mb-3">
                     <div class="card-header">Open Tasks</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_open }}</h5>
@@ -63,7 +63,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-success-subtle mb-3">
+                <div class="card bg-success text-white mb-3">
                     <div class="card-header">Completed Tasks</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ tasks_completed }}</h5>
@@ -72,7 +72,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-warning-subtle mb-3">
+                <div class="card bg-info text-white mb-3">
                     <div class="card-header">Assets</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ assets_total }}</h5>
@@ -81,7 +81,7 @@
                 </div>
             </div>
             <div class="col">
-                <div class="card bg-primary-subtle mb-3">
+                <div class="card bg-primary text-white mb-3">
                     <div class="card-header">Skills</div>
                     <div class="card-body">
                         <p class="card-text">{{ skills_total }}</p> 
@@ -99,39 +99,45 @@
                 <canvas id="tasksChart"></canvas>
             </div>
         </div>
+
         <div class="row mt-4">
+
             <!-- Legend for Projects Status Chart -->
             <div class="col-md-6 text-center mt-2">
                 <div id="projectsLegend" class="row chart-legend">
                     <div class='col'>
-                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(39, 128, 227, 1); margin-right: 5px;"></span>
-                    Open Projects
+                        <span style="display:inline-block; width: 15px; height: 15px; background-color: #9954bb; margin-right: 5px;"></span>
+                        Open Projects
                     </div>
                     <div class='col'>
-                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(255, 193, 7, 1); margin-left: 15px; margin-right: 5px;"></span>
-                    On Hold Projects
+                        <span style="display:inline-block; width: 15px; height: 15px; background-color: #f0ad4e; margin-left: 15px; margin-right: 5px;"></span>
+                        On Hold Projects
                     </div>
                     <div class='col'>
-                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(55, 58, 60, 1); margin-left: 15px; margin-right: 5px;"></span> Closed Projects
+                        <span style="display:inline-block; width: 15px; height: 15px; background-color: #373a3c; margin-left: 15px; margin-right: 5px;"></span>
+                        Closed Projects
                     </div>
                 </div>
             </div>
-        
+
             <!-- Legend for Tasks Chart -->
             <div class="col-md-6 text-center mt-2">
                 <div id="tasksLegend" class="row chart-legend">
                     <div class='col'>
-                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(63, 182, 24, 1); margin-left: 15px; margin-right: 5px;"></span> Assigned Tasks
+                        <span style="display:inline-block; width: 15px; height: 15px; background-color: #ff7518; margin-left: 15px; margin-right: 5px;"></span>
+                        Assigned Tasks
                     </div>
                     <div class='col'>
-                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(255, 0, 57, 1); margin-right: 5px;"></span>
-                    Unassigned Tasks
+                        <span style="display:inline-block; width: 15px; height: 15px; background-color: #ff0039; margin-right: 5px;"></span>
+                        Unassigned Tasks
                     </div>
                     <div class='col'>
-                    <span style="display:inline-block; width: 15px; height: 15px; background-color: rgba(39, 128, 227, 1); margin-left: 15px; margin-right: 5px;"></span> Completed Tasks
+                        <span style="display:inline-block; width: 15px; height: 15px; background-color: #3fb618; margin-left: 15px; margin-right: 5px;"></span>
+                        Completed Tasks
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
@@ -156,9 +162,9 @@
                         {{ projects_closed }}
                     ],
                     backgroundColor: [
-                        'rgba(39, 128, 227, 1)',  // Blue for Open Projects
-                        'rgba(255, 193, 7, 1)',   // Yellow for On Hold Projects
-                        'rgba(55, 58, 60, 1)'     // Grey for Closed Projects
+                        '#9954bb',  // Info (Bootstrap Plum) for Open Projects
+                        '#f0ad4e',  // Orange for On Hold Projects
+                        '#373a3c'   // Dark grey for Closed Projects
                     ],
                     borderWidth: 1
                 }]
@@ -178,7 +184,7 @@
                             // Open Projects
                             window.location.href = "{% url 'open_project_list' %}";
                         } else if (index === 1) {
-                            // On Hold Projects (we don't have a view for this at the moment!) so we'll show Open Projects
+                            // On Hold Projects
                             window.location.href = "{% url 'open_project_list' %}";
                         } else if (index === 2) {
                             // Closed Projects
@@ -191,17 +197,18 @@
 
         // Doughnut Chart for Tasks (Unassigned, Assigned, Completed)
         var ctxTasks = document.getElementById('tasksChart').getContext('2d');
+        // Doughnut Chart for Tasks (Unassigned, Assigned, Completed)
         var tasksChart = new Chart(ctxTasks, {
             type: 'doughnut',
             data: {
                 labels: ['Assigned Tasks', 'Unassigned Tasks', 'Completed Tasks'],
                 datasets: [{
                     label: '# of Tasks',
-                    data: [{{ tasks_open }} - {{ tasks_unassigned }}, {{ tasks_unassigned }},  {{ tasks_completed }}],
+                    data: [{{ tasks_open }} - {{ tasks_unassigned }}, {{ tasks_unassigned }}, {{ tasks_completed }}],
                     backgroundColor: [
-                        'rgba(63, 182, 24, 1)',   // Green for Assigned Tasks
-                        'rgba(255, 0, 57, 1)',    // Red for Unassigned Tasks
-                        'rgba(39, 128, 227, 1)'   // Blue for Completed Tasks
+                        '#ff7518',  // Warning (Bootstrap warning) for Assigned Tasks
+                        '#ff0039',  // Danger (Bootstrap danger) for Unassigned Tasks
+                        '#3fb618'   // Success (Bootstrap success) for Completed Tasks
                     ],
                     borderWidth: 1
                 }]

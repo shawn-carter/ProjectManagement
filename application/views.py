@@ -1564,3 +1564,23 @@ def filter_assets_by_skills(request):
         return JsonResponse({'assets': assets_list})
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+def get_dependent_task_dates(request):
+    task_id = request.GET.get('task_id')
+    if task_id:
+        task = get_object_or_404(Task, id=task_id)
+        
+        if task.task_status == 3:  # Assuming there's a status field with a value of 'Completed'
+            response_data = {
+                'start_date': task.actual_start_date.strftime('%Y-%m-%d') if task.actual_start_date else None,
+                'end_date': task.actual_end_date.strftime('%Y-%m-%d') if task.actual_end_date else None,
+            }
+        else:
+            response_data = {
+                'start_date': task.planned_start_date.strftime('%Y-%m-%d') if task.planned_start_date else None,
+                'end_date': task.planned_end_date.strftime('%Y-%m-%d') if task.planned_end_date else None,
+            }
+        
+        return JsonResponse(response_data)
+    
+    return JsonResponse({'error': 'Task not found'}, status=404)
