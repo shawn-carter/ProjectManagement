@@ -11,12 +11,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render,get_object_or_404, redirect
 from django.views.generic import ListView, DetailView,CreateView, UpdateView, View, TemplateView
 from django.urls import reverse_lazy,reverse
+from django.utils.html import escape
 
 from django.shortcuts import redirect
 
 from .models import Project, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment, Asset, Skill
 from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm, AttachmentForm
 
+import json
 import os
 import extract_msg  # Library for handling .msg files
 import docx2txt  # Library for handling .docx files
@@ -179,13 +181,15 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         all_tasks = project.task_set.all()
         completed_tasks_count = all_tasks.filter(task_status=3).count()  # Assuming status ID 3 means 'Completed'
         total_tasks_count = all_tasks.count()
-        all_tasks_completed = completed_tasks_count == total_tasks_count if total_tasks_count > 0 else False
+
+        # Adjust logic to consider projects without tasks as "all tasks completed"
+        all_tasks_completed = total_tasks_count == 0 or completed_tasks_count == total_tasks_count
 
         # Use the helper function to determine the RAG status
         rag_status = calculate_rag_status(project)
 
         # Calculate percentage of tasks completed
-        percent_completed = round((completed_tasks_count / total_tasks_count) * 100, 2) if total_tasks_count > 0 else 0
+        percent_completed = round((completed_tasks_count / total_tasks_count) * 100, 2) if total_tasks_count > 0 else 100
 
         # Add context values for visualization
         context.update({
@@ -1700,25 +1704,41 @@ class ProjectGanttChartView(LoginRequiredMixin, TemplateView):
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
         tasks = Task.objects.filter(project=project)
 
-        # Prepare task data including dependencies for the Gantt chart
+        # Map priorities to existing CSS classes in jsgantt.css
+        priority_css_classes = {
+            1: 'gtaskblue',   # Low Priority
+            2: 'gtaskgreen',  # Medium Priority
+            3: 'gtaskyellow', # High Priority
+            4: 'gtaskred',    # Critical Priority
+            5: 'gtaskpurple', # Urgent Priority
+        }
+
+        # Prepare task data including dependencies and resources for the Gantt chart
         task_data = []
         for task in tasks:
             start_date = task.actual_start_date or task.planned_start_date
             end_date = task.actual_end_date or task.planned_end_date
 
-            # Add task information to the data structure for the Gantt chart
+            # Get the assigned asset if available
+            assigned_asset_name = task.assigned_to.name if task.assigned_to else ""
+            assigned_asset_id = task.assigned_to.asset_id if task.assigned_to else None
+
             if start_date and end_date:
+                css_class = priority_css_classes.get(task.priority, 'gtaskblue')  # Default to 'gtaskblue' if priority not found
                 task_data.append({
                     'id': task.id,
-                    'name': task.task_name,
+                    'name': escape(task.task_name),
                     'start': str(start_date),
                     'end': str(end_date),
-                    'dependencies': task.dependant_task.id if task.dependant_task else None,
+                    'dependencies': str(task.dependant_task.id) if task.dependant_task else "",
                     'progress': 100 if task.task_status == 3 else 0,
                     'priority': task.priority,
+                    'css_class': css_class,
                     'url': reverse('task_detail', kwargs={'project_id': project.pk, 'task_id': task.pk}),
+                    'resource': assigned_asset_name,  # Add the asset name to the task data
+                    'resource_id': assigned_asset_id,  # Add the asset id to the task data
                 })
 
         context['project'] = project
-        context['task_data'] = task_data  # Pass this data to the JavaScript to render the Gantt chart
+        context['task_data'] = json.dumps(task_data)
         return context

@@ -1,3 +1,4 @@
+from datetime import date
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -301,7 +302,7 @@ class Comment(SafeDeleteModel):  # Using SafeDelete for soft delete functionalit
     def __str__(self):
         return f"Comment by {self.user} on {self.content_object}"
       
-class Attachment(models.Model):
+class Attachment(models.Model): # Change to SafeDeleteModel when finished testing - I want to be able to permanently delete attachments until I sort storage solution.
     _safedelete_policy = SOFT_DELETE
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='attachments')
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)

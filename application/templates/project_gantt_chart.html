@@ -3,17 +3,83 @@
 
 {% block content %}
 <h1>Gantt Chart for {{ project.project_name }}</h1>
-<a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project Details</a>
+<a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
+<a href="{% url 'task_create' project_id=project.id %}" class="btn btn-danger mb-3 ml-2">Add New Task</a>
+<a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-primary mb-3">Back to Tasks</a>
+<a href="{% url 'project_task_calendar' project_id=project.id %}" class="btn btn-success mb-3">Project Task Calendar</a>
 
-<div id="gantt-chart-container">
-    <!-- Placeholder for Gantt chart -->
-</div>
+<div class="gantt" id="GanttChartDIV"></div>
+
+{% endblock %}
+
+{% block extraCSS %}
+<link href="{% static 'css/jsgantt.css' %}" rel="stylesheet" type="text/css">
 {% endblock %}
 
 {% block extraJS %}
 <script src="{% static 'js/jsgantt.js' %}" type="text/javascript"></script>
 <script>
-    // Placeholder: Later integrate Gantt chart library here to display tasks using {{ task_data|safe }}
-    console.log("Task Data for Gantt", {{ task_data|safe }});
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("Custom JS Loaded!");
+        
+        // Instantiate the Gantt chart object
+        var g = new JSGantt.GanttChart(document.getElementById('GanttChartDIV'), 'day');
+    
+        // Set options for the Gantt chart
+        g.setOptions({
+            vCaptionType: 'Complete',  // Options: None, Caption, Resource, Duration, Complete
+            vLang: 'en',
+            vFormatArr: ['Day', 'Week', 'Month', 'Quarter'],
+        });
+
+        // Layout Adjustments
+        g.setDayColWidth(36);    // Increase column width for better visibility
+        g.setWeekColWidth(72);   // Increase week column width
+        g.setMonthColWidth(72);  // Increase month column width
+        g.setQuarterColWidth(54); // Increase quarter column width
+        g.setRowHeight(30);      // Increase row height for better readability
+        g.setTotalHeight('2300px'); // Increase total height of the Gantt chart
+
+        // Task Data from Django Context
+        var taskData = {{ task_data|safe }};
+        console.log("Task Data Parsed: ", taskData);
+    
+        // Add each task to the Gantt chart
+        taskData.forEach(task => {
+            // Creating the resource HTML, linking to asset details if available
+            let resourceHtml = task.resource 
+                ? `<a href="/assets/${task.resource_id}/">${task.resource}</a>` 
+                : "";
+
+            g.AddTaskItemObject({
+                pID: task.id,
+                pName: `<a href="${task.url}">${task.name}</a>`, // Make the task name clickable
+                pStart: task.start,
+                pEnd: task.end,
+                pClass: task.css_class,
+                pLink: task.url,  // Link from the task bar to the task detail page (clickable bar)
+                pMile: 0,
+                pRes: resourceHtml,  // Link to the asset detail page in Resource column
+                pComp: task.progress,
+                pGroup: 0,
+                pParent: 0,
+                pOpen: 1,
+                pDepend: task.dependencies,
+                pCaption: "",
+                pNotes: "",
+            });
+        });
+    
+        // Draw the Gantt chart
+        g.Draw();
+    });
 </script>
 {% endblock %}
+
+
+
+
+
+
+
+

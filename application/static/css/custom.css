@@ -61,3 +61,11 @@ canvas {
    background-color: #2780e3;
    color: #ffff;
 }
+
+.gchartcontainer {
+    font-size: 1.2em; /* Increase font size for readability */
+}
+
+.gtasktablewrapper, .gmain, .gmainleft {
+    max-height: none !important; /* Remove any height constraints */
+}
