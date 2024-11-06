@@ -1,14 +1,15 @@
-from datetime import timedelta
+from datetime import timedelta, date
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q, Count, When, Case, BooleanField
+from django.db.models import Q, Count, When, Case, BooleanField, DateField
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse, FileResponse
 
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render,get_object_or_404, redirect
-from django.views.generic import ListView, DetailView,CreateView, UpdateView, View
+from django.views.generic import ListView, DetailView,CreateView, UpdateView, View, TemplateView
 from django.urls import reverse_lazy,reverse
 
 from django.shortcuts import redirect
@@ -26,6 +27,11 @@ from django.utils.timezone import now
 from django.core.files.storage import FileSystemStorage
 
 from django.conf import settings  # Import settings to access MEDIA_ROOT
+
+from .utils.project_helpers import calculate_rag_status
+
+# Helper Functions
+
 
 # Home page view
 @login_required
@@ -58,7 +64,6 @@ def home(request):
         'skills_total': skills_total,
     }
     return render(request, 'home.html', context)
-
 
 # Project Views
 class ProjectCreateView(PermissionRequiredMixin,CreateView):
@@ -117,15 +122,29 @@ class ProjectListView(LoginRequiredMixin, ListView):
         # Determine the type of projects based on the URL route name
         route_name = self.request.resolver_match.url_name
 
+        # Use annotate to create computed fields for sorting and displaying, rename them to avoid conflicts
+        projects = Project.objects.annotate(
+            annotated_start_date=Coalesce('actual_start_date', 'planned_start_date', output_field=DateField()),
+            annotated_end_date=Coalesce('actual_end_date', 'revised_target_end_date', 'original_target_end_date', output_field=DateField())
+        )
+
+        # Filtering based on route
         if route_name == 'open_project_list':
-            # Filter for open projects (exclude closed projects) and order by priority (descending) and project name
-            projects = Project.objects.filter(deleted=None).exclude(project_status=7).order_by('-priority', '-planned_start_date')
+            # Filter for open projects (exclude closed projects)
+            projects = projects.filter(deleted=None).exclude(project_status=7).order_by('-priority', '-annotated_start_date')
         elif route_name == 'closed_project_list':
-            # Filter for closed projects and order by priority (descending) and project name
-            projects = Project.objects.filter(project_status=7, deleted=None).order_by('-priority', '-planned_start_date')
+            # Filter for closed projects
+            projects = projects.filter(project_status=7, deleted=None).order_by('-priority', '-annotated_start_date')
         else:
-            # Default to all projects and order by priority (descending) and project name
-            projects = Project.objects.filter(deleted=None).order_by('-priority', '-planned_start_date')
+            # Default to all projects
+            projects = projects.filter(deleted=None).order_by('-priority', '-annotated_start_date')
+
+        # Adding additional attributes like RAG status, completed and incomplete tasks
+        for project in projects:
+            project.total_tasks = project.task_set.count()
+            project.completed_tasks = project.task_set.filter(task_status=3).count()
+            project.incomplete_tasks = project.total_tasks - project.completed_tasks
+            project.rag_status = calculate_rag_status(project)
 
         return projects
 
@@ -157,24 +176,28 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         project = self.object  # Get the project instance
 
         # Check if all tasks for this project are completed
-        # Use the corresponding status ID for 'Completed', which is assumed to be 3
-        all_tasks_completed = project.task_set.filter(~Q(task_status=3)).count() == 0
+        all_tasks = project.task_set.all()
+        completed_tasks_count = all_tasks.filter(task_status=3).count()  # Assuming status ID 3 means 'Completed'
+        total_tasks_count = all_tasks.count()
+        all_tasks_completed = completed_tasks_count == total_tasks_count if total_tasks_count > 0 else False
 
-        # Determine start date (Actual Start Date preferred, otherwise Planned Start Date)
-        display_start_date = project.actual_start_date or project.planned_start_date
+        # Use the helper function to determine the RAG status
+        rag_status = calculate_rag_status(project)
 
-        # Determine end date (Actual End Date preferred, otherwise Revised or Original Target End Date)
-        display_end_date = (
-            project.actual_end_date or 
-            project.revised_target_end_date or 
-            project.original_target_end_date
-        )
+        # Calculate percentage of tasks completed
+        percent_completed = round((completed_tasks_count / total_tasks_count) * 100, 2) if total_tasks_count > 0 else 0
 
-        # Pass values to the template
-        context['all_tasks_completed'] = all_tasks_completed
-        context['comments'] = Comment.objects.filter(content_type__model='project', object_id=project.pk)
-        context['display_start_date'] = display_start_date
-        context['display_end_date'] = display_end_date
+        # Add context values for visualization
+        context.update({
+            'all_tasks_completed': all_tasks_completed,
+            'comments': Comment.objects.filter(content_type__model='project', object_id=project.pk),
+            'display_start_date': project.display_start_date,
+            'display_end_date': project.display_end_date,
+            'total_tasks_count': total_tasks_count,
+            'completed_tasks_count': completed_tasks_count,
+            'percent_completed': percent_completed,
+            'rag_status': rag_status,
+        })
 
         return context
 
@@ -304,7 +327,6 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse('project_taskview', kwargs={'project_id': self.kwargs['project_id']})
-
 
 class TaskUpdateView(PermissionRequiredMixin, UpdateView):
     model = Task
@@ -1113,27 +1135,80 @@ def project_events(request):
         # Skip projects that don't have a start or end date
         if start_date and end_date:
             # Determine the background colour
-            background_color = get_color_for_project(project.pk)
+            background_colour = get_cycled_colour(project.pk)
             
+            # Add 'Closed' to closed projects and mute the colour for better visibility
+            if project.project_status == 7:
+                project_name = project.project_name + ' (Closed)'
+                background_colour = mute_colour(background_colour)
+            else:
+                project_name = project.project_name
+
             # Set the text colour based on the background colour
-            text_color = '#000000' if background_color in ['#FFFF00', '#00FFFF', '#FFFFFF','#00FF00'] else '#FFFFFF'
+            text_colour = get_text_colour_based_on_background(background_colour)
             
             events.append({
-                'title': project.project_name,
+                'title': project_name,
                 'start': start_date.strftime('%Y-%m-%d'),
                 'end': (end_date + timedelta(days=1)).strftime('%Y-%m-%d'),  # Add one day to include end date
                 'url': reverse('project_detail', args=[project.pk]),  # Link to project detail page
-                'color': background_color,  # Background colour for the event
-                'textColor': text_color,  # Text colour based on the background
+                'color': background_colour,  # Background colour for the event
+                'textColor': text_colour,  # Text colour based on the background
                 'allDay': True,
             })
     return JsonResponse(events, safe=False)
 
-def get_color_for_project(project_id):
+def get_cycled_colour(id):
     """Generate a color based on the project ID."""
-    # Predefined list of colors to cycle through
-    colors = ['#0000FF', '#00FF00', '#FF0000', '#00FFFF', '#FF00FF', '#FFFF00']
-    return colors[project_id % len(colors)]  # Cycle through the list based on the project ID
+    # Predefined list of colors to cycle through using site colours
+    colours = ['#2780e3', '#3fb618', '#9954bb', '#ff7518','#ff0039']
+    return colours[id % len(colours)]  # Cycle through the list based on the id
+
+def mute_colour(hex_colour, factor=0.5):
+    """Lightens the given hex color by blending it with white to make it more subtle.
+    
+    The factor determines how much of the white to blend in.
+    Default factor of 0.5 makes the color half as intense.
+    """
+    # Remove '#' if it exists
+    hex_colour = hex_colour.lstrip('#')
+
+    # Convert hex to RGB
+    r = int(hex_colour[0:2], 16)
+    g = int(hex_colour[2:4], 16)
+    b = int(hex_colour[4:6], 16)
+
+    # Blend with white, which is represented as (255, 255, 255)
+    r = int(r + (255 - r) * factor)
+    g = int(g + (255 - g) * factor)
+    b = int(b + (255 - b) * factor)
+
+    # Ensure values stay within RGB limits (0-255)
+    r = max(0, min(255, r))
+    g = max(0, min(255, g))
+    b = max(0, min(255, b))
+
+    # Convert back to hex
+    muted_hex = f'#{r:02x}{g:02x}{b:02x}'
+
+    return muted_hex
+
+def get_text_colour_based_on_background(hex_colour):
+    """Returns the ideal text color (black or white) based on the brightness of the given hex color."""
+    # Remove the hash if it exists
+    hex_colour = hex_colour.lstrip('#')
+
+    # Convert hex to RGB
+    r = int(hex_colour[0:2], 16)
+    g = int(hex_colour[2:4], 16)
+    b = int(hex_colour[4:6], 16)
+
+    # Calculate the luminance using a weighted average
+    # These weights are based on the human eye's sensitivity to each colour channel
+    luminance = (0.299 * r + 0.587 * g + 0.114 * b)
+
+    # If the luminance is high, use black text; otherwise, use white text
+    return '#000000' if luminance > 146 else '#FFFFFF' # This was originally 186 - changed to 146 as it seemed better to me
 
 def extract_pdf_text(file_path):
     try:
@@ -1172,20 +1247,11 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
         # Prepare task data for FullCalendar
         task_events = []
         colors = {
-            1: '#0000FF',  # Low (Blue)
-            2: '#008000',  # Medium (Green)
-            3: '#FFFF00',  # High (Yellow)
-            4: '#FFA500',  # Critical (Orange)
-            5: '#FF0000',  # Urgent (Red)
-        }
-
-        # Define corresponding text colors for each background color
-        text_colors = {
-            1: '#FFFFFF',  # White for Low (Blue)
-            2: '#FFFFFF',  # White for Medium (Green)
-            3: '#000000',  # Black for High (Yellow)
-            4: '#000000',  # Black for Critical (Orange)
-            5: '#FFFFFF',  # White for Urgent (Red)
+            1: '#373a3c',  # Low (Grey)
+            2: '#3fb618',  # Medium (Green)
+            3: '#ff7518',  # High (Yellow)
+            4: '#f0ad4e',  # Critical (Orange)
+            5: '#ff0039',  # Urgent (Red)
         }
 
         for task in tasks:
@@ -1195,22 +1261,23 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
 
             # Set color and title for completed tasks
             if task.task_status == 3:  # Assuming status ID 3 means 'Completed'
-                background_color = '#808080'  # Grey
-                text_color = '#FFFFFF'  # White text for completed tasks
+                background_colour = '#808080'  # Grey
                 task_title = f'{task.task_name} (Completed)'  # Add '(Completed)' to the task name
             else:
                 # Use the priority color or fallback to grey
-                background_color = colors.get(task.priority, '#808080')
-                text_color = text_colors.get(task.priority, '#000000')  # Default text color to black if not defined
+                background_colour = colors.get(task.priority)
                 task_title = task.task_name
+
+            # Get ideal text color based on the background color
+            text_color = get_text_colour_based_on_background(background_colour)
 
             if start_date and end_date:
                 task_events.append({
                     'title': task_title,
                     'start': str(start_date),
                     'end': str(end_date + timedelta(days=1)),  # FullCalendar uses exclusive end dates
-                    'backgroundColor': background_color,
-                    'borderColor': background_color,
+                    'backgroundColor': background_colour,
+                    'borderColor': background_colour,
                     'textColor': text_color,
                     'url': reverse('task_detail', kwargs={'project_id': project.pk, 'task_id': task.pk}),
                 })
@@ -1221,9 +1288,9 @@ class ProjectTaskCalendarView(LoginRequiredMixin, DetailView):
                     'title': f'{task.task_name} (Due)',
                     'start': str(task.due_date),
                     'end': str(task.due_date),
-                    'backgroundColor': '#FF6347',  # Tomato color for due date
+                    'backgroundColor': '#000000',  # Tomato color for due date
                     'borderColor': '#FF6347',
-                    'textColor': '#000000',  # Black text for due dates
+                    'textColor': '#FFFFFF',  # Black text for due dates
                     'url': reverse('task_detail', kwargs={'project_id': project.pk, 'task_id': task.pk}),
                 })
 
@@ -1624,3 +1691,34 @@ def get_dependent_task_dates(request):
         return JsonResponse(response_data)
     
     return JsonResponse({'error': 'Task not found'}, status=404)
+
+class ProjectGanttChartView(LoginRequiredMixin, TemplateView):
+    template_name = 'project_gantt_chart.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project = get_object_or_404(Project, id=self.kwargs['project_id'])
+        tasks = Task.objects.filter(project=project)
+
+        # Prepare task data including dependencies for the Gantt chart
+        task_data = []
+        for task in tasks:
+            start_date = task.actual_start_date or task.planned_start_date
+            end_date = task.actual_end_date or task.planned_end_date
+
+            # Add task information to the data structure for the Gantt chart
+            if start_date and end_date:
+                task_data.append({
+                    'id': task.id,
+                    'name': task.task_name,
+                    'start': str(start_date),
+                    'end': str(end_date),
+                    'dependencies': task.dependant_task.id if task.dependant_task else None,
+                    'progress': 100 if task.task_status == 3 else 0,
+                    'priority': task.priority,
+                    'url': reverse('task_detail', kwargs={'project_id': project.pk, 'task_id': task.pk}),
+                })
+
+        context['project'] = project
+        context['task_data'] = task_data  # Pass this data to the JavaScript to render the Gantt chart
+        return context

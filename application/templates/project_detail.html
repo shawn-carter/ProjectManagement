@@ -6,6 +6,7 @@
             ({{ display_start_date|date:"d/m/Y" }} - {{ display_end_date|date:"d/m/Y" }})
         {% endif %}
     </h1>
+
     <a href="{% url 'all_projects' %}" class="btn btn-outline-secondary mb-3">All Projects</a>
 
     <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-primary mb-3">Tasks</a>
@@ -15,33 +16,60 @@
     <a href="{% url 'dependency_list' project_id=project.id %}" class="btn btn-dark mb-3">Dependencies</a>
     <a href="{% url 'stakeholder_list' project_id=project.id %}" class="btn btn-info mb-3">Stakeholders</a>
     <a href="{% url 'project_task_calendar' project_id=project.id %}" class="btn btn-success mb-3">Project Task Calendar</a>
-    <a href="{% url 'attachment_list' project_id=project.id %}" class="btn btn-primary mb-3">Attachments</a>
+    <a href="{% url 'project_gantt_chart' project_id=project.id %}" class="btn btn-primary mb-3">View Gantt Chart</a> 
+    <a href="{% url 'attachment_list' project_id=project.id %}" class="btn btn-secondary mb-3">Attachments</a>
 
     <h3>Project Overview</h3>
+    <p><strong>RAG Status: </strong></p>
+    {% if rag_status == 'G' %}
+        <span class="badge badge-pill bg-success text-uppercase py-2 px-3" style="font-size: 1.1rem;">On Track</span>
+    {% elif rag_status == 'A' %}
+        <span class="badge badge-pill bg-warning text-dark text-uppercase py-2 px-3" style="font-size: 1.1rem;">At Risk</span>
+    {% elif rag_status == 'R' %}
+        <span class="badge badge-pill bg-danger text-uppercase py-2 px-3" style="font-size: 1.1rem;">Behind Schedule</span>
+    {% endif %}
+
     <p><strong>Planned Start Date:</strong> {{ project.planned_start_date|date:"d/m/Y" }}</p>
     <p><strong>Original Target End Date:</strong> {{ project.original_target_end_date|date:"d/m/Y" }}</p>
     <p><strong>Project Description:</strong> {{ project.project_description }}</p>
     <p><strong>Revised Target End Date:</strong> {{ project.revised_target_end_date|date:"d/m/Y" }}</p>
     <p><strong>Actual Start Date:</strong> {{ project.actual_start_date|date:"d/m/Y" }}</p>
-    <p><strong>Actual End Date:</strong> {{ project.actual_end_date }}</p>
+    <p><strong>Actual End Date:</strong> {{ project.actual_end_date|date:"d/m/Y" }}</p>
     <p><strong>Project Owner:</strong> 
         <a href="{% url 'asset_detail' pk=project.project_owner.pk %}">
             {{ project.project_owner }}
         </a>
     </p>
     <p><strong>Project Status:</strong> {{ project.get_project_status_display }}</p>
+
+    <!-- Enlarged Progress Bar for Task Completion -->
+    <div class="progress mb-4" style="height: 30px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated 
+            {% if rag_status == 'G' %}bg-success
+            {% elif rag_status == 'A' %}bg-warning text-dark
+            {% elif rag_status == 'R' %}bg-danger
+            {% endif %}" 
+            role="progressbar" 
+            style="width: {{ percent_completed }}%; font-size: 1rem;" 
+            aria-valuenow="{{ percent_completed }}" 
+            aria-valuemin="0" 
+            aria-valuemax="100">
+            {{ percent_completed }}%
+        </div>
+    </div>
+
     <p><strong>Category:</strong> {{ project.category }}</p>
     <p><strong>Priority:</strong> {{ project.get_priority_display }}</p>
     <p><strong>Halo Reference:</strong>
         <a href="https://redcarcouncil.haloservicedesk.com/tickets?id={{ project.halo_ref }}" target="_blank">
             {{ project.halo_ref }}
-        </a></p>
+        </a>
+    </p>
     <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('project', {{ project.pk }}, 'Project Details')">Add Comment</button>
+
     <!-- Display buttons only if the project is not closed -->
     {% if project.project_status != 7 %}
-        
         <a href="{% url 'project_edit' project_id=project.id %}" class="btn btn-warning mb-3">Edit Project</a>
-        
         {% if all_tasks_completed %}
             <a href="{% url 'project_close' project_id=project.id %}" class="btn btn-danger mb-3">Close Project</a>
         {% endif %}
@@ -60,5 +88,4 @@
             <li class="list-group-item">No comments available.</li>
         {% endif %}
     </ul>
-
 {% endblock %}

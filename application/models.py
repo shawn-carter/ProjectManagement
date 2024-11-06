@@ -56,6 +56,26 @@ class Project(SafeDeleteModel):
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')], null=True)
     halo_ref = models.IntegerField(null=True)
     history = HistoricalRecords()
+
+    @property
+    def display_start_date(self):
+        """ Preferred start date for display purposes """
+        # Return the actual start date if it exists, otherwise planned start date
+        return self.actual_start_date or self.planned_start_date
+
+    @property
+    def display_end_date(self):
+        """ Preferred end date for display purposes """
+        # Return the actual end date if it exists, otherwise revised or original target end date
+        return self.actual_end_date or self.revised_target_end_date or self.original_target_end_date
+
+    @property
+    def is_active(self):
+        """ Check if the project is still active """
+        if self.display_end_date and self.display_end_date < date.today():
+            return False
+        return True
+
     def __str__(self):
         return self.project_name
     def get_absolute_url(self):
@@ -91,6 +111,18 @@ class Task(SafeDeleteModel):
     assigned_to = models.ForeignKey('Asset', on_delete=models.SET_NULL, null=True, blank=True)  # Non-mandatory
     halo_ref = models.IntegerField(null=True)
     history = HistoricalRecords()
+   
+    @property
+    def display_start_date(self):
+        """ Preferred start date for display purposes """
+        # Return the actual start date if it exists, otherwise planned start date
+        return self.actual_start_date or self.planned_start_date
+
+    @property
+    def display_end_date(self):
+        """ Preferred end date for display purposes """
+        # Return the actual end date if it exists, otherwise planned end date
+        return self.actual_end_date or self.planned_end_date
 
     def __str__(self):
         return self.task_name

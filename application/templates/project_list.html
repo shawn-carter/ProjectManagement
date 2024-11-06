@@ -6,7 +6,6 @@
 {% endblock %}
 
 {% block content %}
-    
     <h1>{{ title }}</h1>
     <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
     <a href="{% url 'project_create' %}" class="btn btn-danger mb-3">New Project</a>
@@ -16,7 +15,7 @@
     <a href="{% url 'closed_project_list' %}" class="btn btn-secondary mb-3">Closed Projects</a>
 
     {% if projects %}
-    <table id="project-table" class="table table-striped">
+    <table id="project-table" class="table">
         <thead>
             <tr>
                 <th>Project Name</th>
@@ -25,35 +24,40 @@
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th>Project Owner</th>
+                <th>Completed / Incomplete Tasks</th>
+                <th>RAG Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for project in projects %}
-                <tr>
-                    <td><a href="{% url 'project_detail' project_id=project.id %}">{{ project.project_name }}</a></td>
+                <tr class="
+                    {% if project.rag_status == 'G' %}table-success
+                    {% elif project.rag_status == 'A' %}table-warning
+                    {% elif project.rag_status == 'R' %}table-danger
+                    {% endif %}
+                ">
+                    <td>
+                        <a href="{% url 'project_detail' project_id=project.id %}">
+                            {{ project.project_name }}
+                        </a>
+                    </td>
                     <td>{{ project.get_project_status_display }}</td>
                     <td>{{ project.get_priority_display }}</td>
-                    <td>
-                        {% if project.actual_start_date %}
-                            {{ project.actual_start_date|date:"Y-m-d" }}
-                        {% else %}
-                            {{ project.planned_start_date|date:"Y-m-d" }}
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if project.actual_end_date %}
-                            {{ project.actual_end_date|date:"Y-m-d" }}
-                        {% elif project.revised_target_end_date %}
-                            {{ project.revised_target_end_date|date:"Y-m-d" }}
-                        {% else %}
-                            {{ project.original_target_end_date|date:"Y-m-d" }}
-                        {% endif %}
-                    </td>
+                    <td>{{ project.display_start_date|date:"Y-m-d" }}</td>
+                    <td>{{ project.display_end_date|date:"Y-m-d" }}</td>
                     <td>
                         <a href="{% url 'asset_detail' pk=project.project_owner.pk %}">
                             {{ project.project_owner }}
                         </a>
+                    </td>
+                    <td>
+                        {{ project.completed_tasks }} / {{ project.incomplete_tasks }}
+                    </td>
+                    <td>
+                        <span class="badge {% if project.rag_status == 'G' %}bg-success{% elif project.rag_status == 'A' %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ project.rag_status }}
+                        </span>
                     </td>
                     <td>
                         {% if project.project_status != 7 %}

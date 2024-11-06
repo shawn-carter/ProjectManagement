@@ -7,6 +7,26 @@ from django.forms.widgets import SelectDateWidget
 from .models import Project, Asset, Category, Task, Skill, Stakeholder, Risk, Assumption, Issue, Dependency, Attachment
 from .widgets import DurationPickerWidget  # Import the custom widget
 
+# Helper Functions
+
+def has_circular_dependency(task, dependant_task):
+    """
+    Checks if adding the given dependant_task would create a circular dependency.
+    """
+    visited = set()
+    current = dependant_task
+
+    while current is not None:
+        if current == task:
+            return True
+        if current.id in visited:
+            break  # To avoid being stuck in an infinite loop
+        visited.add(current.id)
+        current = current.dependant_task
+
+    return False
+
+
 # Form for New Project Creation
 class ProjectForm(forms.ModelForm):
     class Meta:
@@ -317,10 +337,15 @@ class EditTaskForm(forms.ModelForm):
         )
 
     def clean(self):
-        """
-        Custom validation to ensure the end date is not before the start date.
-        """
         cleaned_data = super().clean()
+        dependant_task = cleaned_data.get('dependant_task')
+
+        # Check for circular dependencies only if a dependant task is set
+        if dependant_task:
+            if has_circular_dependency(self.instance, dependant_task):
+                self.add_error('dependant_task', 'Adding this dependency will create a circular reference.')
+
+        # Other validation logic for date fields as in your current code
         planned_start_date = cleaned_data.get("planned_start_date")
         planned_end_date = cleaned_data.get("planned_end_date")
         due_date = cleaned_data.get("due_date")

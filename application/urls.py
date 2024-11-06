@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
-from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView, AttachmentListView, AttachmentCreateView, AttachmentDownloadView, AttachmentPreviewView, AssetListView, AssetDetailView, SkillListView, SkillDetailView, filter_assets_by_skills
+from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView, AttachmentListView, AttachmentCreateView, AttachmentDownloadView, AttachmentPreviewView, AssetListView, AssetDetailView, SkillListView, SkillDetailView, filter_assets_by_skills, ProjectGanttChartView
 
 urlpatterns = [
     ################################ Unauthorised users URLS ################################
@@ -94,5 +94,7 @@ urlpatterns = [
 
     path('ajax/filter_assets/', filter_assets_by_skills, name='filter_assets_by_skills'),
     path('ajax/get_task_dates/', views.get_dependent_task_dates, name='get_dependent_task_dates'),
+
+    path('projects/<int:project_id>/gantt/', ProjectGanttChartView.as_view(), name='project_gantt_chart'),
 
 ]
