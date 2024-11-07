@@ -6,12 +6,16 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q, Count, When, Case, BooleanField, DateField
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse, FileResponse
+from django.utils.dateparse import parse_date
 
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render,get_object_or_404, redirect
 from django.views.generic import ListView, DetailView,CreateView, UpdateView, View, TemplateView
 from django.urls import reverse_lazy,reverse
+from django.utils import timezone
 from django.utils.html import escape
+
+from calendar import monthrange
 
 from django.shortcuts import redirect
 
@@ -48,8 +52,10 @@ def home(request):
     tasks_total = Task.objects.count()
     tasks_open = Task.objects.exclude(task_status=3).count()  # All tasks except 'Completed'
     tasks_completed = Task.objects.filter(task_status=3).count()  # Status ID 3: 'Completed'
-    tasks_unassigned = Task.objects.filter(task_status=1).count()  # Status ID 1: 'Unassigned'
+    # Only count tasks that are 'Unassigned' and not completed
+    tasks_unassigned = Task.objects.filter(task_status=1).exclude(project__project_status=7).exclude(task_status=3).count()
 
+    # Asset and skill counts
     assets_total = Asset.objects.count()
     skills_total = Skill.objects.count()
 
@@ -382,9 +388,8 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
 
         if filtered_assets:
             assets_queryset = Asset.objects.filter(asset_id__in=filtered_assets)
-            if current_asset:
-                if current_asset.asset_id not in filtered_assets:
-                    assets_queryset = assets_queryset | Asset.objects.filter(asset_id=current_asset.asset_id)
+            if current_asset and current_asset.asset_id not in filtered_assets:
+                assets_queryset = assets_queryset | Asset.objects.filter(asset_id=current_asset.asset_id)
             kwargs['assets_queryset'] = assets_queryset.distinct()
         else:
             if current_asset:
@@ -398,13 +403,19 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
         
-        # Determine the relevant end date to use
+        # Determine the relevant end date to use for the project
         project_end_date = project.actual_end_date or project.revised_target_end_date or project.original_target_end_date
-        
-        # Add project date data to context
+
+        # Add project information to the context
         context['project'] = project
-        context['project_start_date'] = project.planned_start_date
-        context['project_end_date'] = project_end_date
+        context['project_start_date'] = project.display_start_date  # Use display dates to make it more accurate
+        context['project_end_date'] = project.display_end_date
+
+        # Adding dependency information for highlighting conflicts
+        task = self.get_object()
+        dependent_tasks = Task.objects.filter(dependant_task=task)
+        if dependent_tasks.exists():
+            context['dependent_tasks'] = dependent_tasks
 
         return context
 
@@ -1472,59 +1483,144 @@ class AttachmentPreviewView(LoginRequiredMixin, View):
         pass  # Replace with your actual implementation
 
 class AssetListView(LoginRequiredMixin, ListView):
-    """
-    View for displaying a list of all assets.
-    Includes aggregated stats for each asset such as project ownership, tasks assigned, and time spent.
-    """
     model = Asset
     template_name = 'asset_list.html'  # Asset list view template
     context_object_name = 'assets'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        # Adding additional date calculations to context
+        today = timezone.now().date()
+        context['today'] = today
+        context['start_date_last_12_months'] = today - timedelta(days=365)
+        context['start_date_last_6_months'] = today - timedelta(days=182)
+        context['start_date_last_3_months'] = today - timedelta(days=91)
+        context['start_date_last_1_month'] = today - timedelta(days=31)
+        context['start_date_last_7_days'] = today - timedelta(days=7)
+
+        # Fetching URL parameters for start_date and end_date
+        start_date_str = self.kwargs.get('start_date')
+        end_date_str = self.kwargs.get('end_date')
+        start_date = parse_date(start_date_str) if start_date_str else None
+        end_date = parse_date(end_date_str) if end_date_str else None
+
+        is_now_view = not start_date or not end_date
+        context['is_now_view'] = is_now_view
+
+        # Create the list of the last 12 months for the dropdown
+        months = []
+        for i in range(1, 13):
+            month_date = today.replace(day=1) - timedelta(days=30 * i)
+            month_start = month_date.replace(day=1)
+            last_day = monthrange(month_start.year, month_start.month)[1]
+            month_end = month_start.replace(day=last_day)
+            months.append({
+                'start_date': month_start.strftime('%Y-%m-%d'),
+                'end_date': month_end.strftime('%Y-%m-%d'),
+                'label': month_start.strftime('%B %Y'),
+            })
+        context['months'] = months
+
+        # Define the title for the asset list page
+        if is_now_view:
+            title = "Asset List - Now"
+        else:
+            # Friendly titles based on date range
+            if start_date == context['start_date_last_7_days'] and end_date == today:
+                title = f"Asset List - Last 7 Days ({start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')})"
+            elif start_date == context['start_date_last_1_month'] and end_date == today:
+                title = f"Asset List - Last 1 Month ({start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')})"
+            elif start_date == context['start_date_last_3_months'] and end_date == today:
+                title = f"Asset List - Last 3 Months ({start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')})"
+            elif start_date == context['start_date_last_6_months'] and end_date == today:
+                title = f"Asset List - Last 6 Months ({start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')})"
+            elif start_date == context['start_date_last_12_months'] and end_date == today:
+                title = f"Asset List - Last 12 Months ({start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')})"
+            else:
+                # Custom date range selected via dropdown
+                title = f"Asset List - {start_date.strftime('%B %Y') if start_date and start_date.day == 1 else ''} ({start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')})"
+        
+        context['title'] = title
+
+        # Fetching all assets
         assets = Asset.objects.all()
 
-        # Collecting stats for each asset
+        # Collecting stats for each asset based on the view type
         asset_stats = []
         for asset in assets:
-            # Number of projects owned by the asset
-            projects_owned = Project.objects.filter(project_owner=asset).count()
+            if is_now_view:
+                # "Now" view: Show current open projects and open tasks
+                open_projects_owned = Project.objects.filter(
+                    project_owner=asset,
+                    project_status__in=[1, 3, 4, 5, 6]  # Exclude Closed (Status 7)
+                )
+                open_tasks_assigned = Task.objects.filter(
+                    assigned_to=asset,
+                    task_status=2  # Only Assigned tasks
+                ).count()
+                closed_tasks_assigned = Task.objects.filter(
+                    assigned_to=asset,
+                    task_status=3  # Completed tasks
+                ).count()
 
-            # Number of tasks assigned to the asset (including completed)
-            tasks_assigned = Task.objects.filter(assigned_to=asset).count()
+                # Calculate percentage of open tasks assigned to the asset
+                total_open_tasks = Task.objects.filter(task_status=2).count()  # Only Assigned tasks
+                percentage_of_open_tasks = (open_tasks_assigned / total_open_tasks * 100) if total_open_tasks > 0 else 0
 
-            # Completed tasks assigned to the asset
-            completed_tasks = Task.objects.filter(assigned_to=asset, task_status=3)
-            num_completed_tasks = completed_tasks.count()
+                # Calculate percentage of closed tasks assigned to the asset
+                total_closed_tasks = Task.objects.filter(task_status=3).count()
+                percentage_of_closed_tasks = (closed_tasks_assigned / total_closed_tasks * 100) if total_closed_tasks > 0 else 0
 
-            # Aggregating total time spent on completed tasks
-            total_time_spent = sum(
-                [task.actual_time_to_complete for task in completed_tasks if task.actual_time_to_complete],
-                timedelta()
-            )
+                asset_stats.append({
+                    'asset': asset,
+                    'projects_owned': open_projects_owned.count(),
+                    'open_tasks_assigned': open_tasks_assigned,
+                    'percentage_of_open_tasks': percentage_of_open_tasks,
+                    'closed_tasks_assigned': closed_tasks_assigned,
+                    'percentage_of_closed_tasks': percentage_of_closed_tasks,
+                })
 
-            # Calculate average time per completed task
-            avg_time_per_task = (
-                total_time_spent / num_completed_tasks if num_completed_tasks > 0 else timedelta()
-            )
-            avg_time_per_task_hours = avg_time_per_task.total_seconds() / 3600 if num_completed_tasks > 0 else 0
+            else:
+                # Time-based view: Show stats for a specific period
+                completed_tasks = Task.objects.filter(
+                    assigned_to=asset,
+                    task_status=3,  # Completed
+                    actual_end_date__range=(start_date, end_date)
+                )
+                num_completed_tasks = completed_tasks.count()
 
-            # Collect percentage of tasks assigned compared to all tasks
-            total_tasks = Task.objects.count()
-            percentage_of_tasks = (tasks_assigned / total_tasks * 100) if total_tasks > 0 else 0
+                # Aggregating total time spent on completed tasks in the date range
+                total_time_spent = sum(
+                    [task.actual_time_to_complete for task in completed_tasks if task.actual_time_to_complete],
+                    timedelta()
+                )
+                avg_time_per_task = (
+                    total_time_spent / num_completed_tasks if num_completed_tasks > 0 else timedelta()
+                )
+                avg_time_per_task_hours = avg_time_per_task.total_seconds() / 3600 if num_completed_tasks > 0 else 0
 
-            # Adding stats to list
-            asset_stats.append({
-                'asset': asset,
-                'projects_owned': projects_owned,
-                'tasks_assigned': tasks_assigned,
-                'total_time_spent_hours': total_time_spent.total_seconds() / 3600 if total_time_spent else 0,
-                'percentage_of_tasks': percentage_of_tasks,
-                'avg_time_per_task_hours': avg_time_per_task_hours,
-            })
+                # Calculate percentage of tasks completed by asset in the date range
+                total_tasks_in_period = Task.objects.filter(
+                    task_status=3,
+                    actual_end_date__range=(start_date, end_date)
+                ).count()
+                percentage_of_tasks = (num_completed_tasks / total_tasks_in_period * 100) if total_tasks_in_period > 0 else 0
+
+                # Adding stats to list
+                asset_stats.append({
+                    'asset': asset,
+                    'tasks_completed': num_completed_tasks,
+                    'total_time_spent_hours': total_time_spent.total_seconds() / 3600 if total_time_spent else 0,
+                    'avg_time_per_task_hours': avg_time_per_task_hours,
+                    'percentage_of_tasks': percentage_of_tasks,
+                })
 
         # Add asset stats to the context
         context['asset_stats'] = asset_stats
+        context['start_date'] = start_date
+        context['end_date'] = end_date
+
         return context
 
 class AssetDetailView(LoginRequiredMixin, DetailView):

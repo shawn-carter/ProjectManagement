@@ -2,29 +2,61 @@
 {% load static %}
 
 {% block content %}
-    <h1>Asset List</h1>
+    <h1>{{ title }}</h1>
+
     <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
+    <div class="d-flex flex-wrap align-items-center mb-3">
+        <!-- Existing Buttons -->
+        <div class="btn-group me-3">
+            <a href="{% url 'asset_list' %}" class="btn btn-primary">Now</a>
+            <a href="{% url 'asset_list_date_range' start_date=start_date_last_12_months end_date=today %}" class="btn btn-success">Last 12 Months</a>
+            <a href="{% url 'asset_list_date_range' start_date=start_date_last_6_months end_date=today %}" class="btn btn-info">Last 6 Months</a>
+            <a href="{% url 'asset_list_date_range' start_date=start_date_last_3_months end_date=today %}" class="btn btn-warning">Last 3 Months</a>
+            <a href="{% url 'asset_list_date_range' start_date=start_date_last_1_month end_date=today %}" class="btn btn-danger">Last 1 Month</a>
+            <a href="{% url 'asset_list_date_range' start_date=start_date_last_7_days end_date=today %}" class="btn btn-primary">Last 7 Days</a>
+        </div>
+        <!-- Dropdown for Months -->
+        <form method="get" class="d-flex ms-3">
+            <select name="month_range" id="month-select" class="form-select">
+                <option value="">Select a Month</option>
+                {% for month in months %}
+                    <option value="{{ month.start_date }}_{{ month.end_date }}">{{ month.label }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" id="go-button" class="btn btn-outline-secondary ms-2">Go</button>
+        </form>
+    </div>
 
     <table id="asset-table" class="table table-striped">
         <thead>
             <tr>
                 <th>Asset Name</th>
-                <th>Projects Owned</th>
-                <th>Tasks Assigned</th>
-                <th>Total Time Spent (hours)</th>
-                <th>Average Time per Task (hours)</th>
-                <th>Percentage of Tasks Assigned (%)</th>
+                {% if is_now_view %}
+                    <th>Projects Owned (Open)</th>
+                    <th>Open Tasks Assigned</th>
+                    <th>Percentage of Open Tasks Assigned (%)</th>
+                {% else %}
+                    <th>Tasks Completed</th>
+                    <th>Total Time Spent (hours)</th>
+                    <th>Average Time per Task (hours)</th>
+                    <th>Percentage of Tasks Completed (%)</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
             {% for stat in asset_stats %}
                 <tr>
                     <td><a href="{% url 'asset_detail' pk=stat.asset.pk %}">{{ stat.asset.name }}</a></td>
-                    <td>{{ stat.projects_owned }}</td>
-                    <td>{{ stat.tasks_assigned }}</td>
-                    <td>{{ stat.total_time_spent_hours|floatformat:2 }}</td>
-                    <td>{{ stat.avg_time_per_task_hours|floatformat:2 }}</td>
-                    <td>{{ stat.percentage_of_tasks|floatformat:2 }}</td>
+                    {% if is_now_view %}
+                        <td>{{ stat.projects_owned }}</td>
+                        <td>{{ stat.open_tasks_assigned }}</td>
+                        <td>{{ stat.percentage_of_open_tasks|floatformat:2 }}</td>
+                    {% else %}
+                        <td>{{ stat.tasks_completed }}</td>
+                        <td>{{ stat.total_time_spent_hours|floatformat:2 }}</td>
+                        <td>{{ stat.avg_time_per_task_hours|floatformat:2 }}</td>
+                        <td>{{ stat.percentage_of_tasks|floatformat:2 }}</td>
+                    {% endif %}
                 </tr>
             {% endfor %}
         </tbody>
@@ -35,6 +67,7 @@
 <script src="{% static 'js/datatables.min.js' %}"></script>
 <script>
     $(document).ready(function() {
+        // Initialize DataTable with custom configurations
         $('#asset-table').DataTable({
             dom: '<"d-flex justify-content-between align-items-center mb-2"' +
                     '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
@@ -43,14 +76,28 @@
                  '>' + 
                  '<"row"<"col-sm-12"tr>>' + 
                  '<"d-flex justify-content-between align-items-center mt-2"' + 
-                    '<"col-sm-1 col-md-1"l>' + 
+                    '<"col-sm-12 col-md-6"l>' + 
                     '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
             buttons: [
-                'copy', 'csv', 'excel' //'print','pdf', we can add these if required
+                'copy', 'csv', 'excel'
             ],
             pagingType: "full_numbers",
+        });
+
+        // Handle month dropdown change and redirect to the appropriate URL
+        $('#go-button').on('click', function() {
+            const selectedValue = $('#month-select').val();
+            if (selectedValue) {
+                const [start_date, end_date] = selectedValue.split('_');
+                const baseUrl = "{% url 'asset_list' %}";  // Should resolve to '/assets/'
+                const newUrl = `${baseUrl}${start_date}/${end_date}/`;
+                window.location.href = newUrl;
+            }
         });
     });
 </script>
 {% endblock %}
+
+
+
 

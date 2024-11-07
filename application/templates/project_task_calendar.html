@@ -5,11 +5,15 @@
 <a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
 <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-success mb-3">Back to Tasks</a>
 <a href="{% url 'project_gantt_chart' project_id=project.id %}" class="btn btn-primary mb-3">View Gantt Chart</a> 
-
-<!-- Calendar Element -->
-<div id="calendar"></div>
-
 {% endblock %}
+
+{% block fullwidth %}
+<div class="container-fluid">
+    <!-- Calendar Element -->
+    <div id="calendar"></div>
+</div>
+{% endblock %}
+
 
 {% block extraJS %}
 {% load static %}
@@ -64,8 +68,8 @@
                 // Only add "Add Task" button if the project is not closed
                 {% if project.project_status != 7 %}
                     // Convert project start and end dates to Date objects for comparison
-                    const projectStartDateString = "{{ project.actual_start_date|default_if_none:project.planned_start_date }}";
-                    const projectEndDateString = "{{ project.actual_end_date|default_if_none:project.revised_target_end_date|default_if_none:project.original_target_end_date }}";
+                    const projectStartDateString = "{{ project.display_start_date }}";
+                    const projectEndDateString = "{{ project.display_end_date }}";
             
                     const projectStartDate = new Date(projectStartDateString);
                     const projectEndDate = new Date(projectEndDateString);

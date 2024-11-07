@@ -49,7 +49,14 @@
                     {% if not project %}
                         <td><a href="{% url 'project_detail' project_id=task.project.id %}">{{ task.project.project_name }}</a></td>
                     {% endif %}
-                    <td><a href="{% url 'task_detail' project_id=task.project.id task_id=task.id %}">{{ task.task_name }}</a></td>
+                    <td>
+                        <a href="{% url 'task_detail' project_id=task.project.id task_id=task.id %}">
+                            {{ task.task_name }}
+                        </a>
+                        {% if not task.assigned_to %}
+                            &nbsp;<span class="badge bg-danger" title="This task currently has no assigned owner!">!</span>
+                        {% endif %}
+                    </td>
                     <td>{{ task.get_task_status_display }}</td>
                     <td>{{ task.get_priority_display }}</td>
                     <td>

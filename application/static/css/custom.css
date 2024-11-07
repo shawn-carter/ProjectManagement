@@ -2,19 +2,17 @@
     color: blue;
 }
 
-
 #div_id_skills_required {
     column-count: 3; /* Number of columns */
     column-gap: 20px; /* Space between columns */
 }
+
 #div_id_skills_required .form-check {
     break-inside: avoid; /* Prevents splitting across columns */
     margin-bottom: 10px;
 }
 
-#calendar-container {
-    height: 100vh;  /* Fill the entire viewport height */
-}
+
 
 .fc-daygrid-day {
     min-height: 100px;  /* You can adjust this to ensure cells look even */
@@ -68,4 +66,15 @@ canvas {
 
 .gtasktablewrapper, .gmain, .gmainleft {
     max-height: none !important; /* Remove any height constraints */
+}
+
+.gmainleft{
+	width: 55%;
+}
+
+#GanttChartDIV {
+    width: 95%;  /* Ensure it takes the full width of the parent */
+    padding: 0;   /* Remove any padding */
+    margin: 0 auto;  /* Center it if needed */
+    zoom: 1.5;
 }

@@ -85,7 +85,8 @@ urlpatterns = [
     path('projects/<int:project_id>/attachments/<int:attachment_id>/preview/', AttachmentPreviewView.as_view(), name='preview_attachment'),
 
     # Asset Views
-    path('assets/', AssetListView.as_view(), name='asset_list'),
+    path('assets/', AssetListView.as_view(), name='asset_list'),  # Default view (Now)
+    path('assets/<str:start_date>/<str:end_date>/', AssetListView.as_view(), name='asset_list_date_range'),  # Date range view
     path('assets/<int:pk>/', AssetDetailView.as_view(), name='asset_detail'),
 
     # Skills Views

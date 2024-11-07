@@ -17,8 +17,8 @@
 <script>
     $(document).ready(function () {
         // Get the project start and end dates from the context variables
-        const projectStartDate = "{{ project_start_date|date:'Y-m-d' }}";
-        const projectEndDate = "{{ project_end_date|date:'Y-m-d' }}";
+        const projectStartDate = "{{ project.display_start_date|date:'Y-m-d' }}";
+        const projectEndDate = "{{ project.display_end_date|date:'Y-m-d' }}";
 
         // Get the URLs for AJAX calls
         const filterAssetsUrl = "{% url 'filter_assets_by_skills' %}";

@@ -3,6 +3,7 @@
 
 {% block extraCSS %}
 <link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/chart.min.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -16,6 +17,25 @@
     </div>
     {% endif %}
 
+    <!-- Collapsible Skills Chart -->
+    <div class="accordion mb-3" id="skillsAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingSkillsChart">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSkillsChart" aria-expanded="false" aria-controls="collapseSkillsChart">
+                    Skills Coverage Overview
+                </button>
+            </h2>
+            <div id="collapseSkillsChart" class="accordion-collapse collapse" aria-labelledby="headingSkillsChart" data-bs-parent="#skillsAccordion">
+                <div class="accordion-body">
+                    <div style="overflow-x: auto; width: 100%; max-width: 1000px;">
+                        <canvas id="skillsChart" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skills Table -->
     <table id="skill-table" class="table table-striped">
         <thead>
             <tr>
@@ -48,8 +68,10 @@
 
 {% block extraJS %}
 <script src="{% static 'js/datatables.min.js' %}"></script>
+<script src="{% static 'js/chart.min.js' %}"></script>
 <script>
     $(document).ready(function() {
+        // Initialize DataTable
         $('#skill-table').DataTable({
             dom: '<"d-flex justify-content-between align-items-center mb-2"' +
                     '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
@@ -62,8 +84,76 @@
                     '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
             pagingType: "full_numbers",
             buttons: [
-                'copy', 'csv', 'excel' //'print','pdf', we can add these if required
+                'copy', 'csv', 'excel'
             ],
+        });
+
+        // Prepare data for Chart.js from skill_assets context
+        let skillData = [];
+        {% for skill_asset in skill_assets %}
+            skillData.push({
+                name: "{{ skill_asset.skill.skill_name }}",
+                count: {{ skill_asset.assets|length }}
+            });
+        {% endfor %}
+
+        // Sort skillData by asset count in ascending order
+        skillData.sort((a, b) => a.count - b.count);
+
+        // Extract sorted skills and asset counts into arrays
+        const skills = skillData.map(skill => skill.name);
+        const assetCounts = skillData.map(skill => skill.count);
+
+        // Initialize Chart.js Horizontal Bar Chart when the accordion is expanded
+        $('#collapseSkillsChart').on('shown.bs.collapse', function () {
+            if ($('#skillsChart').length) {
+                const ctx = document.getElementById('skillsChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: skills,
+                        datasets: [{
+                            label: 'Number of Assets with Skill',
+                            data: assetCounts,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',  // Makes the bar chart horizontal
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Assets'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Skills'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.raw + ' assets';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         });
     });
 </script>

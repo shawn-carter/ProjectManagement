@@ -1,19 +1,25 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Gantt Chart - {{ project.project_name }}{% endblock %}
+
 {% block content %}
 <h1>Gantt Chart for {{ project.project_name }}</h1>
 <a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
 <a href="{% url 'task_create' project_id=project.id %}" class="btn btn-danger mb-3 ml-2">Add New Task</a>
 <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-primary mb-3">Back to Tasks</a>
 <a href="{% url 'project_task_calendar' project_id=project.id %}" class="btn btn-success mb-3">Project Task Calendar</a>
-
-<div class="gantt" id="GanttChartDIV"></div>
-
 {% endblock %}
 
+{% block fullwidth %}
+    <div class="container-fluid">
+        <div class="gantt" id="GanttChartDIV"></div>
+    </div>
+{% endblock %}
+
+
 {% block extraCSS %}
-<link href="{% static 'css/jsgantt.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'css/jsgantt.css' %}" rel="stylesheet" type="text/css">
 {% endblock %}
 
 {% block extraJS %}
@@ -30,6 +36,28 @@
             vCaptionType: 'Complete',  // Options: None, Caption, Resource, Duration, Complete
             vLang: 'en',
             vFormatArr: ['Day', 'Week', 'Month', 'Quarter'],
+            //vAdditionalHeaders: { // Add data columns to your table
+            //    category: {
+            //      title: 'Priority'
+            //    },
+            //  },
+            vEvents: {
+                taskname: console.log,
+                res: console.log,
+                dur: console.log,
+                comp: console.log,
+                start: console.log,
+                end: console.log,
+                planstart: console.log,
+                planend: console.log,
+                cost: console.log,
+                additional_category: console.log, // for additional fields
+                beforeDraw: ()=>console.log('before draw listener'),
+                afterDraw: ()=>console.log('before after listener')
+              },
+              vScrollTo: new Date(),
+              vEventClickRow: console.log,
+              vEventClickCollapse: console.log
         });
 
         // Layout Adjustments
@@ -37,8 +65,8 @@
         g.setWeekColWidth(72);   // Increase week column width
         g.setMonthColWidth(72);  // Increase month column width
         g.setQuarterColWidth(54); // Increase quarter column width
-        g.setRowHeight(30);      // Increase row height for better readability
-        g.setTotalHeight('2300px'); // Increase total height of the Gantt chart
+        g.setRowHeight(40);      // Increase row height for better readability
+        g.setTotalHeight('100%'); // Increase total height of the Gantt chart
 
         // Task Data from Django Context
         var taskData = {{ task_data|safe }};

@@ -4,7 +4,6 @@
 {% block content %}
     <h1>Edit Task: {{ form.instance.task_name }}</h1>
     <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Tasks</a>
-
     <div class="card-body">
         <form method="post" novalidate>
             {% csrf_token %}
@@ -16,10 +15,11 @@
 {% block extraJS %}
 <script>
     $(document).ready(function () {
-        // Get the project start and end dates from the HTML attributes
-        const projectStartDate = "{{ project.planned_start_date|date:'Y-m-d' }}";
-        const projectEndDate = "{{ project.revised_target_end_date|default_if_none:project.original_target_end_date|date:'Y-m-d' }}";
-
+        console.log({{ project.display_start_date|date:'Y-m-d' }}, {{ project.display_end_date|date:'Y-m-d' }});
+        // Use the `display_start_date` and `display_end_date` properties to get the most appropriate dates for the project.
+        const projectStartDate = "{{ project.display_start_date|date:'Y-m-d' }}";
+        const projectEndDate = "{{ project.display_end_date|date:'Y-m-d' }}";
+        console.log(projectStartDate, projectEndDate);
         // Get the URLs for AJAX calls
         const filterAssetsUrl = "{% url 'filter_assets_by_skills' %}";
         const getTaskDatesUrl = "{% url 'get_dependent_task_dates' %}";

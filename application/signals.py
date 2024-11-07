@@ -1,6 +1,8 @@
-from django.db.models.signals import post_migrate
+from django.db.models.signals import post_migrate, post_delete
 from django.dispatch import receiver
-from application.models import Skill, DayOfWeek  # Import models
+from application.models import Skill, DayOfWeek,Asset, Task  # Import models
+
+from safedelete.signals import pre_softdelete
 import logging
 
 # Set up logging to see which functions are executed
@@ -76,3 +78,11 @@ def create_default_data(sender, **kwargs):
             logger.error(f"Error creating day '{day['day_name']}': {e}")
 
     logger.info("Default Days created successfully.")
+
+@receiver(pre_softdelete, sender=Asset)
+def handle_asset_pre_softdelete(sender, instance, using, **kwargs):
+    # Set assigned tasks to unassigned before "soft deleting" this asset
+    tasks = Task.objects.filter(assigned_to=instance)
+    for task in tasks:
+        task.assigned_to = None
+        task.save()

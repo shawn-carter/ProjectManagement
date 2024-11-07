@@ -35,10 +35,14 @@
     <p><strong>Revised Target End Date:</strong> {{ project.revised_target_end_date|date:"d/m/Y" }}</p>
     <p><strong>Actual Start Date:</strong> {{ project.actual_start_date|date:"d/m/Y" }}</p>
     <p><strong>Actual End Date:</strong> {{ project.actual_end_date|date:"d/m/Y" }}</p>
-    <p><strong>Project Owner:</strong> 
-        <a href="{% url 'asset_detail' pk=project.project_owner.pk %}">
-            {{ project.project_owner }}
-        </a>
+    <p><strong>Project Owner:</strong>
+        {% if project.project_owner %} 
+            <a href="{% url 'asset_detail' pk=project.project_owner.pk %}">
+                {{ project.project_owner }}
+            </a>
+        {% else %}
+            Unassigned
+        {% endif %}
     </p>
     <p><strong>Project Status:</strong> {{ project.get_project_status_display }}</p>
 

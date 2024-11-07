@@ -24,7 +24,8 @@
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th>Project Owner</th>
-                <th>Completed / Incomplete Tasks</th>
+                <th>Completed Tasks</th>
+                <th>Incomplete Tasks</th>
                 <th>RAG Status</th>
                 <th>Actions</th>
             </tr>
@@ -37,25 +38,38 @@
                     {% elif project.rag_status == 'R' %}table-danger
                     {% endif %}
                 ">
+
                     <td>
                         <a href="{% url 'project_detail' project_id=project.id %}">
                             {{ project.project_name }}
                         </a>
+                        {% if not project.project_owner %}
+                            &nbsp;<span class="badge bg-danger" title="This project currently has no owner!">!</span>
+                        {% endif %}
                     </td>
                     <td>{{ project.get_project_status_display }}</td>
                     <td>{{ project.get_priority_display }}</td>
                     <td>{{ project.display_start_date|date:"Y-m-d" }}</td>
                     <td>{{ project.display_end_date|date:"Y-m-d" }}</td>
                     <td>
-                        <a href="{% url 'asset_detail' pk=project.project_owner.pk %}">
-                            {{ project.project_owner }}
-                        </a>
+                        {% if project.project_owner %}
+                            <a href="{% url 'asset_detail' pk=project.project_owner.pk %}">
+                                {{ project.project_owner.name }}
+                            </a>
+                        {% else %}
+                            Unassigned
+                        {% endif %}
                     </td>
                     <td>
-                        {{ project.completed_tasks }} / {{ project.incomplete_tasks }}
+                        {{ project.completed_tasks }}
                     </td>
                     <td>
-                        <span class="badge {% if project.rag_status == 'G' %}bg-success{% elif project.rag_status == 'A' %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ project.incomplete_tasks }}
+                    </td>
+                    <td>
+                        <span class="badge 
+                                    {% if project.rag_status == 'G' %}bg-success{% elif project.rag_status == 'A' %}bg-warning{% else %}bg-danger{% endif %}"
+                              title="{% if project.rag_status == 'G' %}On Track{% elif project.rag_status == 'A' %}At Risk{% else %}Behind Schedule{% endif %}">
                             {{ project.rag_status }}
                         </span>
                     </td>

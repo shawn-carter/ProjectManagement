@@ -5,7 +5,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.urls import reverse
-
+from django.db import transaction
 from safedelete.models import SafeDeleteModel, SOFT_DELETE, SOFT_DELETE_CASCADE
 from simple_history.models import HistoricalRecords
 
@@ -139,8 +139,8 @@ class Task(SafeDeleteModel):
             if self.assigned_to and self.task_status == 1:  # Status ID 1 is 'Unassigned'
                 self.task_status = 2  # Status ID 2 is 'Assigned'
 
-            # Set task status back to "Unassigned" if assigned_to is removed
-            elif not self.assigned_to and self.task_status == 2:  # Status ID 2 is 'Assigned'
+            # Set task status back to "Unassigned" if `assigned_to` is removed
+            elif not self.assigned_to:
                 self.task_status = 1  # Status ID 1 is 'Unassigned'
 
         # Call the original save method
@@ -148,7 +148,7 @@ class Task(SafeDeleteModel):
 
 # The Asset Details - Assets have a Team and Skills
 class Asset(SafeDeleteModel):
-    _safedelete_policy = SOFT_DELETE
+    _safedelete_policy = SOFT_DELETE_CASCADE
     asset_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
     email = models.EmailField(blank=True, null=True, unique=True)
@@ -160,7 +160,7 @@ class Asset(SafeDeleteModel):
 
     def __str__(self):
         return self.name
-
+    
 # The Skill Attributes
 class Skill(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE

@@ -116,6 +116,10 @@ class ProjectUpdateForm(forms.ModelForm):
         self.fields['actual_start_date'].required = False
         self.fields['actual_end_date'].required = False
 
+        # Remove "Closed" from the choices for project_status
+        status_choices_without_closed = [choice for choice in Project.STATUS_CHOICES if choice[0] != 7]
+        self.fields['project_status'].choices = status_choices_without_closed
+
         # Set initial values for read-only fields
         if self.instance and self.instance.pk:
             self.fields['planned_start_date'].initial = self.instance.planned_start_date
