@@ -90,27 +90,45 @@ class Task(SafeDeleteModel):
         (2, 'Assigned'),
         (3, 'Completed'),
     ]
+    PRIORITY_CHOICES = [
+        (1, 'Low'),
+        (2, 'Medium'),
+        (3, 'High'),
+        (4, 'Critical'),
+        (5, 'Urgent'),
+    ]
     id = models.AutoField(primary_key=True)
-    task_name = models.CharField(max_length=50)
-    task_details = models.TextField(null=True)
+    task_name = models.CharField(max_length=50, verbose_name="Task Name")
+    task_details = models.TextField(null=True, verbose_name="Task Details")
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    task_status = models.IntegerField(choices=STATUS_CHOICES, default=1)  # Default to 'Unassigned'
-    priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')])
-    planned_start_date = models.DateField(blank=True, null=True)  # Non-mandatory
-    planned_end_date = models.DateField(blank=True, null=True)  # Non-mandatory
-    actual_start_date = models.DateField(blank=True, null=True)
-    actual_end_date = models.DateField(blank=True, null=True)
-    due_date = models.DateField(blank=True, null=True)  # Non-mandatory
-    estimated_time_to_complete = models.DurationField(blank=True, null=True)  # Non-mandatory
-    actual_time_to_complete = models.DurationField(blank=True, null=True)  # Non-mandatory
-    has_dependency = models.BooleanField(default=False)
-    dependant_task = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
-    delay_reason = models.TextField(blank=True, null=True)
-    created_datetime = models.DateTimeField(auto_now_add=True)
-    last_updated_datetime = models.DateTimeField(auto_now=True)
-    skills_required = models.ManyToManyField('Skill')
-    assigned_to = models.ForeignKey('Asset', on_delete=models.SET_NULL, null=True, blank=True)  # Non-mandatory
-    halo_ref = models.IntegerField(null=True)
+    task_status = models.IntegerField(choices=STATUS_CHOICES, default=1, verbose_name="Task Status")
+    priority = models.IntegerField(choices=PRIORITY_CHOICES, verbose_name="Priority Level")
+    planned_start_date = models.DateField(blank=True, null=True, verbose_name="Planned Start Date")
+    planned_end_date = models.DateField(blank=True, null=True, verbose_name="Planned End Date")
+    actual_start_date = models.DateField(blank=True, null=True, verbose_name="Actual Start Date")
+    actual_end_date = models.DateField(blank=True, null=True, verbose_name="Actual End Date")
+    due_date = models.DateField(blank=True, null=True, verbose_name="Due Date")
+    estimated_time_to_complete = models.DurationField(blank=True, null=True, verbose_name="Estimated Time to Complete")
+    actual_time_to_complete = models.DurationField(blank=True, null=True, verbose_name="Actual Time to Complete")
+    prereq_task = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Prerequisite Task"
+    )
+    delay_reason = models.TextField(blank=True, null=True, verbose_name="Reason for Delay")
+    created_datetime = models.DateTimeField(auto_now_add=True, verbose_name="Date Created")
+    last_updated_datetime = models.DateTimeField(auto_now=True, verbose_name="Last Updated")
+    skills_required = models.ManyToManyField('Skill', verbose_name="Skills Required")
+    assigned_to = models.ForeignKey(
+        'Asset',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Assigned To"
+    )
+    halo_ref = models.IntegerField(null=True, verbose_name="Halo Reference")
     history = HistoricalRecords()
    
     @property

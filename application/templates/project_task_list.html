@@ -6,14 +6,14 @@
 {% endblock %}
 
 {% block content %}
-    <h1>{{ title }}</h1>
+    <h1>{{ title }}{% if project %} ({{project.display_start_date|date:'d/m/Y'}} - {{project.display_end_date|date:'d/m/Y'}}){% endif %}</h1>
 
     {% if project %}
         <!-- Show "Back to Project" button if viewing tasks for a specific project -->
         <a href="{% url 'project_detail' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Project</a>
 
         <!-- Add Task Button (only if viewing project task list) -->
-        {% if project.project_status != 7 %}  <!-- Assuming project_status 7 is 'Closed' -->
+        {% if project.project_status != 7 %}  <!-- Project_status 7 is 'Closed' -->
             <a href="{% url 'task_create' project_id=project.id %}" class="btn btn-danger mb-3 ml-2">Add New Task</a>
         {% endif %}
         <a href="{% url 'project_task_calendar' project_id=project.id %}" class="btn btn-success mb-3">Project Task Calendar</a>
@@ -24,7 +24,7 @@
     {% endif %}
 
     {% if tasks %}
-    <table class="table table-striped" id="task-list">
+    <table class="table" id="task-list">
         <thead>
             <tr>
                 <!-- Only show project name if not viewing tasks of a single project -->
@@ -54,7 +54,10 @@
                             {{ task.task_name }}
                         </a>
                         {% if not task.assigned_to %}
-                            &nbsp;<span class="badge bg-danger" title="This task currently has no assigned owner!">!</span>
+                            <span class="badge bg-danger" title="This task currently has no assigned owner!">!</span>
+                        {% endif %}
+                        {% if task.conflict_flag %}
+                            <span class="badge bg-warning text-dark" title="This task has scheduling conflicts!">!</span>
                         {% endif %}
                     </td>
                     <td>{{ task.get_task_status_display }}</td>
@@ -68,20 +71,8 @@
                             Unassigned
                         {% endif %}
                     </td>
-                    <td>
-                        {% if task.actual_start_date %}
-                            {{ task.actual_start_date|date:"Y-m-d" }}
-                        {% else %}
-                            {{ task.planned_start_date|date:"Y-m-d" }}
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if task.actual_end_date %}
-                            {{ task.actual_end_date|date:"Y-m-d" }}
-                        {% else %}
-                            {{ task.planned_end_date|date:"Y-m-d" }}
-                        {% endif %}
-                    </td>
+                    <td>{{ task.display_start_date|date:"d/m/Y" }}</td>
+                    <td>{{ task.display_end_date|date:"d/m/Y" }}</td>
                     {% if title != "Completed Tasks Across All Projects" %}
                         <td>
                             {% if task.task_status != 3 %}
@@ -116,7 +107,7 @@
                     '<"col-sm-12 col-md-6"l>' + 
                     '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
             buttons: [
-                'copy', 'csv', 'excel' //,'print','pdf'// we can add these if required
+                'copy', 'csv', 'excel' // ,'print','pdf' we can add these if required
             ],
             pagingType: "full_numbers",
             "order": [],  // Disable initial ordering, respects backend order
@@ -125,4 +116,3 @@
     });
 </script>
 {% endblock %}
-

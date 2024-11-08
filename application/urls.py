@@ -94,7 +94,7 @@ urlpatterns = [
     path('skills/<int:pk>/', SkillDetailView.as_view(), name='skill_detail'),  # URL for skill details
 
     path('ajax/filter_assets/', filter_assets_by_skills, name='filter_assets_by_skills'),
-    path('ajax/get_task_dates/', views.get_dependent_task_dates, name='get_dependent_task_dates'),
+    path('ajax/get_task_dates/', views.get_prereq_task_dates, name='get_prereq_task_dates'),
 
     path('projects/<int:project_id>/gantt/', ProjectGanttChartView.as_view(), name='project_gantt_chart'),
 

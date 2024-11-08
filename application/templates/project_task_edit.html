@@ -10,23 +10,50 @@
             {% crispy form %}
         </form>
     </div>
+
+    {% if prereq_tasks %}
+    <div class="alert alert-warning mt-3">
+        <strong>Pre-Requisite Tasks:</strong>
+        <ul>
+            {% for task in prereq_tasks %}
+                <li>
+                    <a href="{% url 'task_detail' project_id=task.project.id task_id=task.id %}">
+                        {{ task.task_name }}
+                    </a> 
+                    - Planned Start: {{ task.display_start_date|date:"Y-m-d" }}, Planned End: {{ task.display_end_date|date:"Y-m-d" }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
 {% endblock %}
 
 {% block extraJS %}
 <script>
     $(document).ready(function () {
-        console.log({{ project.display_start_date|date:'Y-m-d' }}, {{ project.display_end_date|date:'Y-m-d' }});
-        // Use the `display_start_date` and `display_end_date` properties to get the most appropriate dates for the project.
+        console.log("Initializing Task Edit Form...");
+
+        // Set up the project start and end dates from the context variables
         const projectStartDate = "{{ project.display_start_date|date:'Y-m-d' }}";
         const projectEndDate = "{{ project.display_end_date|date:'Y-m-d' }}";
-        console.log(projectStartDate, projectEndDate);
+
         // Get the URLs for AJAX calls
         const filterAssetsUrl = "{% url 'filter_assets_by_skills' %}";
-        const getTaskDatesUrl = "{% url 'get_dependent_task_dates' %}";
+        const getTaskDatesUrl = "{% url 'get_prereq_task_dates' %}";
 
         // Set the current assigned asset to the dropdown's data attribute
         const currentAssignedAssetId = "{{ form.instance.assigned_to.asset_id|default_if_none:'' }}";
         $('#id_assigned_to').data('current-assigned', currentAssignedAssetId);
+
+        // Initialize prerequisite tasks from the JSON context, if available
+        try {
+            window.parentTasks = JSON.parse('{{ parent_tasks_json|escapejs }}');
+            console.log('Parsed Parent Tasks:', window.parentTasks);
+        } catch (error) {
+            console.error('Failed to parse prerequisite tasks JSON:', error);
+            window.parentTasks = [];
+        }
 
         // Call the initializeTaskForm function from custom.js
         initializeTaskForm(projectStartDate, projectEndDate, filterAssetsUrl, getTaskDatesUrl);

@@ -6,15 +6,16 @@ from django.core.exceptions import ValidationError
 from django.forms.widgets import SelectDateWidget
 from .models import Project, Asset, Category, Task, Skill, Stakeholder, Risk, Assumption, Issue, Dependency, Attachment
 from .widgets import DurationPickerWidget  # Import the custom widget
+from django.db.models.functions import Coalesce, Concat
 
 # Helper Functions
 
-def has_circular_dependency(task, dependant_task):
+def has_circular_dependency(task, prereq_task):
     """
-    Checks if adding the given dependant_task would create a circular dependency.
+    Checks if adding the given prereq_task would create a circular dependency.
     """
     visited = set()
-    current = dependant_task
+    current = prereq_task
 
     while current is not None:
         if current == task:
@@ -22,7 +23,7 @@ def has_circular_dependency(task, dependant_task):
         if current.id in visited:
             break  # To avoid being stuck in an infinite loop
         visited.add(current.id)
-        current = current.dependant_task
+        current = current.prereq_task
 
     return False
 
@@ -193,7 +194,7 @@ class CreateTaskForm(forms.ModelForm):
         model = Task
         fields = [
             'task_name', 'task_details', 'priority',
-            'dependant_task',  # Move dependant_task up in the list
+            'prereq_task',  # Move prereq_task up in the list
             'planned_start_date', 'planned_end_date', 'due_date',
             'estimated_time_to_complete', 'skills_required', 'assigned_to',
             'halo_ref',
@@ -202,7 +203,7 @@ class CreateTaskForm(forms.ModelForm):
             'task_name': forms.TextInput(attrs={'class': 'form-control'}),
             'task_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'priority': forms.Select(attrs={'class': 'form-select'}),
-            'dependant_task': forms.Select(attrs={'class': 'form-select'}),
+            'prereq_task': forms.Select(attrs={'class': 'form-select'}),
             'planned_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'planned_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
@@ -217,8 +218,19 @@ class CreateTaskForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if self.project:
-            # Filter dependant_task to only include tasks from the same project
-            self.fields['dependant_task'].queryset = Task.objects.filter(project=self.project)
+            # Annotate tasks with display_start_date and display_end_date
+            tasks_queryset = Task.objects.filter(project=self.project).annotate(
+                annotated_start_date=Coalesce('actual_start_date', 'planned_start_date'),
+                annotated_end_date=Coalesce('actual_end_date', 'planned_end_date')
+            )
+            
+            # Update the display of the prerequisite tasks to include the dates
+            choices = [
+                (task.id, f"{task.task_name} (Start: {task.annotated_start_date.strftime('%d/%m/%Y') if task.annotated_start_date else 'N/A'}, End: {task.annotated_end_date.strftime('%d/%m/%Y') if task.annotated_end_date else 'N/A'})")
+                for task in tasks_queryset
+            ]
+
+            self.fields['prereq_task'].choices = [('', '---------')] + choices
 
         # Crispy forms configuration
         self.helper = FormHelper()
@@ -226,7 +238,7 @@ class CreateTaskForm(forms.ModelForm):
         self.helper.layout = Layout(
             'task_name',
             'task_details',
-            Field('dependant_task', css_class='form-select'),  # Move dependant_task field to the top of the form layout
+            Field('prereq_task', css_class='form-select'),  # Move prereq_task field to the top of the form layout
             Row(
                 Column(Field('planned_start_date', css_class='form-control'), css_class='col-md-6'),
                 Column(Field('planned_end_date', css_class='form-control'), css_class='col-md-6'),
@@ -273,7 +285,7 @@ class EditTaskForm(forms.ModelForm):
             'task_name', 'task_details', 'priority',
             'planned_start_date', 'planned_end_date', 'due_date', 'actual_start_date', 'actual_end_date',
             'estimated_time_to_complete', 'skills_required', 'assigned_to',
-            'dependant_task', 'delay_reason', 'halo_ref',
+            'prereq_task', 'delay_reason', 'halo_ref',
         ]
         widgets = {
             'task_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -281,7 +293,7 @@ class EditTaskForm(forms.ModelForm):
             'priority': forms.Select(attrs={'class': 'form-select'}),
             'planned_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'planned_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'dependant_task': forms.Select(attrs={'class': 'form-select'}),
+            'prereq_task': forms.Select(attrs={'class': 'form-select'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'actual_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'estimated_time_to_complete': forms.NumberInput(attrs={'class': 'form-control'}),
@@ -305,18 +317,28 @@ class EditTaskForm(forms.ModelForm):
         self.fields['assigned_to'].empty_label = "Unassigned"
 
         if self.project:
-            # Filter dependant_task to only include tasks from the same project
-            self.fields['dependant_task'].queryset = Task.objects.filter(
-                project=self.instance.project
-            ).exclude(pk=self.instance.pk)
-        
+            # Annotate tasks with display_start_date and display_end_date
+            tasks_queryset = Task.objects.filter(project=self.project).exclude(pk=self.instance.pk).annotate(
+                annotated_start_date=Coalesce('actual_start_date', 'planned_start_date'),
+                annotated_end_date=Coalesce('actual_end_date', 'planned_end_date')
+            )
+            
+            # Update the display of the prerequisite tasks to include the dates
+            choices = [
+                (task.id, f"{task.task_name} (Start: {task.annotated_start_date.strftime('%d/%m/%Y') if task.annotated_start_date else 'N/A'}, End: {task.annotated_end_date.strftime('%d/%m/%Y') if task.annotated_end_date else 'N/A'})")
+                for task in tasks_queryset
+            ]
+
+            self.fields['prereq_task'].choices = [('', '---------')] + choices
+
         # Crispy forms configuration
         self.helper = FormHelper()
         self.helper.form_method = 'post'
         self.helper.layout = Layout(
             'task_name',
             'task_details',
-            Field('dependant_task', css_class='form-select'),  # Move dependant_task field to the top of the form layout
+            Field('prereq_task', css_class='form-select'),  # Move prereq_task field to the top of the form layout
+            Div(id='dependency-warning', css_class='alert alert-warning d-none'),  # Date message placeholder
             Row(
                 Column('planned_start_date', css_class='form-group col-md-6 mb-0'),
                 Column('planned_end_date', css_class='form-group col-md-6 mb-0'),
@@ -342,12 +364,12 @@ class EditTaskForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        dependant_task = cleaned_data.get('dependant_task')
+        prereq_task = cleaned_data.get('prereq_task')
 
         # Check for circular dependencies only if a dependant task is set
-        if dependant_task:
-            if has_circular_dependency(self.instance, dependant_task):
-                self.add_error('dependant_task', 'Adding this dependency will create a circular reference.')
+        if prereq_task:
+            if has_circular_dependency(self.instance, prereq_task):
+                self.add_error('prereq_task', 'Adding this dependency will create a circular reference.')
 
         # Other validation logic for date fields as in your current code
         planned_start_date = cleaned_data.get("planned_start_date")

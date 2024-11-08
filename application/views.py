@@ -3,11 +3,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q, Count, When, Case, BooleanField, DateField
+from django.db.models import Q, F, Count, When, Case, BooleanField, DateField, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse, FileResponse
 from django.utils.dateparse import parse_date
-
+from django.core.serializers import serialize
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render,get_object_or_404, redirect
 from django.views.generic import ListView, DetailView,CreateView, UpdateView, View, TemplateView
@@ -18,7 +18,7 @@ from django.utils.html import escape
 from calendar import monthrange
 
 from django.shortcuts import redirect
-
+import json
 from .models import Project, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment, Asset, Skill
 from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm, AttachmentForm
 
@@ -133,7 +133,11 @@ class ProjectListView(LoginRequiredMixin, ListView):
         # Use annotate to create computed fields for sorting and displaying, rename them to avoid conflicts
         projects = Project.objects.annotate(
             annotated_start_date=Coalesce('actual_start_date', 'planned_start_date', output_field=DateField()),
-            annotated_end_date=Coalesce('actual_end_date', 'revised_target_end_date', 'original_target_end_date', output_field=DateField())
+            annotated_end_date=Coalesce('actual_end_date', 'revised_target_end_date', 'original_target_end_date', output_field=DateField()),
+            total_tasks=Count('task'),
+            completed_tasks=Count('task', filter=Q(task__task_status=3))
+        ).annotate(
+            incomplete_tasks=F('total_tasks') - F('completed_tasks')
         )
 
         # Filtering based on route
@@ -147,11 +151,8 @@ class ProjectListView(LoginRequiredMixin, ListView):
             # Default to all projects
             projects = projects.filter(deleted=None).order_by('-priority', '-annotated_start_date')
 
-        # Adding additional attributes like RAG status, completed and incomplete tasks
+        # Adding additional attributes like RAG status
         for project in projects:
-            project.total_tasks = project.task_set.count()
-            project.completed_tasks = project.task_set.filter(task_status=3).count()
-            project.incomplete_tasks = project.total_tasks - project.completed_tasks
             project.rag_status = calculate_rag_status(project)
 
         return projects
@@ -318,20 +319,10 @@ class TaskCreateView(PermissionRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         project = get_object_or_404(Project, id=self.kwargs['project_id'])
 
-        # Determine project start date (Actual Start Date preferred, otherwise Planned Start Date)
-        project_start_date = project.actual_start_date or project.planned_start_date
-
-        # Determine project end date (Actual End Date preferred, otherwise Revised or Original Target End Date)
-        project_end_date = (
-            project.actual_end_date or 
-            project.revised_target_end_date or 
-            project.original_target_end_date
-        )
-
-        # Pass project start and end dates to the context
+        # Pass project start and end dates to the context directly
         context['project'] = project
-        context['project_start_date'] = project_start_date
-        context['project_end_date'] = project_end_date
+        context['project_start_date'] = project.display_start_date
+        context['project_end_date'] = project.display_end_date
 
         return context
 
@@ -413,9 +404,20 @@ class TaskUpdateView(PermissionRequiredMixin, UpdateView):
 
         # Adding dependency information for highlighting conflicts
         task = self.get_object()
-        dependent_tasks = Task.objects.filter(dependant_task=task)
-        if dependent_tasks.exists():
-            context['dependent_tasks'] = dependent_tasks
+        parent_tasks = Task.objects.filter(prereq_task=task)
+
+        # Create a simpler JSON structure manually
+        parent_tasks_data = [
+            {
+                'task_name': dep_task.task_name,
+                'display_start_date': dep_task.display_start_date.strftime('%Y-%m-%d'),
+                'display_end_date': dep_task.display_end_date.strftime('%Y-%m-%d'),
+                'id': dep_task.id,
+                'project_id': dep_task.project.id,
+            }
+            for dep_task in parent_tasks
+        ]
+        context['parent_tasks_json'] = json.dumps(parent_tasks_data)
 
         return context
 
@@ -436,6 +438,7 @@ class TaskListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         route_name = self.request.resolver_match.url_name
 
+        # Determine the appropriate queryset based on the route name
         if route_name == 'open_task_list':
             tasks = Task.objects.filter(task_status__in=[1, 2])
         elif route_name == 'completed_task_list':
@@ -448,11 +451,32 @@ class TaskListView(LoginRequiredMixin, ListView):
         else:
             tasks = Task.objects.all()
 
-        # Use `annotate` to add a `can_be_completed` field to each task
+        # Annotate each task to check if there is a conflict in terms of dependency or prerequisites
         tasks = tasks.annotate(
             can_be_completed=Case(
-                When(dependant_task__task_status=3, then=True),  # Completed dependant task
-                When(dependant_task__isnull=True, then=True),    # No dependant task
+                When(prereq_task__task_status=3, then=True),  # Completed prerequisite task
+                When(prereq_task__isnull=True, then=True),    # No prerequisite task
+                default=False,
+                output_field=BooleanField()
+            ),
+            conflict_flag=Case(
+                # Conflict if prerequisite task ends after current task's planned start date
+                When(
+                    prereq_task__isnull=False,
+                    prereq_task__planned_end_date__isnull=False,
+                    planned_start_date__lt=F('prereq_task__planned_end_date'),
+                    then=True
+                ),
+                # Conflict if dependent task starts before current task ends
+                When(
+                    pk__in=Task.objects.filter(prereq_task__isnull=False)
+                    .values_list('prereq_task_id', flat=True),
+                    planned_end_date__isnull=False,
+                    planned_end_date__gt=Subquery(
+                        Task.objects.filter(prereq_task=OuterRef('pk')).values('planned_start_date')[:1]
+                    ),
+                    then=True
+                ),
                 default=False,
                 output_field=BooleanField()
             )
@@ -528,7 +552,7 @@ class TaskCompleteView(PermissionRequiredMixin, UpdateView):
             return redirect('task_detail', project_id=project.id, task_id=task.id)
 
         # Check if the task has dependencies that are not complete
-        if task.dependant_task and task.dependant_task.task_status != 3:  # Status ID 3 is 'Completed'
+        if task.prereq_task and task.prereq_task.task_status != 3:  # Status ID 3 is 'Completed'
             messages.error(request, "This task has dependencies that are not yet completed.")
             return redirect('task_detail', project_id=project.id, task_id=task.id)
 
@@ -1772,7 +1796,7 @@ def filter_assets_by_skills(request):
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-def get_dependent_task_dates(request):
+def get_prereq_task_dates(request):
     task_id = request.GET.get('task_id')
     if task_id:
         task = get_object_or_404(Task, id=task_id)
@@ -1826,7 +1850,7 @@ class ProjectGanttChartView(LoginRequiredMixin, TemplateView):
                     'name': escape(task.task_name),
                     'start': str(start_date),
                     'end': str(end_date),
-                    'dependencies': str(task.dependant_task.id) if task.dependant_task else "",
+                    'dependencies': str(task.prereq_task.id) if task.prereq_task else "",
                     'progress': 100 if task.task_status == 3 else 0,
                     'priority': task.priority,
                     'css_class': css_class,

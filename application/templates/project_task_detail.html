@@ -6,7 +6,7 @@
 
     {% if task.task_status != 3 %}  <!-- Only show if the task is not completed -->
     <a href="{% url 'task_edit' project_id=project.id task_id=task.id %}" class="btn btn-warning mb-3">Edit Task</a>
-        {% if not task.dependant_task or task.dependant_task.task_status == 3 %}
+        {% if not task.prereq_task or task.prereq_task.task_status == 3 %}
             <a href="{% url 'task_complete' project_id=project.id task_id=task.id %}" class="btn btn-success mb-3">Complete Task</a>
         {% endif %}
     {% endif %}
@@ -30,10 +30,10 @@
     <p><strong>Estimated Time to Complete:</strong> {{ task.estimated_time_to_complete }}</p>
     <p><strong>Actual Time to Complete:</strong> {{ task.actual_time_to_complete }}</p>
     <p><strong>Has Dependency:</strong> {{ task.has_dependency }}</p>
-    <p><strong>Dependant Task:</strong> 
-        {% if task.dependant_task %}
-        <a href="{% url 'task_detail' project_id=task.dependant_task.project.id task_id=task.dependant_task.id %}">
-            {{ task.dependant_task.task_name }}
+    <p><strong>Prerequisite Task:</strong> 
+        {% if task.prereq_task %}
+        <a href="{% url 'task_detail' project_id=task.prereq_task.project.id task_id=task.prereq_task.id %}">
+            {{ task.prereq_task.task_name }}
         </a>
         {% else %}
             None

@@ -2,12 +2,11 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-    <h1>Add Task to: {{ project.project_name }}</h1>
+    <h1>Add Task to: {{ project.project_name }} ({{project.display_start_date|date:'d/m/Y'}} - {{project.display_end_date|date:'d/m/Y'}})</h1>
     <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-secondary mb-3">Back to Tasks</a>
 
     <div class="card-body">
         <form method="post" novalidate>
-            {% csrf_token %}
             {% crispy form %}
         </form>
     </div>
@@ -16,13 +15,14 @@
 {% block extraJS %}
 <script>
     $(document).ready(function () {
+        console.log("Project Task Create")
         // Get the project start and end dates from the context variables
         const projectStartDate = "{{ project.display_start_date|date:'Y-m-d' }}";
         const projectEndDate = "{{ project.display_end_date|date:'Y-m-d' }}";
 
         // Get the URLs for AJAX calls
         const filterAssetsUrl = "{% url 'filter_assets_by_skills' %}";
-        const getTaskDatesUrl = "{% url 'get_dependent_task_dates' %}";
+        const getTaskDatesUrl = "{% url 'get_prereq_task_dates' %}";
 
         // Call the initializeTaskForm function from custom.js
         initializeTaskForm(projectStartDate, projectEndDate, filterAssetsUrl, getTaskDatesUrl);
