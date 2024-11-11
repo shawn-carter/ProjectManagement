@@ -192,6 +192,7 @@ function initializeTaskForm(projectStartDate, projectEndDate, filterAssetsUrl, g
     const savedPrereqEndDate = sessionStorage.getItem('prereq_task_end_date');
     if (savedPrereqEndDate) {
         prereqTaskEndDate = new Date(savedPrereqEndDate);
+        sessionStorage.removeItem('prereq_task_end_date'); // Clear the saved value
     }
 
     // Validate dates initially to ensure all validations are applied correctly

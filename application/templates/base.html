@@ -5,6 +5,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
     <title>{% block title %}Resource Manager{% endblock %}</title>
     <!-- Bootstrap 5 CSS -->
@@ -40,17 +43,6 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'skill_list' %}">Skills</a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                              Add New...
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                              <li><a class="dropdown-item" href="{% url 'project_create' %}">Project</a></li>
-                              <li><a class="dropdown-item" href="#">Asset</a></li>
-                              <li><a class="dropdown-item" href="#">Skill</a></li>
-                              <li><a class="dropdown-item" href="#">Team</a></li>
-                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
