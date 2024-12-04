@@ -725,6 +725,7 @@ class TaskCompleteFormTestCase(TestCase):
         self.assertEqual(self.task_a.task_status, 3)  # Check if status updated to "Completed"
 
 # Access Control Tests
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class BaseAuthTestCase(TestCase):
     def setUp(self):
         # Define the models and actions for which permissions are needed
