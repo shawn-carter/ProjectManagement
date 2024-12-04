@@ -3,58 +3,26 @@
         Will hold the title, description and skills required.
         Can use the existing Create Task View.
     Import Assets (Users) from Active Directory / Excel.
-    Skill Proficiencies.
+    Skill Proficiencies. - This is a big job, as will take the skills away from the asset - and put them into a proficiencies table, linking skills and assets with a value 1-5
 
 Bugs/Things to do:
+    Format the Project Detail page better - use Bootstrap rows/cols cards etc
+    Format the Task Details - same as above
+    Sort the Time to Complete Task (it is currently taking seconds - this should be hours at least 0.5 hours maybe?)
+    Sort the Time (it is currently taking seconds - this should be hours at least 0.5 hours maybe?)
+
     Stakeholders allows duplicate Names and Email Address...
         There could be Stakeholders that exist in multiple projects - so we can't use model constraint - will have to be a view/form validation thing. Conditional check for name and email in same project.
-    New Projects need a start and end date at creation, but there are projects on the project task list that have no dates.
-        Col said to ignore those projects without dates, they are upcoming work but have no idea when they will be starting.
-    Estimated Time to Complete/Actual Time seems to be in minutes (or seconds) needs to be clear that this is in hours, and multiply if necessary to store the time in hours.
 
 
 Other Pages: 
-    Teams 
+    Teams List - will simply list people in each team.
 
-You're touching on a lot of ambitious and exciting ideas, and I completely understand how easy it is to get carried away with all the possibilities. Let's unpack this a bit and consider what might realistically fit within your 8-week timeframe, given your tight schedule for a presentation and a written assignment.
 
-Prioritizing What’s Essential for the MVP (Minimum Viable Product)
-Considering the complexity of what you're envisioning and your available time, it’s important to prioritize the features that will give the most impact for your MVP or Working Prototype. Here’s a breakdown of your ideas and what I think might be feasible to implement in stages:
+Ok I have to do an assignment for my Major Project, which is an application I've been developing. I'll give you some background and attach the draft which has some ideas on some of the topics to cover - there is also a 30-60 minute presentation which will accompany this assignment - where I can demonstrate the application I've developed and go into more detail where I have limited word count - provided that I have mentioned it in the assignment / slide deck.
 
-Core Features to Implement Now (for the MVP)
-Optimization for Scheduling Tasks
+So my operations manager had a meeting with me about my practical research proposal, the problem that he has - is that he had at the time over 45 outstanding projects. These are managed if you like through our incident management system, so there is an incident for the project - but it is limited in what it can outside of holding a description of the project. Child tasks are created in the incident management system, and these can be allocated to individuals. I think part of the problem that Brian has he explained was seeing the progress of a project, but also he struggles to see what resources he has, who is available, when can they do this.  Tasks are kind of created dynamically, when one task is complete - we might know what we have to do, but the process isn't very good. So my take on this was - if we can better manage the project, the individual tasks that are required, we can then start to gather stats on the project progress, how many tasks have individuals / assets completed in a time, how many tasks do they currently have assigned to them. Building skills into the tasks, we can then start to identify where we may have skills gaps, looking at how many assets have those skills, and how busy have they been over the last month with project tasks. Being able to see the number of tasks that a project involves, and the progress of those - through the number of complete/total tasks - can give us an idea if the project is on track, and assign it a RAG status based on the planned end date. I've added task prerequisites and dependencies, and both a project calendar to see and add tasks, alongside a gantt chart, there is some basic conflict checking based on start/end dates, and I've added RAID categories to the app - to allow the recording of Risks, Assumptions, Issues and Dependencies. I've added stakeholders, with their interest and power levels, I've added the ability to upload documents with a dropzone, and created preview on a table - also allowing users to download. I've added safe_delete and history to the DJango app to prevent real deletions or assets, tasks, projects etc. and history allows you to see any changes that have been made. I created a survey initially to gather Moscow, but I haven't had any responses - I may have to create a shorter survey to get some details, and some 1 on 1s with the operations manager and projects team, because I expect that this will be a tool that is used by the projects team to help them to organise their projects. Does a project take some time to plan?  Yes of course it does, and I would expect that the project manager knows to some extent what exactly is entailed within that project. So that's a little background, I can include things like models.py, views etc if it helps you to understand what's going on. 
 
-New Start Date Input: Allow the user to set a new start date for the project optimization. This is relatively simple and adds flexibility for when to initiate the optimization.
-Dependency-Based Scheduling: Automatically prioritize tasks based on their dependencies. Tasks with dependencies should be scheduled after their prerequisites.
-Priority-Based Ordering: When optimizing, prioritize tasks by their priority level and dependencies. Dependencies must be completed before dependent tasks, even if the priority is lower.
-Duration Calculation: Use the current Start and End Dates to calculate the planned duration. While using historical data to infer actual durations would be amazing, it could be left as a future feature.
-Visualization of Re-Optimized Project Plan: Updating the Gantt chart (or FullCalendar) to visualize the optimized project timeline based on skills and resource availability would be extremely beneficial and visually impactful for the presentation.
-Template-Based Task Creation
+I'll attach the assignment brief - which is really just some headings at the moment - which are mandatory, along with suggested word counts - as this is limited to 6000 words +- 10%, I've added notes from the brief along with notes I've taken from the workshops I attended over the last 4 weeks, but I've been focussing on developing the app - adding the features that are important, but of course if there is more time I'll keep working on it - I just need to make a start on the draft for the assignment, bullet points - potential areas to look at, ideas, drawings/diagrams, how things are ordered, so they flow properly. Any references should be at most 5 years old, pref 3 years or less.
 
-Reusable Task Templates: Creating reusable task templates for common sequences (e.g., commissioning a server) can add real value. For the MVP, start by allowing the creation and storage of a template for one type of project.
-Import/Export of Tasks via JSON or CSV: Start by providing a simple way to save a list of tasks as a JSON file, with dependencies, durations, and skills. CSV support could follow later. JSON is relatively easy to parse and validate, making it a good starting point.
-Data Management and Visualization
-
-Basic Data Export Feature: Allow users to export all projects, tasks, and related artifacts as a JSON dump. This would provide easy future portability without having to build a fully automated backup system for now.
-API Endpoints: Create a couple of essential API endpoints—perhaps for listing projects or tasks. This provides a good start for integration without trying to tackle a fully-fledged API.
-Basic Integration and Workflow Features
-
-Integration with Skill Matching for Tasks: Implement a basic skill-matching algorithm where tasks are assigned based on skills needed. This feature adds a lot of value to project management and can show off some of the unique capabilities of your system in the presentation.
-These are manageable features that will provide enough depth and complexity for your MVP while also ensuring you can clearly demonstrate and discuss the unique functionality during your presentation.
-
-Features for Future Development (After the Assessment)
-Advanced Optimization (Project Compression)
-
-The idea of compressing the schedule by finding opportunities for concurrent task execution based on different skills is great but quite complex. It requires a sophisticated optimization algorithm. This could be a great enhancement once the foundation is solid.
-Full Template System for Projects and Import/Export Enhancements
-
-Full export and import capability (e.g., full CSV imports for all tasks in a project) and saving multiple project templates could be quite challenging to complete before the presentation, especially if you also need robust error checking to ensure no data inconsistencies during import.
-Full API Implementation
-
-Developing a comprehensive REST API that allows CRUD operations on all artifacts could be a longer-term project. APIs add a lot of value for integration but take time to design and implement securely.
-Advanced Reporting & Gantt Chart Integration
-
-Adding an advanced Gantt chart tool later to provide richer visual representation of timelines and dependencies (beyond FullCalendar) could be another future goal. Tools like Chart.js or even more specialized visualization libraries could be leveraged here.
-Machine Learning for Estimating Task Durations
-
-Using historical task data to estimate durations for similar future tasks is a very exciting idea that brings a level of prediction and machine learning into the system. However, it would require a lot more data collection, algorithm testing, and validation to ensure accuracy.
+I've taken the best (80-100%) scores from the rubric, you will find them at the bottom of the section.

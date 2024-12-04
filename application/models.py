@@ -109,7 +109,7 @@ class Task(SafeDeleteModel):
     actual_end_date = models.DateField(blank=True, null=True, verbose_name="Actual End Date")
     due_date = models.DateField(blank=True, null=True, verbose_name="Due Date")
     estimated_time_to_complete = models.DurationField(blank=True, null=True, verbose_name="Estimated Time to Complete")
-    actual_time_to_complete = models.DurationField(blank=True, null=True, verbose_name="Actual Time to Complete")
+    actual_time_to_complete = models.DurationField(blank=True, null=True, verbose_name="Actual Time to Complete (Hours)")
     prereq_task = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,

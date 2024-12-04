@@ -1,6 +1,7 @@
 from crispy_forms.bootstrap import FormActions
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column, Div, Field, Fieldset
+from datetime import timedelta
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.widgets import SelectDateWidget
@@ -391,13 +392,22 @@ class EditTaskForm(forms.ModelForm):
         return cleaned_data
 
 class TaskCompleteForm(forms.ModelForm):
+    # Override the actual_time_to_complete to accept hours as float
+    actual_time_to_complete = forms.FloatField(
+        label='Actual Time to Complete (Hours)',
+        min_value=0.1,  # Minimum of 0.1 hours (6 minutes)
+        error_messages={
+            'min_value': 'Estimated time to complete must be a positive number of hours.'
+        },
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter hours'}),
+    )
     class Meta:
         model = Task
         fields = ['actual_start_date', 'actual_end_date', 'actual_time_to_complete']
         widgets = {
             'actual_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'actual_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'actual_time_to_complete': forms.NumberInput(attrs={'class': 'form-control'}),
+             #'actual_time_to_complete': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -420,6 +430,18 @@ class TaskCompleteForm(forms.ModelForm):
             'actual_time_to_complete',
             Submit('submit', 'Confirm Completion', css_class='btn btn-success')
         )
+
+    def clean_actual_time_to_complete(self):
+        actual_time = self.cleaned_data.get('actual_time_to_complete')
+        if actual_time is not None:
+            try:
+                hours = float(actual_time)
+                if hours <= 0:
+                    raise ValidationError("Estimated time to complete must be a positive number of hours.")
+                return timedelta(hours=hours)
+            except (ValueError, TypeError):
+                raise ValidationError("Enter a valid number of hours.")
+        raise ValidationError("This field is required.")
 
     def clean(self):
         """

@@ -875,11 +875,22 @@ class StakeholderCreateView(PermissionRequiredMixin, CreateView):
 
 # Update views for editing existing entries
 
-class RiskUpdateView(LoginRequiredMixin, UpdateView):
+class RiskUpdateView(PermissionRequiredMixin, UpdateView):
     model = Risk
     form_class = RiskForm
     template_name = 'project_risk_add.html'
     context_object_name = 'risk'
+    permission_required = 'application.change_risk'  # Only allow users with 'change_risk' permission
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            # Let PermissionRequiredMixin handle the redirection to login
+            return super().handle_no_permission()
+        else:
+            # User is authenticated but lacks permission
+            project_id = self.kwargs.get('project_id')
+            messages.error(self.request, "You do not have permission to edit this risk.")
+            return redirect('risk_list', project_id=project_id)
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
@@ -900,8 +911,10 @@ class RiskUpdateView(LoginRequiredMixin, UpdateView):
         return get_object_or_404(Risk, id=risk_id, project_id=project_id)
 
     def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+        # Save the form and perform any additional logic if necessary
+        response = super().form_valid(form)
+        messages.success(self.request, "Risk has been successfully updated.")
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -911,10 +924,22 @@ class RiskUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse('risk_detail', kwargs={'project_id': self.kwargs['project_id'], 'risk_id': self.object.pk})
 
-class AssumptionUpdateView(LoginRequiredMixin, UpdateView):
+class AssumptionUpdateView(PermissionRequiredMixin, UpdateView):
     model = Assumption
     form_class = AssumptionForm
     template_name = 'project_assumption_add.html'  # Reusing the existing template
+    context_object_name = 'assumption'
+    permission_required = 'application.change_assumption'  # Only allow users with 'change_assumption' permission
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            # Let PermissionRequiredMixin handle the redirection to login
+            return super().handle_no_permission()
+        else:
+            # User is authenticated but lacks permission
+            project_id = self.kwargs.get('project_id')
+            messages.error(self.request, "You do not have permission to edit this assumption.")
+            return redirect('assumption_list', project_id=project_id)
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
@@ -935,8 +960,10 @@ class AssumptionUpdateView(LoginRequiredMixin, UpdateView):
         return get_object_or_404(Assumption, id=assumption_id, project_id=project_id)
 
     def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+        # Save the form and perform any additional logic if necessary
+        response = super().form_valid(form)
+        messages.success(self.request, "Assumption has been successfully updated.")
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -946,10 +973,22 @@ class AssumptionUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('assumption_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class IssueUpdateView(LoginRequiredMixin, UpdateView):
+class IssueUpdateView(PermissionRequiredMixin, UpdateView):
     model = Issue
     form_class = IssueForm
     template_name = 'project_issue_add.html'
+    context_object_name = 'issue'
+    permission_required = 'application.change_issue'  # Only allow users with 'change_issue' permission
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            # Let PermissionRequiredMixin handle the redirection to login
+            return super().handle_no_permission()
+        else:
+            # User is authenticated but lacks permission
+            project_id = self.kwargs.get('project_id')
+            messages.error(self.request, "You do not have permission to edit this issue.")
+            return redirect('issue_list', project_id=project_id)
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
@@ -970,21 +1009,41 @@ class IssueUpdateView(LoginRequiredMixin, UpdateView):
         return get_object_or_404(Issue, id=issue_id, project_id=project_id)
 
     def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+        # Save the form and perform any additional logic if necessary
+        response = super().form_valid(form)
+        messages.success(self.request, "Issue has been successfully updated.")
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['project'] = get_object_or_404(Project, id=self.kwargs['project_id'])
         return context
 
+    def form_valid(self, form):
+        # Save the form and perform any additional logic if necessary
+        response = super().form_valid(form)
+        messages.success(self.request, "Issue has been successfully updated.")
+        return response
+
     def get_success_url(self):
         return reverse_lazy('issue_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class DependencyUpdateView(LoginRequiredMixin, UpdateView):
+class DependencyUpdateView(PermissionRequiredMixin, UpdateView):
     model = Dependency
     form_class = DependencyForm
     template_name = 'project_dependency_add.html'
+    context_object_name = 'dependency'
+    permission_required = 'application.change_dependency'  # Only allow users with 'change_dependency' permission
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            # Let PermissionRequiredMixin handle the redirection to login
+            return super().handle_no_permission()
+        else:
+            # User is authenticated but lacks permission
+            project_id = self.kwargs.get('project_id')
+            messages.error(self.request, "You do not have permission to edit this dependency.")
+            return redirect('dependency_list', project_id=project_id)
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
@@ -1005,8 +1064,10 @@ class DependencyUpdateView(LoginRequiredMixin, UpdateView):
         return get_object_or_404(Dependency, id=dependency_id, project_id=project_id)
 
     def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+        # Save the form and perform any additional logic if necessary
+        response = super().form_valid(form)
+        messages.success(self.request, "Dependency has been successfully updated.")
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1016,10 +1077,22 @@ class DependencyUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('dependency_list', kwargs={'project_id': self.kwargs['project_id']})
 
-class StakeholderUpdateView(LoginRequiredMixin, UpdateView):
+class StakeholderUpdateView(PermissionRequiredMixin, UpdateView):
     model = Stakeholder
     form_class = StakeholderForm
     template_name = 'project_stakeholder_add.html'
+    context_object_name = 'stakeholder'
+    permission_required = 'application.change_stakeholder'  # Only allow users with 'change_stakeholder' permission
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            # Let PermissionRequiredMixin handle the redirection to login
+            return super().handle_no_permission()
+        else:
+            # User is authenticated but lacks permission
+            project_id = self.kwargs.get('project_id')
+            messages.error(self.request, "You do not have permission to edit this stakeholder.")
+            return redirect('stakeholder_list', project_id=project_id)
 
     def dispatch(self, request, *args, **kwargs):
         # Get the project object
@@ -1040,8 +1113,10 @@ class StakeholderUpdateView(LoginRequiredMixin, UpdateView):
         return get_object_or_404(Stakeholder, id=stakeholder_id, project_id=project_id)
 
     def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+        # Save the form and perform any additional logic if necessary
+        response = super().form_valid(form)
+        messages.success(self.request, "Stakeholder has been successfully updated.")
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1801,7 +1876,7 @@ def get_prereq_task_dates(request):
     if task_id:
         task = get_object_or_404(Task, id=task_id)
         
-        if task.task_status == 3:  # Assuming there's a status field with a value of 'Completed'
+        if task.task_status == 3:  # Assuming 'Completed'
             response_data = {
                 'start_date': task.actual_start_date.strftime('%Y-%m-%d') if task.actual_start_date else None,
                 'end_date': task.actual_end_date.strftime('%Y-%m-%d') if task.actual_end_date else None,
