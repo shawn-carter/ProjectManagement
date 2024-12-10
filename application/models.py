@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.db import transaction
@@ -55,7 +56,7 @@ class Project(SafeDeleteModel):
     project_status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, null=True)
     priority = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High'), (4, 'Critical'), (5, 'Urgent')], null=True)
-    halo_ref = models.IntegerField(null=True)
+    halo_ref = models.IntegerField(null=True, blank=True)
     history = HistoricalRecords()
 
     @property
@@ -128,7 +129,7 @@ class Task(SafeDeleteModel):
         blank=True,
         verbose_name="Assigned To"
     )
-    halo_ref = models.IntegerField(null=True, verbose_name="Halo Reference")
+    halo_ref = models.IntegerField(null=True, blank=True, verbose_name="Halo Reference")
     history = HistoricalRecords()
    
     @property
@@ -149,6 +150,29 @@ class Task(SafeDeleteModel):
     def get_absolute_url(self):
         """Return the URL to access the task's detail view."""
         return reverse('task_detail', kwargs={'project_id': self.project.pk, 'task_id': self.pk})
+
+    def clean(self):
+        super().clean()
+        # Validate skills_required
+        if self.pk and not self.skills_required.exists():
+            raise ValidationError({'skills_required': 'Task must have at least one skill required.'})
+        # Ensure that actual_end_date is after actual_start_date
+        if self.actual_start_date and self.actual_end_date:
+            if self.actual_end_date < self.actual_start_date:
+                raise ValidationError({
+                    'actual_end_date': 'Actual end date cannot be before actual start date.'
+                })
+        # Ensure that planned_end_date is after planned_start_date
+        if self.planned_start_date and self.planned_end_date:
+            if self.planned_end_date < self.planned_start_date:
+                raise ValidationError({
+                    'planned_end_date': 'Planned end date cannot be before planned start date.'
+                })
+        # Ensure that when task_status is Completed, actual_time_to_complete is set
+        if self.task_status == 3 and not self.actual_time_to_complete:
+            raise ValidationError({
+                'actual_time_to_complete': 'Completed task must have actual time to complete set.'
+            })
 
     def save(self, *args, **kwargs):
         # Only update the status to 'Assigned' or 'Unassigned' if the task is not completed
@@ -177,8 +201,13 @@ class Asset(SafeDeleteModel):
     history = HistoricalRecords()
 
     def __str__(self):
-        return self.name
-    
+        return self.name if self.name else "Unnamed Asset"
+
+    def clean(self):
+        super().clean()
+        if self.pk and not self.skills.exists():
+            raise ValidationError({'skills': 'Asset must have at least one skill.'})
+        
 # The Skill Attributes
 class Skill(SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE

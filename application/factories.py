@@ -3,25 +3,15 @@ from application.models import (
     Skill, Team, Asset, Project, Task,
     Stakeholder, Risk, Assumption, Issue, Dependency, Comment
 )
+
+from datetime import timedelta, date
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.utils import timezone
 
 import factory
-from factory import SubFactory, LazyFunction, Sequence, Iterator
+from factory import SubFactory, Iterator, LazyAttribute, post_generation
+from factory.django import DjangoModelFactory
 
-class CategoryFactory(factory.django.DjangoModelFactory):
-    """
-    Factory class for creating instances of the Category model.
-    Attributes:
-        category_name (str): The name of the category.
-    Meta:
-        model (class): The Category model class.
-    """
-    class Meta:
-        model = Category
-
-    category_name = factory.Sequence(lambda n: f"Category {n}")
 
 class SkillFactory(factory.django.DjangoModelFactory):
     """
@@ -41,6 +31,19 @@ class SkillFactory(factory.django.DjangoModelFactory):
 
     skill_name = factory.Sequence(lambda n: f"Skill {n}")
 
+class CategoryFactory(factory.django.DjangoModelFactory):
+    """
+    Factory class for creating instances of the Category model.
+    Attributes:
+        category_name (str): The name of the category.
+    Meta:
+        model (class): The Category model class.
+    """
+    class Meta:
+        model = Category
+
+    category_name = factory.Sequence(lambda n: f"Category {n}")
+
 class TeamFactory(factory.django.DjangoModelFactory):
     """
     Factory class for creating instances of the Team model.
@@ -56,40 +59,12 @@ class TeamFactory(factory.django.DjangoModelFactory):
     team_name = factory.Sequence(lambda n: f"Team {n}")
 
 class AssetFactory(factory.django.DjangoModelFactory):
-    """
-    Factory class for creating instances of the Asset model.
-    Attributes:
-        name (str): The name of the asset.
-        email (str): The email of the asset.
-        normal_work_week (int): The number of hours in the normal work week for the asset.
-    Post-generation method for adding skills to the asset.
-        Args:
-            create (bool): Indicates whether the asset is being created or not.
-            extracted (list): List of skills to be added to the asset.
-            **kwargs: Additional keyword arguments.
-        Returns:
-            None
-    Post-generation method for adding teams to the asset.
-        Args:
-            create (bool): Indicates whether the asset is being created or not.
-            extracted (list): List of teams to be added to the asset.
-            **kwargs: Additional keyword arguments.
-        Returns:
-            None
-    Post-generation method for adding work days to the asset.
-        Args:
-            create (bool): Indicates whether the asset is being created or not.
-            extracted (list): List of work days to be added to the asset.
-            **kwargs: Additional keyword arguments.
-        Returns:
-            None
-    """
     class Meta:
         model = Asset
 
-    name = factory.Faker('name')
-    email = factory.Faker('email')
-    normal_work_week = 37
+    name = factory.Sequence(lambda n: f"AssetName{n}")  # Ensures unique names
+    email = factory.LazyAttribute(lambda obj: f"{obj.name.lower()}@example.com" if obj.name else None)  # Handle name=None
+    normal_work_week = 40  # Assuming 40 hours as default
 
     @factory.post_generation
     def skills(self, create, extracted, **kwargs):
@@ -99,12 +74,9 @@ class AssetFactory(factory.django.DjangoModelFactory):
             for skill in extracted:
                 self.skills.add(skill)
         else:
-            # Use existing skills from initial data or create a new one
-            if Skill.objects.exists():
-                self.skills.add(*Skill.objects.all())
-            else:
-                skill = SkillFactory()
-                self.skills.add(skill)
+            # Create at least one skill
+            skill = SkillFactory()
+            self.skills.add(skill)
 
     @factory.post_generation
     def teams(self, create, extracted, **kwargs):
@@ -114,21 +86,19 @@ class AssetFactory(factory.django.DjangoModelFactory):
             for team in extracted:
                 self.teams.add(team)
         else:
-            team = TeamFactory()
-            self.teams.add(team)
+            # Optionally add a team or leave it blank
+            pass
 
     @factory.post_generation
     def work_days(self, create, extracted, **kwargs):
         if not create:
             return
-
         if extracted:
             for day in extracted:
                 self.work_days.add(day)
         else:
-            # Assume DayOfWeek instances exist
-            days = DayOfWeek.objects.all()
-            self.work_days.add(*days)
+            # Assign default work days or leave it blank
+            pass
 
 class ProjectFactory(factory.django.DjangoModelFactory):
     """
@@ -168,36 +138,33 @@ class ProjectFactory(factory.django.DjangoModelFactory):
         kwargs['category'] = category
         return super()._create(model_class, *args, **kwargs)
 
-class TaskFactory(factory.django.DjangoModelFactory):
-    """
-    Factory class for creating instances of the Task model.
-    Attributes:
-        task_name (str): The name of the task.
-        task_details (str): The details of the task.
-        project (Project): The project to which the task belongs.
-        task_status (TaskStatus): The status of the task.
-        priority (int): The priority of the task.
-        assigned_to (Asset): The asset to which the task is assigned.
-        skills_required (list): The list of skills required for the task.
-    Methods:
-        skills_required(create, extracted, **kwargs): Post-generation method to add skills required for the task.
-    
-    Post-generation method to add skills required for the task.
-        Args:
-            create (bool): Indicates if the instance is being created.
-            extracted (list): List of skills to be added.
-    """
+class TaskFactory(DjangoModelFactory):
     class Meta:
         model = Task
 
     task_name = factory.Sequence(lambda n: f"Task {n}")
     task_details = factory.Faker('paragraph')
     project = SubFactory(ProjectFactory)
-    task_status = 1  # Set the default status explicitly to "Unassigned"
-    priority = Iterator([1, 2, 3, 4, 5])
-    assigned_to = SubFactory(AssetFactory)
+    task_status = 1  # Default to "Unassigned"
+    priority = Iterator([1, 2, 3, 4, 5])  # Low to Urgent
+    planned_start_date = factory.Faker('date_between', start_date='today', end_date='+30d')
+    planned_end_date = LazyAttribute(
+        lambda obj: obj.planned_start_date + timedelta(days=7) if isinstance(obj.planned_start_date, date) else None
+    )
+    actual_start_date = None
+    actual_end_date = None
+    due_date = LazyAttribute(
+        lambda obj: obj.planned_end_date + timedelta(days=2) if isinstance(obj.planned_end_date, date) else None
+    )
+    estimated_time_to_complete = timedelta(hours=8)
+    actual_time_to_complete = None
+    prereq_task = None
+    delay_reason = ""
+    halo_ref = None  # Now optional with blank=True
 
-    @factory.post_generation
+    assigned_to = SubFactory(AssetFactory, skills=[])  # Initialize with no skills; add via post_generation
+
+    @post_generation
     def skills_required(self, create, extracted, **kwargs):
         if not create:
             return
@@ -205,12 +172,9 @@ class TaskFactory(factory.django.DjangoModelFactory):
             for skill in extracted:
                 self.skills_required.add(skill)
         else:
-            # Use existing skills or create one
-            if Skill.objects.exists():
-                self.skills_required.add(*Skill.objects.all())
-            else:
-                skill = SkillFactory()
-                self.skills_required.add(skill)
+            # Ensure at least one skill is added
+            skill = SkillFactory()
+            self.skills_required.add(skill)
 
 class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -273,20 +237,8 @@ class DayOfWeekFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = DayOfWeek
 
-    day_name = factory.Iterator(['Saturday', 'Sunday'])
-    abbreviation = factory.LazyAttribute(lambda obj: obj.day_name[:3])
-
-class SkillFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Skill
-
-    skill_name = factory.Sequence(lambda n: f"Skill {n}")
-
-class TeamFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Team
-
-    team_name = factory.Sequence(lambda n: f"Team {n}")
+    day_name = factory.Sequence(lambda n: f"CustomDay{n}")
+    abbreviation = factory.Sequence(lambda n: f"Cd{n}")  # Ensures uniqueness
 
 class CommentFactory(factory.django.DjangoModelFactory):
     class Meta:

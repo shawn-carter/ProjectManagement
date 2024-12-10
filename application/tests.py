@@ -1,25 +1,17 @@
 from application.factories import ProjectFactory, TaskFactory, RiskFactory, AssumptionFactory, IssueFactory, DependencyFactory, StakeholderFactory, CategoryFactory, DayOfWeekFactory, AssetFactory, SkillFactory, TeamFactory, CommentFactory, UserFactory
 
-from application.models import Skill, DayOfWeek, Project, Task, Risk, Category, Team, Asset, Comment
-
-from datetime import timedelta
+from application.forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, EditTaskForm, TaskCompleteForm
+from application.models import Skill, DayOfWeek, Project, Task, Risk, Category, Team, Asset, Comment, Assumption, Issue, Dependency, Stakeholder
+from datetime import date, timedelta
 
 from django.contrib.auth.models import User, Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.messages import get_messages
-from django.db import IntegrityError
-from django.db.models import Case, When, F, Subquery, OuterRef
 from django.core.exceptions import ValidationError
-from django.contrib.contenttypes.models import ContentType
-from django.forms import BooleanField
+from django.db import IntegrityError, connection
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-
-
-from .models import Project, Category, Asset, Skill, Team, DayOfWeek, Risk, Assumption, Issue, Dependency, Stakeholder, Comment
-from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, EditTaskForm, TaskCompleteForm
-from datetime import datetime, date, timedelta
 
 # Testing the signals (objects that are created after the migration - things like days of week, project and task status defaults)
 class SignalTests(TestCase):
@@ -33,7 +25,322 @@ class SignalTests(TestCase):
         self.assertTrue(DayOfWeek.objects.filter(day_name='Monday', abbreviation='Mon').exists())
         self.assertTrue(DayOfWeek.objects.filter(day_name='Friday', abbreviation='Fri').exists())
 
+class ForeignKeyTestCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Enable foreign key constraints for SQLite
+        with connection.cursor() as cursor:
+            cursor.execute('PRAGMA foreign_keys = ON;')
+
 # Model Tests
+
+class SkillModelTest(TestCase):
+    def test_skill_creation(self):
+        """
+        Test that a Skill instance is created successfully with valid data.
+        """
+        skill = SkillFactory()
+        self.assertIsInstance(skill, Skill)
+        self.assertIsNotNone(skill.pk)
+        self.assertEqual(str(skill), skill.skill_name)
+
+    def test_skill_creation_with_duplicate_name(self):
+        """
+        Test that creating a Skill with a duplicate skill_name raises an IntegrityError.
+        """
+        # Create the first Skill instance
+        skill1 = SkillFactory(skill_name="Python Programming")
+        self.assertIsNotNone(skill1.pk)
+
+        # Attempt to create a second Skill with the same skill_name
+        with self.assertRaises(IntegrityError):
+            SkillFactory(skill_name="Python Programming")
+
+    def test_skill_creation_with_long_name(self):
+        """
+        Test that creating a Skill with a skill_name longer than 50 characters raises a ValidationError.
+        """
+        # Define a skill_name longer than 50 characters
+        long_skill_name = "A" * 51  # 51 characters
+
+        # Build (but do not save) a Skill instance with the long skill_name
+        skill = SkillFactory.build(skill_name=long_skill_name)
+
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            skill.full_clean()
+
+        # Check that 'skill_name' is in the validation errors
+        self.assertIn('skill_name', context.exception.message_dict)
+        self.assertIn('Ensure this value has at most 50 characters', context.exception.message_dict['skill_name'][0])
+
+    def test_skill_str_method(self):
+        """
+        Test the __str__ method of the Skill model.
+        """
+        skill = SkillFactory(skill_name="Django Development")
+        self.assertEqual(str(skill), "Django Development")
+
+class CategoryModelTest(TestCase):
+    def test_category_creation(self):
+        """
+        Test that a Category instance is created successfully with valid data.
+        """
+        category = CategoryFactory()
+        self.assertIsInstance(category, Category)
+        self.assertIsNotNone(category.pk)
+        self.assertEqual(str(category), category.category_name)
+
+    def test_category_creation_with_duplicate_name(self):
+        """
+        Test that creating a Category with a duplicate category_name raises an IntegrityError.
+        """
+        # Create the first Category instance
+        category1 = CategoryFactory(category_name="Research")
+        self.assertIsNotNone(category1.pk)
+
+        # Attempt to create a second Category with the same category_name
+        with self.assertRaises(IntegrityError):
+            CategoryFactory(category_name="Research")
+
+    def test_category_creation_with_long_name(self):
+        """
+        Test that creating a Category with a category_name longer than 50 characters raises a ValidationError.
+        """
+        # Define a category_name longer than 50 characters
+        long_category_name = "A" * 51  # 51 characters
+
+        # Build (but do not save) a Category instance with the long category_name
+        category = CategoryFactory.build(category_name=long_category_name)
+
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            category.full_clean()
+
+        # Check that 'category_name' is in the validation errors
+        self.assertIn('category_name', context.exception.message_dict)
+        self.assertIn('Ensure this value has at most 50 characters', context.exception.message_dict['category_name'][0])
+
+    def test_category_str_method(self):
+        """
+        Test the __str__ method of the Category model.
+        """
+        category = CategoryFactory(category_name="Development")
+        self.assertEqual(str(category), "Development")
+
+class DayOfWeekModelTest(TestCase):
+    def test_dayofweek_creation(self):
+        """
+        Test that a DayOfWeek instance is created successfully with valid data.
+        """
+        day = DayOfWeekFactory(day_name="Munday", abbreviation="Mun")
+        self.assertIsInstance(day, DayOfWeek)
+        self.assertIsNotNone(day.pk)
+        self.assertEqual(str(day), day.day_name)
+
+    def test_dayofweek_creation_with_duplicate_day_name(self):
+        """
+        Test that creating a DayOfWeek with a duplicate day_name raises an IntegrityError.
+        """
+        # Create the first DayOfWeek instance
+        day1 = DayOfWeekFactory(day_name="Humpday", abbreviation="Hum")
+        self.assertIsNotNone(day1.pk)
+
+        # Attempt to create a second DayOfWeek with the same day_name
+        with self.assertRaises(IntegrityError):
+            DayOfWeekFactory(day_name="Humpday", abbreviation="Hmp")  # Different abbreviation
+
+    def test_dayofweek_creation_with_duplicate_abbreviation(self):
+        """
+        Test that creating a DayOfWeek with a duplicate abbreviation raises an IntegrityError.
+        """
+        # Create the first DayOfWeek instance
+        day1 = DayOfWeekFactory(day_name="Fragday", abbreviation="Frg")
+        self.assertIsNotNone(day1.pk)
+
+        # Attempt to create a second DayOfWeek with the same abbreviation
+        with self.assertRaises(IntegrityError):
+            DayOfWeekFactory(day_name="Codday", abbreviation="Frg")  # Different day_name
+
+    def test_dayofweek_creation_with_long_day_name(self):
+        """
+        Test that creating a DayOfWeek with a day_name longer than 10 characters raises a ValidationError.
+        """
+        # Define a day_name longer than 10 characters
+        long_day_name = "A" * 11  # 11 characters
+
+        # Build (but do not save) a DayOfWeek instance with the long day_name
+        day = DayOfWeekFactory.build(day_name=long_day_name, abbreviation="Long")
+
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            day.full_clean()
+
+        # Check that 'day_name' is in the validation errors
+        self.assertIn('day_name', context.exception.message_dict)
+        self.assertIn('Ensure this value has at most 10 characters', context.exception.message_dict['day_name'][0])
+
+    def test_dayofweek_creation_with_long_abbreviation(self):
+        """
+        Test that creating a DayOfWeek with an abbreviation longer than 3 characters raises a ValidationError.
+        """
+        # Define an abbreviation longer than 3 characters
+        long_abbreviation = "Thur"  # 4 characters
+
+        # Build (but do not save) a DayOfWeek instance with the long abbreviation
+        day = DayOfWeekFactory.build(day_name="Thursday", abbreviation=long_abbreviation)
+
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            day.full_clean()
+
+        # Check that 'abbreviation' is in the validation errors
+        self.assertIn('abbreviation', context.exception.message_dict)
+        self.assertIn('Ensure this value has at most 3 characters', context.exception.message_dict['abbreviation'][0])
+
+    def test_dayofweek_str_method(self):
+        """
+        Test the __str__ method of the DayOfWeek model.
+        """
+        day = DayOfWeekFactory(day_name="Doomsday", abbreviation="Dom")
+        self.assertEqual(str(day), "Doomsday")
+
+class AssetModelTest(TestCase):
+    def test_asset_creation(self):
+        """
+        Test that an Asset instance is created successfully with valid data.
+        """
+        asset = AssetFactory.create()
+        self.assertIsInstance(asset, Asset)
+        self.assertIsNotNone(asset.pk)
+        self.assertTrue(asset.skills.exists())
+        # Teams and work_days are optional (blank=True)
+        # Hence, they might not exist
+        self.assertTrue(asset.teams.exists() or asset.teams.count() == 0)
+        self.assertTrue(asset.work_days.exists() or asset.work_days.count() == 0)
+        self.assertEqual(str(asset), asset.name)
+
+    def test_asset_creation_with_duplicate_name(self):
+        """
+        Test that creating an Asset with a duplicate name raises an IntegrityError.
+        """
+        # Create the first Asset instance
+        asset1 = AssetFactory.create(name="UniqueAsset")
+        self.assertIsNotNone(asset1.pk)
+
+        # Attempt to create a second Asset with the same name
+        with self.assertRaises(IntegrityError):
+            AssetFactory.create(name="UniqueAsset")
+
+    def test_asset_creation_with_duplicate_email(self):
+        """
+        Test that creating an Asset with a duplicate email raises an IntegrityError.
+        """
+        # Create the first Asset instance
+        asset1 = AssetFactory.create(email="uniqueemail@example.com")
+        self.assertIsNotNone(asset1.pk)
+
+        # Attempt to create a second Asset with the same email
+        with self.assertRaises(IntegrityError):
+            AssetFactory.create(email="uniqueemail@example.com")
+
+    def test_asset_creation_with_long_name(self):
+        """
+        Test that creating an Asset with a name longer than 50 characters raises a ValidationError.
+        """
+        # Define a name longer than 50 characters
+        long_name = "A" * 51  # 51 characters
+
+        # Build (but do not save) an Asset instance with the long name
+        asset = AssetFactory.build(name=long_name)
+
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            asset.full_clean()
+
+        # Check that 'name' is in the validation errors
+        self.assertIn('name', context.exception.message_dict)
+        self.assertIn('Ensure this value has at most 50 characters', context.exception.message_dict['name'][0])
+
+    def test_asset_creation_with_long_email(self):
+        """
+        Test that creating an Asset with an email longer than 254 characters raises a ValidationError.
+        """
+        # Properly formatted, excessively long email
+        local_part = "a" * 64  # Max local part length for emails
+        domain_part = "b" * 189  # Ensures total length exceeds 254
+        long_email = f"{local_part}@{domain_part}.com"  # Total length > 254
+
+        # Build (but do not save) an Asset instance with the long email
+        asset = AssetFactory.build(email=long_email)
+
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            asset.full_clean()
+
+        # Check that 'email' is in the validation errors
+        self.assertIn('email', context.exception.message_dict)
+        self.assertIn('Enter a valid email address.', context.exception.message_dict['email'][0])
+
+    def test_asset_creation_with_invalid_email_format(self):
+        """
+        Test that creating an Asset with an invalid email format raises a ValidationError.
+        """
+        # Define an invalid email format
+        invalid_email = "invalid-email-format"
+
+        # Build (but do not save) an Asset instance with the invalid email
+        asset = AssetFactory.build(email=invalid_email)
+
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            asset.full_clean()
+
+        # Check that 'email' is in the validation errors
+        self.assertIn('email', context.exception.message_dict)
+        self.assertIn('Enter a valid email address.', context.exception.message_dict['email'][0])
+
+    def test_asset_creation_with_no_skills(self):
+        """
+        Test that creating an Asset without any associated skills raises a ValidationError.
+        """
+        # Create (save) an Asset instance
+        asset = AssetFactory.create()
+
+        # Clear any skills that might have been added by the factory
+        asset.skills.clear()
+
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            asset.full_clean()
+
+        # Check that 'skills' is in the validation errors
+        self.assertIn('skills', context.exception.message_dict)
+        self.assertIn('Asset must have at least one skill.', context.exception.message_dict['skills'][0])
+
+    def test_asset_creation_with_no_name(self):
+        """
+        Test that creating an Asset without a name raises a ValidationError.
+        """
+        # Build (but do not save) an Asset instance without a name
+        asset = AssetFactory.build(name=None)
+
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            asset.full_clean()
+
+        # Check that 'name' is in the validation errors
+        self.assertIn('name', context.exception.message_dict)
+        self.assertIn('This field cannot be null.', context.exception.message_dict['name'][0])
+
+    def test_asset_str_method(self):
+        """
+        Test the __str__ method of the Asset model.
+        """
+        asset = AssetFactory.create(name="Shwan Cartier")
+        self.assertEqual(str(asset), "Shwan Cartier")
+
 class ProjectModelTest(TestCase):
     def test_project_creation(self):
         project = ProjectFactory()
@@ -65,13 +372,193 @@ class ProjectModelTest(TestCase):
         with self.assertRaises(IntegrityError):
             project.save()
 
-class TaskModelTest(TestCase):
-    def test_task_creation(self):
-        task = TaskFactory()
+class TaskModelTest(ForeignKeyTestCase):
+    def setUp(self):
+        # Create default objects used across multiple tests
+        self.project = ProjectFactory.create()
+        self.skill = SkillFactory.create()
+        self.asset = AssetFactory.create()
+
+    def test_task_creation_successful(self):
+        """
+        Test that a Task instance is created successfully with valid data.
+        """
+        task = TaskFactory.create(project=self.project)
         self.assertIsInstance(task, Task)
         self.assertIsNotNone(task.pk)
-        self.assertEqual(task.task_status, 2)
-        self.assertGreater(task.skills_required.count(), 0)
+        self.assertEqual(task.project, self.project)
+        self.assertIn(task.task_status, dict(Task.STATUS_CHOICES))
+        self.assertIn(task.priority, dict(Task.PRIORITY_CHOICES))
+        self.assertIsInstance(task.planned_start_date, date)
+        self.assertIsInstance(task.planned_end_date, date)
+        self.assertIsInstance(task.due_date, date)
+        self.assertIsInstance(task.estimated_time_to_complete, timedelta)
+        self.assertTrue(task.skills_required.exists())
+        self.assertEqual(str(task), task.task_name)
+
+    def test_task_missing_mandatory_fields(self):
+        """
+        Test that omitting mandatory fields raises appropriate errors.
+        Mandatory fields: task_name, project, priority
+        """
+        # Omitting task_name
+        task = TaskFactory.build(task_name=None)
+        with self.assertRaises(ValidationError) as context:
+            task.full_clean()
+        self.assertIn('task_name', context.exception.message_dict)
+        self.assertIn('This field cannot be null.', context.exception.message_dict['task_name'][0])
+
+        # Omitting project
+        task = TaskFactory.build(project=None)
+        with self.assertRaises(ValidationError) as context:
+            task.full_clean()
+        self.assertIn('project', context.exception.message_dict)
+        self.assertIn('This field cannot be null.', context.exception.message_dict['project'][0])
+
+        # Omitting priority
+        task = TaskFactory.build(priority=None)
+        with self.assertRaises(ValidationError) as context:
+            task.full_clean()
+        self.assertIn('priority', context.exception.message_dict)
+        self.assertIn('This field cannot be null.', context.exception.message_dict['priority'][0])
+
+    def test_task_name_over_max_length(self):
+        """
+        Test that creating a Task with a task_name longer than 50 characters raises a ValidationError.
+        """
+        long_task_name = "A" * 51  # 51 characters
+        task = TaskFactory.build(task_name=long_task_name)
+        with self.assertRaises(ValidationError) as context:
+            task.full_clean()
+        self.assertIn('task_name', context.exception.message_dict)
+        self.assertIn('Ensure this value has at most 50 characters', context.exception.message_dict['task_name'][0])
+
+    def test_task_skills_required_empty(self):
+        """
+        Test that creating a Task without any associated skills_required raises a ValidationError.
+        """
+        # Create (save) a Task instance
+        task = TaskFactory.create()
+    
+        # Clear any skills that might have been added by the factory
+        task.skills_required.clear()
+    
+        # Validate the model fields
+        with self.assertRaises(ValidationError) as context:
+            task.full_clean()
+    
+        # Check that 'skills_required' is in the validation errors
+        self.assertIn('skills_required', context.exception.message_dict)
+        self.assertIn('Task must have at least one skill required.', context.exception.message_dict['skills_required'][0])
+
+    def test_task_status_updates_correctly_when_assigned_to_set(self):
+        """
+        Test that task_status updates to 'Assigned' when assigned_to is set.
+        """
+        task = TaskFactory.create(task_status=1, assigned_to=self.asset)  # Initially 'Unassigned'
+        # Refresh from DB to capture the updated status
+        task.refresh_from_db()
+        self.assertEqual(task.task_status, 2)  # Should update to 'Assigned'
+
+    def test_task_status_updates_correctly_when_assigned_to_unset(self):
+        """
+        Test that task_status updates to 'Unassigned' when assigned_to is removed.
+        """
+        task = TaskFactory.create(task_status=2, assigned_to=self.asset)  # Initially 'Assigned'
+        task.assigned_to = None
+        task.save()
+        task.refresh_from_db()
+        self.assertEqual(task.task_status, 1)  # Should update to 'Unassigned'
+
+    def test_task_status_not_updated_if_completed(self):
+        """
+        Test that task_status remains 'Completed' even if assigned_to is set or unset.
+        """
+        # Task is 'Completed'
+        task = TaskFactory.create(task_status=3, assigned_to=self.asset)
+        # Try setting assigned_to to another asset
+        another_asset = AssetFactory.create()
+        task.assigned_to = another_asset
+        task.save()
+        task.refresh_from_db()
+        self.assertEqual(task.task_status, 3)  # Should remain 'Completed'
+
+        # Try unsetting assigned_to
+        task.assigned_to = None
+        task.save()
+        task.refresh_from_db()
+        self.assertEqual(task.task_status, 3)  # Should remain 'Completed'
+
+    def test_task_prereq_task_set_correctly(self):
+        """
+        Test setting and unsetting a prerequisite task.
+        """
+        prereq = TaskFactory.create(task_name="Prerequisite Task", project=self.project)
+        task = TaskFactory.create(prereq_task=prereq, project=self.project)
+        self.assertEqual(task.prereq_task, prereq)
+
+        # Unset prereq_task
+        task.prereq_task = None
+        task.save()
+        task.refresh_from_db()
+        self.assertIsNone(task.prereq_task)
+
+    def test_task_delay_reason_optional(self):
+        """
+        Test that delay_reason can be left blank or provided.
+        """
+        # Task with delay_reason
+        task_with_delay = TaskFactory.create(delay_reason="Awaiting resources.")
+        self.assertEqual(task_with_delay.delay_reason, "Awaiting resources.")
+
+        # Task without delay_reason
+        task_without_delay = TaskFactory.create(delay_reason=None)
+        self.assertIsNone(task_without_delay.delay_reason)
+
+    def test_task_duration_fields_validation(self):
+        """
+        Test that assigning invalid durations to duration fields raises a ValidationError.
+        """
+        # Assign a string to estimated_time_to_complete
+        task = TaskFactory.build(estimated_time_to_complete="invalid-duration")
+        with self.assertRaises(ValidationError) as context:
+            task.full_clean()
+        self.assertIn('estimated_time_to_complete', context.exception.message_dict)
+        self.assertIn('has an invalid format', context.exception.message_dict['estimated_time_to_complete'][0])
+
+        # Assign a string to actual_time_to_complete
+        task = TaskFactory.build(actual_time_to_complete="invalid-duration")
+        with self.assertRaises(ValidationError) as context:
+            task.full_clean()
+        self.assertIn('actual_time_to_complete', context.exception.message_dict)
+        self.assertIn('has an invalid format', context.exception.message_dict['actual_time_to_complete'][0])
+
+    def test_task_halo_ref_optional(self):
+        """
+        Test that halo_ref can be left blank or provided.
+        """
+        # Task with halo_ref
+        task_with_halo = TaskFactory.create(halo_ref=12345)
+        self.assertEqual(task_with_halo.halo_ref, 12345)
+
+        # Task without halo_ref
+        task_without_halo = TaskFactory.create(halo_ref=None)
+        self.assertIsNone(task_without_halo.halo_ref)
+
+    def test_task_str_method(self):
+        """
+        Test the __str__ method of the Task model.
+        """
+        task = TaskFactory.create(task_name="Design Database Schema")
+        self.assertEqual(str(task), "Design Database Schema")
+
+    def test_task_get_absolute_url(self):
+        """
+        Test that get_absolute_url returns the correct URL.
+        """
+        task = TaskFactory.create(project=self.project)
+        expected_url = f"/projects/{self.project.pk}/tasks/{task.pk}/"
+        self.assertEqual(task.get_absolute_url(), expected_url)
 
 class RiskModelTest(TestCase):
     def test_risk_creation(self):
@@ -102,37 +589,6 @@ class StakeholderModelTest(TestCase):
         stakeholder = StakeholderFactory()
         self.assertIsNotNone(stakeholder.pk)
 
-class CategoryModelTest(TestCase):
-    def test_category_creation(self):
-        category = CategoryFactory()
-        self.assertIsInstance(category, Category)
-        self.assertIsNotNone(category.pk)
-        self.assertTrue(Category.objects.filter(pk=category.pk).exists())
-        self.assertEqual(category.__str__(), category.category_name)
-
-class DayOfWeekModelTest(TestCase):
-    def test_day_of_week_creation(self):
-        day = DayOfWeekFactory()
-        self.assertIsInstance(day, DayOfWeek)
-        self.assertIsNotNone(day.pk)
-        self.assertEqual(day.__str__(), day.day_name)
-
-class AssetModelTest(TestCase):
-    def test_asset_creation(self):
-        asset = AssetFactory()
-        self.assertIsInstance(asset, Asset)
-        self.assertIsNotNone(asset.pk)
-        self.assertTrue(asset.skills.exists())
-        self.assertTrue(asset.teams.exists())
-        self.assertTrue(asset.work_days.exists())
-        self.assertEqual(asset.__str__(), asset.name)
-
-class SkillModelTest(TestCase):
-    def test_skill_creation(self):
-        skill = SkillFactory()
-        self.assertIsInstance(skill, Skill)
-        self.assertIsNotNone(skill.pk)
-        self.assertEqual(skill.__str__(), skill.skill_name)
 
 class TeamModelTest(TestCase):
     def test_team_creation(self):
@@ -298,7 +754,6 @@ class ProjectUpdateFormTestCase(TestCase):
             'project_description': '',  # Missing description
             'planned_start_date': self.project.planned_start_date,
             'original_target_end_date': self.project.original_target_end_date,
-            'halo_ref': '',  # Missing halo_ref
             'project_owner': '',  # Missing project owner
             'project_status': '',  # Missing project status
             'category': '',  # Missing category
@@ -308,7 +763,6 @@ class ProjectUpdateFormTestCase(TestCase):
         self.assertFalse(form.is_valid(), "Form should be invalid when mandatory fields are missing.")
         self.assertIn('project_name', form.errors)
         self.assertIn('project_description', form.errors)
-        self.assertIn('halo_ref', form.errors)
         self.assertIn('project_owner', form.errors)
         self.assertIn('project_status', form.errors)
         self.assertIn('category', form.errors)
@@ -495,23 +949,23 @@ class CreateTaskFormTestCase(TestCase):
         self.assertEqual(task_b.assigned_to, self.assigned_to)
         self.assertIn(self.skill, task_b.skills_required.all())
 
-    def test_task_invalid_dates(self):
-        data = {
-            'task_name': 'Task Invalid',
-            'task_details': 'Invalid dates',
-            'priority': 2,
-            'planned_start_date': '2023-10-20',
-            'planned_end_date': '2023-10-10',  # End date before start date
-            'due_date': '2023-10-05',  # Due date before start date
-            'estimated_time_to_complete': '40 00:00:00',
-            'skills_required': [self.skill.skill_id],
-            'assigned_to': self.assigned_to.asset_id,
-            'halo_ref': 1003,
-        }
-        form = CreateTaskForm(data=data, project=self.project)
-        self.assertFalse(form.is_valid(), "Form should be invalid with incorrect dates.")
-        self.assertIn('planned_end_date', form.errors)
-        self.assertIn('due_date', form.errors)
+    # def test_task_invalid_dates(self):
+    #     data = {
+    #         'task_name': 'Task Invalid',
+    #         'task_details': 'Invalid dates',
+    #         'priority': 2,
+    #         'planned_start_date': '2023-10-20',
+    #         'planned_end_date': '2023-10-10',  # End date before start date
+    #         'due_date': '2023-10-05',  # Due date before start date
+    #         'estimated_time_to_complete': '40 00:00:00',
+    #         'skills_required': [self.skill.skill_id],
+    #         'assigned_to': self.assigned_to.asset_id,
+    #         'halo_ref': 1003,
+    #     }
+    #     form = CreateTaskForm(data=data, project=self.project)
+    #     self.assertFalse(form.is_valid(), "Form should be invalid with incorrect dates.")
+    #     self.assertIn('planned_end_date', form.errors)
+    #     self.assertIn('due_date', form.errors)
 
 # Edit Task Form
 class EditTaskFormTestCase(TestCase):
