@@ -4,25 +4,3 @@
         Can use the existing Create Task View.
     Import Assets (Users) from Active Directory / Excel.
     Skill Proficiencies. - This is a big job, as will take the skills away from the asset - and put them into a proficiencies table, linking skills and assets with a value 1-5
-
-Bugs/Things to do:
-    Format the Project Detail page better - use Bootstrap rows/cols cards etc
-    Format the Task Details - same as above
-    Sort the Time to Complete Task (it is currently taking seconds - this should be hours at least 0.5 hours maybe?)
-    Sort the Time (it is currently taking seconds - this should be hours at least 0.5 hours maybe?)
-
-    Stakeholders allows duplicate Names and Email Address...
-        There could be Stakeholders that exist in multiple projects - so we can't use model constraint - will have to be a view/form validation thing. Conditional check for name and email in same project.
-
-
-Other Pages: 
-    Teams List - will simply list people in each team.
-
-
-Ok I have to do an assignment for my Major Project, which is an application I've been developing. I'll give you some background and attach the draft which has some ideas on some of the topics to cover - there is also a 30-60 minute presentation which will accompany this assignment - where I can demonstrate the application I've developed and go into more detail where I have limited word count - provided that I have mentioned it in the assignment / slide deck.
-
-So my operations manager had a meeting with me about my practical research proposal, the problem that he has - is that he had at the time over 45 outstanding projects. These are managed if you like through our incident management system, so there is an incident for the project - but it is limited in what it can outside of holding a description of the project. Child tasks are created in the incident management system, and these can be allocated to individuals. I think part of the problem that Brian has he explained was seeing the progress of a project, but also he struggles to see what resources he has, who is available, when can they do this.  Tasks are kind of created dynamically, when one task is complete - we might know what we have to do, but the process isn't very good. So my take on this was - if we can better manage the project, the individual tasks that are required, we can then start to gather stats on the project progress, how many tasks have individuals / assets completed in a time, how many tasks do they currently have assigned to them. Building skills into the tasks, we can then start to identify where we may have skills gaps, looking at how many assets have those skills, and how busy have they been over the last month with project tasks. Being able to see the number of tasks that a project involves, and the progress of those - through the number of complete/total tasks - can give us an idea if the project is on track, and assign it a RAG status based on the planned end date. I've added task prerequisites and dependencies, and both a project calendar to see and add tasks, alongside a gantt chart, there is some basic conflict checking based on start/end dates, and I've added RAID categories to the app - to allow the recording of Risks, Assumptions, Issues and Dependencies. I've added stakeholders, with their interest and power levels, I've added the ability to upload documents with a dropzone, and created preview on a table - also allowing users to download. I've added safe_delete and history to the DJango app to prevent real deletions or assets, tasks, projects etc. and history allows you to see any changes that have been made. I created a survey initially to gather Moscow, but I haven't had any responses - I may have to create a shorter survey to get some details, and some 1 on 1s with the operations manager and projects team, because I expect that this will be a tool that is used by the projects team to help them to organise their projects. Does a project take some time to plan?  Yes of course it does, and I would expect that the project manager knows to some extent what exactly is entailed within that project. So that's a little background, I can include things like models.py, views etc if it helps you to understand what's going on. 
-
-I'll attach the assignment brief - which is really just some headings at the moment - which are mandatory, along with suggested word counts - as this is limited to 6000 words +- 10%, I've added notes from the brief along with notes I've taken from the workshops I attended over the last 4 weeks, but I've been focussing on developing the app - adding the features that are important, but of course if there is more time I'll keep working on it - I just need to make a start on the draft for the assignment, bullet points - potential areas to look at, ideas, drawings/diagrams, how things are ordered, so they flow properly. Any references should be at most 5 years old, pref 3 years or less.
-
-I've taken the best (80-100%) scores from the rubric, you will find them at the bottom of the section.
