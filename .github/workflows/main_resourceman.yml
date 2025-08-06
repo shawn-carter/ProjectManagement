@@ -53,7 +53,7 @@ jobs:
 
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: python-app
 
@@ -66,3 +66,4 @@ jobs:
         with:
           app-name: 'resourceman'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9365F16491E64CB6A7CD92B3C12C4BA8 }}
+
