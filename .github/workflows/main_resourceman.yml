@@ -40,7 +40,7 @@ jobs:
           zip -r release.zip . -x '*.git*' '*venv/*' '*.pyc' '*__pycache__/*'
 
       - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: release.zip
@@ -66,4 +66,5 @@ jobs:
         with:
           app-name: 'resourceman'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9365F16491E64CB6A7CD92B3C12C4BA8 }}
+
 
