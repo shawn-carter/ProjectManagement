@@ -1,31 +1,79 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>Issue Details: {{ issue.issue_details }}</h1>
-    <a href="{% url 'issue_list' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Issues List</a>
-    <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('issue', {{ issue.pk }}, 'Issue Details')">Add Comment</button>
-    {% if project.project_status != 7 %}
-        <a href="{% url 'edit_issue' project_id=project.id issue_id=issue.id %}" class="btn btn-warning mb-3">Edit Issue</a>
-    {% endif %}
-    
-    <h3>Issue Overview</h3>
-    <p><strong>Details:</strong> {{ issue.issue_details }}</p>
-    <p><strong>Status:</strong> {{ issue.get_status_display }}</p>
-    <p><strong>Created By:</strong> {{ issue.created_by }}</p>
-    <p><strong>Created At:</strong> {{ issue.created_datetime }}</p>
-    <p><strong>Last Updated At:</strong> {{ issue.last_updated_datetime }}</p>
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Issue Details: {{ issue.issue_details }}</h1>
+        <div>
+            <a href="{% url 'issue_list' project_id=project.id %}" class="btn btn-outline-secondary">Back to Issues List</a>
+            {% if project.project_status != 7 %}
+                <a href="{% url 'edit_issue' project_id=project.id issue_id=issue.id %}" class="btn btn-warning">Edit Issue</a>
+            {% endif %}
+        </div>
+    </div>
 
-    <h3>Comments</h3>
-    <ul class="list-group">
-        {% if comments %}
-            {% for comment in comments %}
-                <li class="list-group-item">
-                    <strong>{{ comment.user }}:</strong> {{ comment.comment_text }} <br>
-                    <small>Posted on: {{ comment.created_datetime }}</small>
-                </li>
-            {% endfor %}
-        {% else %}
-            <li class="list-group-item">No comments available.</li>
-        {% endif %}
-    </ul>
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Issue Description Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Issue Description</h6>
+                </div>
+                <div class="card-body">
+                    <p>{{ issue.issue_details|linebreaksbr }}</p>
+                </div>
+            </div>
+
+            <!-- Comments Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Comments</h6>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openCommentModal('issue', {{ issue.pk }}, 'Issue Details')">Add Comment</button>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for comment in comments %}
+                            <li class="list-group-item">
+                                <strong>{{ comment.user }}:</strong> {{ comment.comment_text|linebreaksbr }}
+                                <br>
+                                <small class="text-muted">Posted on: {{ comment.created_datetime }}</small>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">No comments yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Issue Information Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Issue Information</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Status:</strong> 
+                        <span class="badge bg-warning text-dark">{{ issue.get_status_display }}</span>
+                    </p>
+                    <p><strong>Created By:</strong> {{ issue.created_by }}</p>
+                </div>
+            </div>
+
+            <!-- Dates Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Dates</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Created:</strong> {{ issue.created_datetime|date:'d/m/Y H:i' }}</p>
+                    <p><strong>Last Updated:</strong> {{ issue.last_updated_datetime|date:'d/m/Y H:i' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

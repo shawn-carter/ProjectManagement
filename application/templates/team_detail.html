@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extraCSS %}
+<link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<h1>{{ team.team_name }}</h1>
+<a href="{% url 'asset_list' %}" class="btn btn-outline-secondary mb-3">Back to Asset List</a>
+
+<div class="card p-3 mb-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h3>Team Information</h3>
+            <p><strong>Members:</strong> {{ member_count }}</p>
+            <p><strong>Total Skills in Team:</strong> {{ total_skills_count }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="card p-3 mb-4">
+    <h3>Team Skills</h3>
+    <ul>
+        {% for skill in total_skills %}
+            <li><a href="{% url 'skill_detail' pk=skill.skill_id %}">{{ skill.skill_name }}</a></li>
+        {% empty %}
+            <li>No skills among team members.</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="card p-3 mb-4">
+    <h3>Team Members</h3>
+    {% if team_members %}
+        <table id="team-members-table" class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Projects Owned</th>
+                    <th>Tasks</th>
+                    <th>Completed Tasks</th>
+                    <th>Completion %</th>
+                    <th>Skills</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in team_members %}
+                    <tr>
+                        <td><a href="{% url 'asset_detail' pk=member.asset_id %}">{{ member.name }}</a></td>
+                        <td>{{ member.projects_owned_count }}</td>
+                        <td>{{ member.tasks_count }}</td>
+                        <td>{{ member.completed_tasks_count }}</td>
+                        <td>{{ member.completion_percentage|floatformat:0 }}%</td>
+                        <td>
+                            {% for skill in member.skills.all %}
+                                <span class="badge bg-secondary">{{ skill.skill_name }}</span>{% if not forloop.last %} {% endif %}
+                            {% empty %}
+                                No skills
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No members in this team.</p>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/datatables.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        // Only initialize DataTables if there is data to display
+        if ($('#team-members-table tbody tr').length) {
+            $('#team-members-table').DataTable({
+                dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                        '<"col-sm-4 d-flex align-items-center"B>' +
+                        '<"col-sm-4 d-flex justify-content-center"i>' +
+                        '<"col-sm-4 d-flex justify-content-end"f>' +
+                     '>' +
+                     '<"row"<"col-sm-12"tr>>' +
+                     '<"d-flex justify-content-between align-items-center mt-2"' +
+                        '<"col-sm-12 col-md-6"l>' +
+                        '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
+                buttons: [
+                    'copy', 'csv', 'excel'
+                ],
+                pagingType: "full_numbers",
+                "order": [],  // Disable initial ordering, respects backend order
+                "ordering": true,
+            });
+        }
+    });
+</script>
+{% endblock %}

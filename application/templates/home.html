@@ -36,6 +36,15 @@
                 </div>
             </div>
             <div class="col">
+                <div class="card bg-warning text-white mb-2">
+                    <div class="card-header">On Hold Projects</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ projects_onhold }}</h5>
+                        <a href="{% url 'on_hold_project_list' %}" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
                 <div class="card bg-primary text-white mb-3">
                     <div class="card-header">All Tasks</div>
                     <div class="card-body">

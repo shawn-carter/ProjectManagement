@@ -1,60 +1,129 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>Task: {{ task.task_name }}</h1>
-    <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Tasks</a>
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Task: {{ task.task_name }}</h1>
+        <div>
+            <a href="{% url 'project_taskview' project_id=project.id %}" class="btn btn-outline-secondary">Back to Tasks</a>
+            {% if task.task_status != 3 %}
+                <a href="{% url 'task_edit' project_id=project.id task_id=task.id %}" class="btn btn-warning">Edit Task</a>
+                {% if not task.prereq_task or task.prereq_task.task_status == 3 %}
+                    <a href="{% url 'task_complete' project_id=project.id task_id=task.id %}" class="btn btn-success">Complete Task</a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
 
-    {% if task.task_status != 3 %}  <!-- Only show if the task is not completed -->
-    <a href="{% url 'task_edit' project_id=project.id task_id=task.id %}" class="btn btn-warning mb-3">Edit Task</a>
-        {% if not task.prereq_task or task.prereq_task.task_status == 3 %}
-            <a href="{% url 'task_complete' project_id=project.id task_id=task.id %}" class="btn btn-success mb-3">Complete Task</a>
-        {% endif %}
-    {% endif %}
-    <p><strong>Status:</strong> {{ task.get_task_status_display }}</p>  <!-- Use get_task_status_display to show the name -->
-    <p><strong>Priority:</strong> {{ task.get_priority_display }}</p>
-    <p><strong>Owner:</strong>
-        {% if task.assigned_to %}
-            <a href="{% url 'asset_detail' pk=task.assigned_to.pk %}">
-                {{ task.assigned_to }}
-            </a>
-        {% else %}
-            Unassigned
-        {% endif %}
-    </p>
-    <p><strong>Details:</strong> {{ task.task_details }}</p>
-    <p><strong>Planned Start Date:</strong> {{ task.planned_start_date|date:'d/m/Y' }}</p>
-    <p><strong>Planned End Date:</strong> {{ task.planned_end_date|date:'d/m/Y' }}</p>
-    <p><strong>Actual Start Date:</strong> {{ task.actual_start_date|date:'d/m/Y' }}</p>
-    <p><strong>Actual End Date:</strong> {{ task.actual_end_date|date:'d/m/Y' }}</p>
-    <p><strong>Due Date:</strong> {{ task.due_date|date:'d/m/Y' }}</p>
-    <p><strong>Estimated Time to Complete:</strong> {{ task.estimated_time_to_complete }}</p>
-    <p><strong>Actual Time to Complete:</strong> {{ task.actual_time_to_complete }}</p>
-    <p><strong>Has Dependency:</strong> {{ task.has_dependency }}</p>
-    <p><strong>Prerequisite Task:</strong> 
-        {% if task.prereq_task %}
-        <a href="{% url 'task_detail' project_id=task.prereq_task.project.id task_id=task.prereq_task.id %}">
-            {{ task.prereq_task.task_name }}
-        </a>
-        {% else %}
-            None
-        {% endif %}
-    </p>
-    <p><strong>Delay Reason:</strong> {{ task.delay_reason }}</p>
-    <p><strong>Skills Required:</strong> {{ task.skills_required.all|join:", " }}</p>
-    <p><strong>Halo Reference:</strong>
-        <a href="https://redcarcouncil.haloservicedesk.com/tickets?id={{ task.halo_ref }}" target="_blank">
-            {{ task.halo_ref }}
-        </a></p>
-    
-    <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('task', {{ task.pk }}, 'Task Details')">Add Comment</button>
-    <h3>Comments</h3>
-    <ul class="list-group">
-        {% for comment in comments %}
-            <li class="list-group-item">
-                <strong>{{ comment.user }}:</strong> {{ comment.comment_text }} <br>
-                <small>Posted on: {{ comment.created_datetime }}</small>
-            </li>
-        {% endfor %}
-    </ul>
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Task Details Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Task Details</h6>
+                </div>
+                <div class="card-body">
+                    <p>{{ task.task_details|linebreaksbr }}</p>
+                </div>
+            </div>
 
+            <!-- Comments Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Comments</h6>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openCommentModal('task', {{ task.pk }}, 'Task Details')">Add Comment</button>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for comment in comments %}
+                            <li class="list-group-item">
+                                <strong>{{ comment.user }}:</strong> {{ comment.comment_text|linebreaksbr }}
+                                <br>
+                                <small class="text-muted">Posted on: {{ comment.created_datetime }}</small>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">No comments yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Task Information Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Task Information</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Status:</strong> 
+                        <span class="badge 
+                            {% if task.task_status == 3 %}bg-success
+                            {% elif task.task_status == 2 %}bg-primary
+                            {% elif task.task_status == 4 %}bg-warning text-dark
+                            {% elif task.task_status == 5 %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ task.get_task_status_display }}
+                        </span>
+                    </p>
+                    <p><strong>Priority:</strong> {{ task.get_priority_display }}</p>
+                    <p><strong>Owner:</strong>
+                        {% if task.assigned_to %}
+                            <a href="{% url 'asset_detail' pk=task.assigned_to.pk %}">{{ task.assigned_to }}</a>
+                        {% else %}
+                            Unassigned
+                        {% endif %}
+                    </p>
+                    <p><strong>Skills Required:</strong> {{ task.skills_required.all|join:", " }}</p>
+                    {% if task.halo_ref %}
+                        <p><strong>Halo Reference:</strong>
+                            <a href="https://redcarcouncil.haloservicedesk.com/tickets?id={{ task.halo_ref }}" target="_blank">{{ task.halo_ref }}</a>
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Dates Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Dates</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Planned Start:</strong> {{ task.planned_start_date|date:'d/m/Y' }}</p>
+                    <p><strong>Planned End:</strong> {{ task.planned_end_date|date:'d/m/Y' }}</p>
+                    <hr>
+                    <p><strong>Actual Start:</strong> {{ task.actual_start_date|date:'d/m/Y'|default:'--' }}</p>
+                    <p><strong>Actual End:</strong> {{ task.actual_end_date|date:'d/m/Y'|default:'--' }}</p>
+                    <hr>
+                    <p><strong>Due Date:</strong> {{ task.due_date|date:'d/m/Y' }}</p>
+                </div>
+            </div>
+
+            <!-- Dependencies Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Dependencies</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Has Dependency:</strong> {{ task.has_dependency|yesno:"Yes,No" }}</p>
+                    <p><strong>Prerequisite Task:</strong>
+                        {% if task.prereq_task %}
+                            <a href="{% url 'task_detail' project_id=task.prereq_task.project.id task_id=task.prereq_task.id %}">
+                                {{ task.prereq_task.task_name }}
+                            </a>
+                        {% else %}
+                            None
+                        {% endif %}
+                    </p>
+                    {% if task.delay_reason %}
+                        <p><strong>Delay Reason:</strong> {{ task.delay_reason }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

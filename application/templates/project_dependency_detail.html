@@ -1,28 +1,79 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>Dependency Details: {{ dependency.dependency_details }}</h1>
-    <a href="{% url 'dependency_list' project_id=project.id %}" class="btn btn-outline-secondary mb-3">Back to Dependencies List</a>
-    <button type="button" class="btn btn-primary mb-3" onclick="openCommentModal('dependency', {{ dependency.pk }}, 'Dependency Details')">Add Comment</button>
-    {% if project.project_status != 7 %}
-        <a href="{% url 'edit_dependency' project_id=project.id dependency_id=dependency.id %}" class="btn btn-warning mb-3">Edit Dependency</a>
-    {% endif %}
-    
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Dependency Details: {{ dependency.dependency_details }}</h1>
+        <div>
+            <a href="{% url 'dependency_list' project_id=project.id %}" class="btn btn-outline-secondary">Back to Dependencies List</a>
+            {% if project.project_status != 7 %}
+                <a href="{% url 'edit_dependency' project_id=project.id dependency_id=dependency.id %}" class="btn btn-warning">Edit Dependency</a>
+            {% endif %}
+            <button type="button" class="btn btn-primary" onclick="openCommentModal('dependency', {{ dependency.pk }}, 'Dependency Details')">Add Comment</button>
+        </div>
+    </div>
 
-    <h3>Dependency Overview</h3>
-    <p><strong>Details:</strong> {{ dependency.dependency_details }}</p>
-    <p><strong>Status:</strong> {{ dependency.get_status_display }}</p>
-    <p><strong>Created By:</strong> {{ dependency.created_by }}</p>
-    <p><strong>Created At:</strong> {{ dependency.created_datetime }}</p>
-    <p><strong>Last Updated At:</strong> {{ dependency.last_updated_datetime }}</p>
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Dependency Description Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Dependency Description</h6>
+                </div>
+                <div class="card-body">
+                    <p>{{ dependency.dependency_details|linebreaksbr }}</p>
+                </div>
+            </div>
 
-    <h3>Comments</h3>
-    <ul class="list-group">
-        {% for comment in comments %}
-            <li class="list-group-item">
-                <strong>{{ comment.user }}:</strong> {{ comment.comment_text }} <br>
-                <small>Posted on: {{ comment.created_datetime }}</small>
-            </li>
-        {% endfor %}
-    </ul>
+            <!-- Comments Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Comments</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for comment in comments %}
+                            <li class="list-group-item">
+                                <strong>{{ comment.user }}:</strong> {{ comment.comment_text|linebreaksbr }}
+                                <br>
+                                <small class="text-muted">Posted on: {{ comment.created_datetime }}</small>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">No comments yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Dependency Information Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Dependency Information</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Status:</strong> 
+                        <span class="badge bg-dark text-white">{{ dependency.get_status_display }}</span>
+                    </p>
+                    <p><strong>Created By:</strong> {{ dependency.created_by }}</p>
+                </div>
+            </div>
+
+            <!-- Dates Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Dates</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Created:</strong> {{ dependency.created_datetime|date:'d/m/Y H:i' }}</p>
+                    <p><strong>Last Updated:</strong> {{ dependency.last_updated_datetime|date:'d/m/Y H:i' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

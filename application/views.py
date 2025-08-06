@@ -19,7 +19,7 @@ from calendar import monthrange
 
 from django.shortcuts import redirect
 import json
-from .models import Project, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment, Asset, Skill
+from .models import Project, Task, Stakeholder, Risk, Issue, Assumption, Dependency, Comment, Attachment, Asset, Skill, Team
 from .forms import ProjectForm, ProjectUpdateForm, CreateTaskForm, StakeholderForm, RiskForm, IssueForm, AssumptionForm, DependencyForm, EditTaskForm, TaskCompleteForm, ProjectCloseForm, AttachmentForm
 
 import json
@@ -120,6 +120,29 @@ class ProjectUpdateView(PermissionRequiredMixin, UpdateView):
     def form_valid(self, form):
         form.save()
         return redirect(reverse('project_detail', kwargs={'project_id': self.object.pk}))
+
+class OnHoldProjectListView(LoginRequiredMixin, ListView):
+    model = Project
+    template_name = 'project_list.html'  # Reuse the same template
+    context_object_name = 'projects'
+
+    def get_queryset(self):
+        # Filter projects with status 'On Hold' (4)
+        return Project.objects.filter(project_status=4).order_by('-last_updated_datetime')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        projects = list(context['projects'])
+
+        for project in projects:
+            tasks = Task.objects.filter(project=project)
+            project.completed_tasks = tasks.filter(task_status=3).count()
+            project.incomplete_tasks = tasks.exclude(task_status=3).count()
+            project.rag_status = calculate_rag_status(project)
+
+        context['projects'] = projects
+        context['title'] = 'On Hold Projects'
+        return context
 
 class ProjectListView(LoginRequiredMixin, ListView):
     model = Project
@@ -1936,4 +1959,83 @@ class ProjectGanttChartView(LoginRequiredMixin, TemplateView):
 
         context['project'] = project
         context['task_data'] = json.dumps(task_data)
+        return context
+
+
+class TeamDetailView(LoginRequiredMixin, DetailView):
+    model = Team
+    template_name = 'team_detail.html'
+    context_object_name = 'team'
+    pk_url_kwarg = 'team_id'
+    
+    def get_object(self, queryset=None):
+        return get_object_or_404(Team, team_id=self.kwargs['team_id'])
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        team = self.get_object()
+        
+        # Get all members (assets) of this team
+        team_members = Asset.objects.filter(teams=team)
+        
+        # Calculate statistics for each team member
+        for member in team_members:
+            # Count projects owned by the member
+            member.projects_owned_count = member.project_set.count()
+            
+            # Count tasks assigned to the member
+            member.tasks_count = member.task_set.count()
+            
+            # Count completed tasks
+            member.completed_tasks_count = member.task_set.filter(task_status=3).count()
+            
+            # Calculate task completion percentage
+            if member.tasks_count > 0:
+                member.completion_percentage = (member.completed_tasks_count / member.tasks_count) * 100
+            else:
+                member.completion_percentage = 0
+        
+        context['team_members'] = team_members
+        context['member_count'] = team_members.count()
+        
+        # Team-wide statistics
+        context['total_skills'] = set()
+        for member in team_members:
+            context['total_skills'].update(member.skills.all())
+        
+        context['total_skills_count'] = len(context['total_skills'])
+        
+        return context
+
+
+class TeamListView(LoginRequiredMixin, ListView):
+    model = Team
+    template_name = 'team_list.html'
+    context_object_name = 'teams'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teams = Team.objects.all()
+        team_members = []
+        
+        # Check for teams without members
+        teams_without_members_flag = False
+        
+        for team in teams:
+            # Get all members (assets) of this team
+            members = Asset.objects.filter(teams=team)
+            team_members.append({
+                'team': team,
+                'members': members,
+                'member_count': members.count()
+            })
+            
+            # If no members in this team, set the flag
+            if not members.exists():
+                teams_without_members_flag = True
+        
+        # Pass the collected data to the template context
+        context['team_members'] = team_members
+        context['teams_without_members'] = teams_without_members_flag  # Flag for warning message
+        
         return context

@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extraCSS %}
+<link rel="stylesheet" href="{% static 'css/datatables.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/chart.min.css' %}">
+{% endblock %}
+
+{% block content %}
+    <h1>Teams List</h1>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary mb-3">Home</a>
+
+    <!-- Warning Message if Teams without Members Exist -->
+    {% if teams_without_members %}
+    <div class="alert alert-warning" role="alert">
+        <strong>Notice:</strong> There are teams with no assigned members. Consider assigning members to these teams for better resource management.
+    </div>
+    {% endif %}
+
+    <!-- Collapsible Teams Chart -->
+    <div class="accordion mb-3" id="teamsAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingTeamsChart">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTeamsChart" aria-expanded="false" aria-controls="collapseTeamsChart">
+                    Team Size Overview
+                </button>
+            </h2>
+            <div id="collapseTeamsChart" class="accordion-collapse collapse" aria-labelledby="headingTeamsChart" data-bs-parent="#teamsAccordion">
+                <div class="accordion-body">
+                    <div style="overflow-x: auto; width: 100%; max-width: 1000px;">
+                        <canvas id="teamsChart" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teams Table -->
+    <table id="team-table" class="table table-striped">
+        <thead>
+            <tr>
+                <th>Team Name</th>
+                <th>Members</th>
+                <th>Member Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team_data in team_members %}
+                <tr>
+                    <td><a href="{% url 'team_detail' team_id=team_data.team.team_id %}">{{ team_data.team.team_name }}</a></td>
+                    <td>
+                        {% if team_data.members %}
+                            <ul>
+                                {% for member in team_data.members %}
+                                    <li><a href="{% url 'asset_detail' pk=member.pk %}">{{ member.name }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <ul>
+                                No members in this team.
+                            </ul>
+                        {% endif %}
+                    </td>
+                    <td>{{ team_data.member_count }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block extraJS %}
+<script src="{% static 'js/datatables.min.js' %}"></script>
+<script src="{% static 'js/chart.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable
+        $('#team-table').DataTable({
+            dom: '<"d-flex justify-content-between align-items-center mb-2"' +
+                    '<"col-sm-4 d-flex align-items-center"B>' +  // Buttons on the left
+                    '<"col-sm-4 d-flex justify-content-center"i>' +  // Info in the middle
+                    '<"col-sm-4 d-flex justify-content-end"f>' +  // Search on the right
+                 '>' + 
+                 '<"row"<"col-sm-12"tr>>' + 
+                 '<"d-flex justify-content-between align-items-center mt-2"' + 
+                    '<"col-sm-12 col-md-6"l>' + 
+                    '<"col-sm-12 col-md-6 d-flex justify-content-end"p>>',
+            pagingType: "full_numbers",
+            buttons: [
+                'copy', 'csv', 'excel'
+            ],
+        });
+
+        // Prepare data for Chart.js from team_members context
+        let teamData = [];
+        {% for team_data in team_members %}
+            teamData.push({
+                name: "{{ team_data.team.team_name }}",
+                count: {{ team_data.member_count }}
+            });
+        {% endfor %}
+
+        // Sort teamData by member count in ascending order
+        teamData.sort((a, b) => a.count - b.count);
+
+        // Extract sorted teams and member counts into arrays
+        const teams = teamData.map(team => team.name);
+        const memberCounts = teamData.map(team => team.count);
+
+        // Initialize Chart.js Horizontal Bar Chart when the accordion is expanded
+        $('#collapseTeamsChart').on('shown.bs.collapse', function () {
+            if ($('#teamsChart').length) {
+                const ctx = document.getElementById('teamsChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: teams,
+                        datasets: [{
+                            label: 'Number of Members in Team',
+                            data: memberCounts,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',  // Makes the bar chart horizontal
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Members'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Teams'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.raw + ' members';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

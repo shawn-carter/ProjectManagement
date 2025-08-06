@@ -15,7 +15,7 @@
     <p><strong>Teams:</strong> 
         {% if asset.teams.all %}
             {% for team in asset.teams.all %}
-                <a href="#">{{ team.team_name }}</a>{% if not forloop.last %}, {% endif %}
+                <a href="{% url 'team_detail' team_id=team.team_id %}">{{ team.team_name }}</a>{% if not forloop.last %}, {% endif %}
             {% endfor %}
         {% else %}
             None
@@ -23,29 +23,34 @@
     </p>
 </div>
 
-<div class="card p-3 mb-4">
-    <h3>Statistics</h3>
-    <ul>
-        <li><strong>Projects Owned (Total):</strong> {{ projects_owned_count }}</li>
-        <li><strong>Projects Owned (Open):</strong> {{ projects_owned_open_count }}</li>
-        <li><strong>Projects Owned (Closed):</strong> {{ projects_owned_closed_count }}</li>
-        <li><strong>All Tasks:</strong> {{ all_tasks_count }}</li>  <!-- Changed from Assigned Tasks -->
-        <li><strong>Completed Tasks:</strong> {{ completed_tasks }}</li>
-        <li><strong>Incomplete Tasks:</strong> {{ incomplete_tasks }}</li>
-        <li><strong>Total Time Spent on Tasks:</strong> {{ total_time_spent_hours|floatformat:2 }} hours</li>
-        <li><strong>Average Time Per Task:</strong> {{ average_time_per_task|default:"N/A" }} hours</li>
-    </ul>
-</div>
-
-<div class="card p-3 mb-4">
-    <h3>Skills</h3>
-    <ul>
-        {% for skill in asset.skills.all %}
-            <li><a href="{% url 'skill_detail' pk=skill.skill_id %}">{{ skill.skill_name }}</a></li>
-        {% empty %}
-            <li>No skills assigned.</li>
-        {% endfor %}
-    </ul>
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card p-3 h-100">
+            <h3>Statistics</h3>
+            <ul>
+                <li><strong>Projects Owned (Total):</strong> {{ projects_owned_count }}</li>
+                <li><strong>Projects Owned (Open):</strong> {{ projects_owned_open_count }}</li>
+                <li><strong>Projects Owned (Closed):</strong> {{ projects_owned_closed_count }}</li>
+                <li><strong>All Tasks:</strong> {{ all_tasks_count }}</li>  <!-- Changed from Assigned Tasks -->
+                <li><strong>Completed Tasks:</strong> {{ completed_tasks }}</li>
+                <li><strong>Incomplete Tasks:</strong> {{ incomplete_tasks }}</li>
+                <li><strong>Total Time Spent on Tasks:</strong> {{ total_time_spent_hours|floatformat:2 }} hours</li>
+                <li><strong>Average Time Per Task:</strong> {{ average_time_per_task|default:"N/A" }} hours</li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card p-3 h-100">
+            <h3>Skills</h3>
+            <ul>
+                {% for skill in asset.skills.all %}
+                    <li><a href="{% url 'skill_detail' pk=skill.skill_id %}">{{ skill.skill_name }}</a></li>
+                {% empty %}
+                    <li>No skills assigned.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 </div>
 
 <div class="card p-3 mb-4">

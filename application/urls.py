@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
-from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView, AttachmentListView, AttachmentCreateView, AttachmentDownloadView, AttachmentPreviewView, AssetListView, AssetDetailView, SkillListView, SkillDetailView, filter_assets_by_skills, ProjectGanttChartView
+from .views import ProjectCreateView, ProjectUpdateView, ProjectListView, ProjectDetailView, TaskCreateView, TaskUpdateView, TaskDetailView, TaskListView, TaskCompleteView, RiskCreateView, RiskUpdateView, RiskListView, RiskDetailView, AssumptionCreateView, AssumptionUpdateView, AssumptionListView, AssumptionDetailView, IssueCreateView, IssueUpdateView, IssueListView, IssueDetailView, DependencyCreateView, DependencyUpdateView, DependencyListView, DependencyDetailView, StakeholderCreateView, StakeholderUpdateView, StakeholderListView, ProjectTaskCalendarView, project_calendar, project_events, add_comment, ProjectCloseView, AttachmentListView, AttachmentCreateView, AttachmentDownloadView, AttachmentPreviewView, AssetListView, AssetDetailView, SkillListView, SkillDetailView, filter_assets_by_skills, ProjectGanttChartView, TeamDetailView, TeamListView, OnHoldProjectListView
 
 urlpatterns = [
     ################################ Unauthorised users URLS ################################
@@ -16,11 +16,12 @@ urlpatterns = [
     # Project Views
     path('projects/', ProjectListView.as_view(), name='all_projects'),  # List All Projects
     path('projects/add/', ProjectCreateView.as_view(), name='project_create'),  # Create Project
+    path('projects/onhold/', OnHoldProjectListView.as_view(), name='on_hold_project_list'),
     path('projects/<int:project_id>/', ProjectDetailView.as_view(), name='project_detail'),  # Project Details
     path('projects/<int:project_id>/edit/', ProjectUpdateView.as_view(), name='project_edit'),  # Edit Project
     path('projects/<int:project_id>/close/', ProjectCloseView.as_view(), name='project_close'),  # Close Project
     path('projects/open/', ProjectListView.as_view(), name='open_project_list'),
-    path('projects/closed/', ProjectListView.as_view(), name='closed_project_list'),
+    path('projects/closed/', ProjectListView.as_view(template_name='project_list.html', extra_context={'page_title': 'Closed Projects'}), name='closed_project_list'),
 
 
     # Project Task Views
@@ -92,6 +93,10 @@ urlpatterns = [
     # Skills Views
     path('skills/', SkillListView.as_view(), name='skill_list'),
     path('skills/<int:pk>/', SkillDetailView.as_view(), name='skill_detail'),  # URL for skill details
+
+    # Team Views
+    path('teams/', TeamListView.as_view(), name='team_list'),  # URL for teams list
+    path('teams/<int:team_id>/', TeamDetailView.as_view(), name='team_detail'),  # URL for team details
 
     path('ajax/filter_assets/', filter_assets_by_skills, name='filter_assets_by_skills'),
     path('ajax/get_task_dates/', views.get_prereq_task_dates, name='get_prereq_task_dates'),
